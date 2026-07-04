@@ -1,0 +1,16 @@
+PATCH FOR eda.js (v6.0 from doc 43)
+====================================
+In the DOMContentLoaded listener, find the switch(section) block.
+It currently ends with:
+
+        case 'received-files': ShareManager.renderReceivedFiles();    break;
+      }
+
+Replace with:
+
+        case 'received-files': ShareManager.renderReceivedFiles();    break;
+        case 'ml-studio':      if (window.MLStudio) MLStudio.init();  break;
+        case 'edit-data':      if (window.EditDatasetManager) EditDatasetManager.init(); break;
+      }
+
+THAT IS THE ONLY CHANGE NEEDED IN eda.js v6.0
