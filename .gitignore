@@ -1,0 +1,84 @@
+# .gitignore — Kore_data-ex v9.0
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environment ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── Environment variables — NEVER commit ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── User-uploaded datasets ────────────────────────────────────────────────────
+uploads/
+backend/uploads/
+*.csv
+*.xlsx
+*.xls
+*.parquet
+
+# ── User avatars / resumes (runtime-generated static files) ──────────────────
+backend/static/avatars/
+backend/static/resumes/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Pytest / coverage ─────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── MyPy ──────────────────────────────────────────────────────────────────────
+.mypy_cache/
+
+# ── uv / pip ──────────────────────────────────────────────────────────────────
+.uv/
+uv.lock
+pip-wheel-metadata/
+
+# ── XML (was blocking rail config files previously) ──────────────────────────
+*.xml
+
+# NOTE: railway.json and Procfile are intentionally NOT ignored.
+# NOTE: requirements.txt is intentionally NOT ignored.
+
+# ── Node / Next.js frontend ────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Large media files (don't commit videos to git) ─────────────────────────────
+*.mp4
+*.mov
+*.avi
+*.mkv
