@@ -146,14 +146,7 @@ function EarthGlobe() {
 
 export default function HeroScene() {
   return (
-    <div
-      className="absolute z-[1] opacity-55 pointer-events-auto mix-blend-screen"
-      style={{
-        inset: "-90px -180px 260px -90px",
-        filter: "drop-shadow(0 0 20px rgba(0, 212, 255, 0.14))",
-      }}
-      aria-hidden="true"
-    >
+    <div className="scene" aria-hidden="true">
       <Canvas camera={{ position: [0, 0, 6.2], fov: 44 }}>
         <ambientLight intensity={0.55} />
         <pointLight position={[3, 3, 4]} intensity={1.5} color="#00d4ff" />

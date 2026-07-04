@@ -18,8 +18,8 @@ import {
 
 export const navLinks = [
   ["Home", "/"],
-  ["Services", "/services"],
-  ["How It Works", "/working-mechanism"],
+  ["Service", "/services"],
+  ["Working Mechanism", "/working-mechanism"],
   ["About", "/about"],
   ["Contact", "/contact"],
   ["FAQ", "/faq"]
@@ -77,6 +77,21 @@ export const pages: Record<string, { title: string; eyebrow: string; description
     eyebrow: "Solutions",
     title: "AI data intelligence for every modern industry.",
     description: "Purpose-built workflows for healthcare, finance, education, retail, manufacturing, research, government, and more."
+  },
+  services: {
+    eyebrow: "Service",
+    title: "AI data services for modern teams.",
+    description: "KoreData helps teams analyze data, build dashboards, forecast outcomes, automate reports, and ask secure AI questions over business knowledge."
+  },
+  "working-mechanism": {
+    eyebrow: "Working Mechanism",
+    title: "From raw data to intelligent action.",
+    description: "Upload data, clean it, analyze quality, generate dashboards, ask the AI assistant, run forecasts, and export decision-ready reports."
+  },
+  faq: {
+    eyebrow: "FAQ",
+    title: "Answers before you start.",
+    description: "Learn how KoreData handles datasets, dashboards, AI assistants, RAG search, forecasting, security, deployment, and team workflows."
   },
   pricing: {
     eyebrow: "Pricing",

@@ -17,11 +17,7 @@ export default function VideoBackground() {
   return (
     <video
       ref={videoRef}
-      className="fixed inset-0 z-0 w-full h-full object-cover pointer-events-none transition-[opacity,filter] duration-[350ms] ease-out"
-      style={{
-        opacity: "var(--video-opacity)" as unknown as number,
-        filter: "var(--video-filter)",
-      }}
+      className="ai-bg-video"
       autoPlay
       muted
       loop
