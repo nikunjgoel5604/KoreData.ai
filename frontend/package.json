@@ -10,10 +10,11 @@
   "dependencies": {
     "@react-three/drei": "latest",
     "@react-three/fiber": "latest",
-    "@tailwindcss/postcss": "latest",
+    "@tailwindcss/postcss": "^4.3.2",
     "framer-motion": "latest",
     "lucide-react": "latest",
-    "next": "latest",
+    "next": "^16.2.10",
+    "postcss": "^8.5.16",
     "react": "latest",
     "react-dom": "latest",
     "three": "latest"
@@ -22,7 +23,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "tailwindcss": "latest",
+    "tailwindcss": "^4.3.2",
     "typescript": "latest"
   }
 }

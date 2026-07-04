@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { features, pages, solutions } from "@/constants/site";
-import Button from "@/components/ui/Button";
-import Eyebrow from "@/components/ui/Eyebrow";
-import PricingCard from "@/components/ui/PricingCard";
 
 export function generateStaticParams() {
   return Object.keys(pages).map((slug) => ({ slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const page = pages[params.slug];
+type SlugParams = Promise<{ slug: string }>;
+
+export async function generateMetadata({ params }: { params: SlugParams }) {
+  const { slug } = await params;
+  const page = pages[slug];
   if (!page) return {};
   return {
     title: `${page.eyebrow} | KoreData`,
@@ -18,20 +18,19 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   };
 }
 
-export default function Page({ params }: { params: { slug: string } }) {
-  const page = pages[params.slug];
+export default async function Page({ params }: { params: SlugParams }) {
+  const { slug } = await params;
+  const page = pages[slug];
   if (!page) notFound();
 
   return (
-    <main className="min-h-screen pt-[calc(var(--nav-h)+70px)] px-5 pb-10">
-      <section className="w-full max-w-[1240px] mx-auto">
-        <Eyebrow>{page.eyebrow}</Eyebrow>
-        <h1 className="max-w-[850px] mt-[18px] mb-0 font-display text-[clamp(44px,6vw,78px)] leading-[0.98] tracking-[-0.04em]">
-          {page.title}
-        </h1>
-        <p className="max-w-[740px] mt-4 text-kore-muted font-mono leading-[1.8]">{page.description}</p>
+    <main className="page-main">
+      <section className="page-hero">
+        <div className="eyebrow"><span className="live-dot" /> {page.eyebrow}</div>
+        <h1>{page.title}</h1>
+        <p>{page.description}</p>
 
-        {params.slug === "contact" ? <Contact /> : params.slug === "pricing" ? <Pricing /> : <Generic slug={params.slug} />}
+        {slug === "contact" ? <Contact /> : slug === "pricing" ? <Pricing /> : <Generic slug={slug} />}
       </section>
     </main>
   );
@@ -41,11 +40,11 @@ function Generic({ slug }: { slug: string }) {
   const items = slug === "solutions" ? solutions : features.map(([title]) => title as string);
 
   return (
-    <div className="grid grid-cols-3 gap-4 mt-[52px] max-md:grid-cols-2 max-sm:grid-cols-1">
+    <div className="page-grid">
       {items.slice(0, 9).map((item) => (
-        <article className="cornered border border-kore-border bg-kore-surface rounded-kore p-6" key={item}>
-          <h2 className="m-0 mb-2.5 text-kore-accent font-mono text-sm tracking-[1.4px] uppercase">{item}</h2>
-          <p className="m-0 text-kore-muted leading-[1.7]">
+        <article className="page-card cornered" key={item}>
+          <h2>{item}</h2>
+          <p>
             Premium AI workflows with secure automation, modern visualization, explainable insights,
             and enterprise-ready performance.
           </p>
@@ -57,13 +56,20 @@ function Generic({ slug }: { slug: string }) {
 
 function Pricing() {
   return (
-    <div className="grid grid-cols-3 gap-4 mt-[52px] max-md:grid-cols-2 max-sm:grid-cols-1">
-      {[
-        { plan: "Starter", price: "$29", description: "Per user / month.", features: ["AI data analysis", "Interactive dashboards", "LLM assistant", "RAG search", "API access"] },
-        { plan: "Professional", price: "$99", description: "Per user / month.", features: ["AI data analysis", "Interactive dashboards", "LLM assistant", "RAG search", "API access"] },
-        { plan: "Enterprise", price: "Custom", description: "Advanced controls for enterprise teams.", features: ["AI data analysis", "Interactive dashboards", "LLM assistant", "RAG search", "API access"] },
-      ].map((item) => (
-        <PricingCard key={item.plan} {...item} />
+    <div className="pricing-grid" style={{ marginTop: 52 }}>
+      {["Starter", "Professional", "Enterprise"].map((plan, i) => (
+        <article className="card pricing-card cornered" key={plan}>
+          <h3>{plan}</h3>
+          <div className="price">{i === 2 ? "Custom" : `$${i === 0 ? 29 : 99}`}</div>
+          <p>{i === 2 ? "Advanced controls for enterprise teams." : "Per user / month."}</p>
+          <ul>
+            <li>AI data analysis</li>
+            <li>Interactive dashboards</li>
+            <li>LLM assistant</li>
+            <li>RAG search</li>
+            <li>API access</li>
+          </ul>
+        </article>
       ))}
     </div>
   );
@@ -71,31 +77,23 @@ function Pricing() {
 
 function Contact() {
   return (
-    <div className="grid grid-cols-2 gap-6 mt-[52px] max-md:grid-cols-1">
-      <form className="cornered grid gap-3.5 border border-kore-border bg-kore-surface rounded-kore p-6">
-        <input className="w-full border border-kore-border bg-[rgba(0,212,255,0.045)] text-kore-text rounded-md p-3.5 outline-none focus:border-kore-accent focus:shadow-[0_0_18px_rgba(0,212,255,0.12)]" placeholder="Name" aria-label="Name" />
-        <input className="w-full border border-kore-border bg-[rgba(0,212,255,0.045)] text-kore-text rounded-md p-3.5 outline-none focus:border-kore-accent focus:shadow-[0_0_18px_rgba(0,212,255,0.12)]" placeholder="Email" aria-label="Email" />
-        <input className="w-full border border-kore-border bg-[rgba(0,212,255,0.045)] text-kore-text rounded-md p-3.5 outline-none focus:border-kore-accent focus:shadow-[0_0_18px_rgba(0,212,255,0.12)]" placeholder="Company" aria-label="Company" />
-        <textarea className="w-full border border-kore-border bg-[rgba(0,212,255,0.045)] text-kore-text rounded-md p-3.5 outline-none min-h-[160px] resize-y focus:border-kore-accent focus:shadow-[0_0_18px_rgba(0,212,255,0.12)]" placeholder="Tell us about your data workflow" aria-label="Message" />
-        <Button variant="primary" type="button">Send Message</Button>
+    <div className="contact-form">
+      <form className="form-panel card cornered">
+        <input placeholder="Name" aria-label="Name" />
+        <input placeholder="Email" aria-label="Email" />
+        <input placeholder="Company" aria-label="Company" />
+        <textarea placeholder="Tell us about your data workflow" aria-label="Message" />
+        <button className="btn btn-primary" type="button">Send Message</button>
       </form>
 
-      <div className="cornered border border-kore-border bg-kore-surface rounded-kore p-6">
-        <h3 className="mt-[18px] mb-2 font-mono text-sm tracking-[1.5px] uppercase text-kore-accent">Book a KoreData demo</h3>
-        <p className="m-0 text-kore-muted leading-[1.7]">
+      <div className="card cornered">
+        <h3>Book a KoreData demo</h3>
+        <p>
           Speak with our team about enterprise AI analytics, deployment, pricing, security,
           dashboards, integrations, and custom workflows.
         </p>
-        <div
-          className="min-h-[360px] grid place-items-center text-kore-dim font-mono border border-kore-border rounded-kore mt-5"
-          style={{
-            background: "linear-gradient(rgba(0,212,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.08) 1px, transparent 1px), rgba(0,18,36,0.5)",
-            backgroundSize: "32px 32px",
-          }}
-        >
-          Google Map Placeholder
-        </div>
-        <Button variant="primary" href="/register" className="mt-5">Get Started</Button>
+        <div className="map-placeholder">Google Map Placeholder</div>
+        <Link href="/register" className="btn btn-primary" style={{ marginTop: 20 }}>Get Started</Link>
       </div>
     </div>
   );

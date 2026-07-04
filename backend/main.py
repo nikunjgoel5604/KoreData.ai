@@ -202,6 +202,7 @@ class RegisterRequest(BaseModel):
     last_name:  str = ""
     email:      str
     phone:      str
+    password:   str = ""
     otp_method: str = "email"
 
 class LoginRequestBody(BaseModel):
@@ -336,6 +337,10 @@ async def home(request: Request):
 
 @app.post("/auth/register")
 def register(body: RegisterRequest):
+    password = body.password.strip()
+    if password and len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
     existing = db_fetchone(
         "SELECT login_id FROM kore_users WHERE email = %s OR phone = %s",
         (body.email, body.phone),
@@ -346,6 +351,18 @@ def register(body: RegisterRequest):
     login_id = "KD" + str(secrets.randbelow(900000) + 100000)
     while db_fetchone("SELECT 1 FROM kore_users WHERE login_id = %s", (login_id,)):
         login_id = "KD" + str(secrets.randbelow(900000) + 100000)
+
+    if password:
+        db_execute(
+            "INSERT INTO kore_users (login_id, first_name, last_name, email, phone, password_hash, is_verified) "
+            "VALUES (%s, %s, %s, %s, %s, %s, 1)",
+            (login_id, body.first_name, body.last_name, body.email, body.phone, _hash_password(password)),
+        )
+        return {
+            "ok": True,
+            "login_id": login_id,
+            "message": "Account created. Use this Login ID and password to sign in.",
+        }
 
     db_execute(
         "INSERT INTO kore_users (login_id, first_name, last_name, email, phone) "
