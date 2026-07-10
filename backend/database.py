@@ -1,12 +1,32 @@
-# database.py — Kore_data-ex  v9.0
+# database.py — Kore_data-ex  v9.1
 # =========================================================
-# CHANGES vs v8.0
+# CHANGES vs v9.0
 # ─────────────────────────────────────────────────────────
-# v9.0  · Added ML Studio tables:
-#            ml_training_history — one row per training run per user
-#            ml_saved_models     — persisted model files per user
-#        · init_db() is fully idempotent (safe to re-run on live DB)
-#        · All previous tables unchanged from v8.0
+# FIX 1  "Unread result found" crash fixed.
+#         db_fetchone() / db_fetchall() / db_execute() now use
+#         conn.cursor(dictionary=True, buffered=True).
+#
+#         Root cause: with a non-buffered cursor, if a query
+#         returns more than one row and you only call
+#         fetchone(), the remaining row(s) stay unread on the
+#         socket. Because connections are reused from a pool,
+#         the NEXT query on that same pooled connection then
+#         raises mysql.connector.errors.InternalError:
+#         "Unread result found".
+#         This happened in /auth/register's duplicate check:
+#             SELECT login_id FROM kore_users
+#             WHERE email = %s OR phone = %s
+#         — if the email matches one user and the phone matches
+#         a DIFFERENT user, this returns 2 rows, and fetchone()
+#         only consumed 1, corrupting the pooled connection for
+#         whichever request grabbed it next.
+#
+#         buffered=True makes the connector fetch the ENTIRE
+#         result set into memory as soon as execute() runs, so
+#         partial reads (fetchone() on a multi-row result) can
+#         never leave anything "unread" on the wire.
+#
+# All other logic is unchanged from v9.0.
 # =========================================================
 
 import os
@@ -81,7 +101,7 @@ def get_connection():
 
 def init_db() -> None:
     conn = get_connection()
-    cur  = conn.cursor()
+    cur  = conn.cursor(buffered=True)
     try:
 
         # ── kore_users ────────────────────────────────────────────────────────
@@ -213,9 +233,7 @@ def init_db() -> None:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """)
 
-        # ── v9.0: ml_training_history ─────────────────────────────────────────
-        # One row per ML training run. Stores key metrics and model metadata.
-        # model_b64 is NOT stored here (too large for DB) — stored on disk.
+        # ── ml_training_history ──────────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS ml_training_history (
                 id              INT           NOT NULL AUTO_INCREMENT,
@@ -264,9 +282,7 @@ def init_db() -> None:
               COMMENT='One row per ML training run. Links user to model metrics and saved file.'
         """)
 
-        # ── v9.0: ml_saved_models ────────────────────────────────────────────
-        # One row per saved model per user. Tracks where the .joblib file lives.
-        # Multiple saves of the same model_key are versioned by trained_at.
+        # ── ml_saved_models ──────────────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS ml_saved_models (
                 id              INT           NOT NULL AUTO_INCREMENT,
@@ -345,7 +361,7 @@ def init_db() -> None:
             ("kore_users", "last_login",    "ALTER TABLE kore_users ADD COLUMN last_login DATETIME NULL"),
         ])
 
-        logger.info("[DB] All tables ready (v9.0 — ML Studio tables included).")
+        logger.info("[DB] All tables ready (v9.1 — buffered cursors, ML Studio tables included).")
 
     finally:
         cur.close()
@@ -369,10 +385,15 @@ def _safe_migrate(cur, migrations: list) -> None:
 
 
 # ─── Query helpers ────────────────────────────────────────────────────────────
+# NOTE: buffered=True is the critical fix — it forces mysql-connector-python
+# to read the FULL result set into memory as soon as execute() runs.
+# Without it, fetchone() on a multi-row result leaves rows "unread" on the
+# socket, and the NEXT query on that pooled connection raises:
+#   mysql.connector.errors.InternalError: Unread result found
 
 def db_fetchone(query: str, params: tuple = ()) -> Optional[dict]:
     conn = get_connection()
-    cur  = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True, buffered=True)
     try:
         cur.execute(query, params)
         return cur.fetchone()
@@ -383,7 +404,7 @@ def db_fetchone(query: str, params: tuple = ()) -> Optional[dict]:
 
 def db_fetchall(query: str, params: tuple = ()) -> List[dict]:
     conn = get_connection()
-    cur  = conn.cursor(dictionary=True)
+    cur  = conn.cursor(dictionary=True, buffered=True)
     try:
         cur.execute(query, params)
         return cur.fetchall()
@@ -394,7 +415,7 @@ def db_fetchall(query: str, params: tuple = ()) -> List[dict]:
 
 def db_execute(query: str, params: tuple = ()) -> int:
     conn = get_connection()
-    cur  = conn.cursor()
+    cur  = conn.cursor(buffered=True)
     try:
         cur.execute(query, params)
         return cur.lastrowid
