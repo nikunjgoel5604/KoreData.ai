@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { ContactSection } from "@/components/ContactSection";
 import { features, pages, solutions } from "@/constants/site";
 
 export function generateStaticParams() {
@@ -30,12 +30,11 @@ export default async function Page({ params }: { params: SlugParams }) {
         <h1>{page.title}</h1>
         <p>{page.description}</p>
 
-        {slug === "contact" ? <Contact /> : slug === "pricing" ? <Pricing /> : <Generic slug={slug} />}
+        {slug === "contact" ? <ContactSection /> : slug === "pricing" ? <Pricing /> : <Generic slug={slug} />}
       </section>
     </main>
   );
 }
-
 function Generic({ slug }: { slug: string }) {
   const items = slug === "solutions" ? solutions : features.map(([title]) => title as string);
 
@@ -53,7 +52,6 @@ function Generic({ slug }: { slug: string }) {
     </div>
   );
 }
-
 function Pricing() {
   return (
     <div className="pricing-grid" style={{ marginTop: 52 }}>
@@ -71,30 +69,6 @@ function Pricing() {
           </ul>
         </article>
       ))}
-    </div>
-  );
-}
-
-function Contact() {
-  return (
-    <div className="contact-form">
-      <form className="form-panel card cornered">
-        <input placeholder="Name" aria-label="Name" />
-        <input placeholder="Email" aria-label="Email" />
-        <input placeholder="Company" aria-label="Company" />
-        <textarea placeholder="Tell us about your data workflow" aria-label="Message" />
-        <button className="btn btn-primary" type="button">Send Message</button>
-      </form>
-
-      <div className="card cornered">
-        <h3>Book a KoreData demo</h3>
-        <p>
-          Speak with our team about enterprise AI analytics, deployment, pricing, security,
-          dashboards, integrations, and custom workflows.
-        </p>
-        <div className="map-placeholder">Google Map Placeholder</div>
-        <Link href="/register" className="btn btn-primary" style={{ marginTop: 20 }}>Get Started</Link>
-      </div>
     </div>
   );
 }

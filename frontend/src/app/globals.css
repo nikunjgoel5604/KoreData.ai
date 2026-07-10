@@ -864,6 +864,26 @@ main,
   box-shadow: 0 0 18px rgba(0, 212, 255, 0.12);
 }
 
+.form-panel button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form-status {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.form-status-success {
+  color: #4dffb8;
+}
+
+.form-status-error {
+  color: #ff8c8c;
+}
+
 .map-placeholder {
   min-height: 360px;
   display: grid;

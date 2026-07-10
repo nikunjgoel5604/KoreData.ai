@@ -15,7 +15,9 @@
 # =========================================================
 
 import logging
+import smtplib
 from datetime import datetime
+from email.mime.text import MIMEText
 from typing   import Optional
 
 from fastapi           import APIRouter, Request
@@ -42,8 +44,42 @@ _TMPL = Jinja2Templates(directory=os.path.join(_BASE, "templates"))
 class ContactMessage(BaseModel):
     name:    str
     email:   str
+    company: Optional[str] = ""
     subject: Optional[str] = ""
     message: str
+
+
+def _send_contact_email(name: str, email: str, company: str, message: str, ip: Optional[str]) -> None:
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_sender = os.environ.get("SMTP_SENDER", "")
+    smtp_password = os.environ.get("SMTP_PASSWORD", "")
+
+    if not smtp_sender or not smtp_password:
+        raise RuntimeError("SMTP_SENDER and SMTP_PASSWORD are required")
+
+    subject = f"KoreData contact form: {company or name}"
+    body = (
+        "New KoreData contact message\n\n"
+        f"Name: {name}\n"
+        f"Email: {email}\n"
+        f"Company: {company or '-'}\n"
+        f"IP Address: {ip or '-'}\n\n"
+        f"Message:\n{message}\n"
+    )
+
+    msg = MIMEText(body, "plain")
+    msg["Subject"] = subject
+    msg["From"] = smtp_sender
+    msg["To"] = smtp_sender
+    msg["Reply-To"] = email
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(smtp_sender, smtp_password)
+        server.sendmail(smtp_sender, [smtp_sender], msg.as_string())
 
 
 # ─── DB bootstrap ─────────────────────────────────────────────────────────────
@@ -107,7 +143,8 @@ async def contact_submit(body: ContactMessage, request: Request):
     """
     name    = (body.name    or "").strip()[:100]
     email   = (body.email   or "").strip()[:100]
-    subject = (body.subject or "").strip()[:100]
+    company = (body.company or "").strip()[:100]
+    subject = (body.subject or company or "Contact form").strip()[:100]
     message = (body.message or "").strip()[:2000]
     ip      = request.client.host if request.client else None
 
@@ -127,6 +164,15 @@ async def contact_submit(body: ContactMessage, request: Request):
     except Exception as exc:
         # Log but still return success — never show DB errors to users
         logger.error("[Landing] contact_submit DB error: %s", exc)
+
+    try:
+        _send_contact_email(name, email, company, message, ip)
+    except Exception as exc:
+        logger.error("[Landing] contact_submit email error: %s", exc)
+        return {
+            "ok": False,
+            "error": "We saved your message, but email delivery failed. Please try again shortly.",
+        }
 
     return {
         "ok":      True,
