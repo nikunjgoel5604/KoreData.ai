@@ -1,22 +1,18 @@
-# main.py — Kore_data-ex  v9.0
+# main.py — Kore_data-ex  v9.2
 # =========================================================
-# FIXES vs shared doc 45
+# CHANGES vs v9.1
 # ─────────────────────────────────────────────────────────
-# FIX 1  Removed `from landing_routes import ...`
-#         landing_routes.py does not exist — caused ImportError on startup.
+# FIX 1  Registration now ALWAYS sends an email OTP and the
+#         account stays is_verified=0 (even if a password was
+#         set at registration time) until the OTP is confirmed
+#         via POST /auth/verify-otp. This matches the frontend
+#         flow: Register -> Enter OTP -> Auto-login.
 #
-# FIX 2  Removed duplicate @app.get("/health") at the bottom.
-#         Two identical route definitions — FastAPI ignores the second
-#         one silently but it is bad practice and causes confusion.
-#         The single /health endpoint is now at the top (required by
-#         railway.json healthcheckPath="/health" to respond first).
+# FIX 2  _send_email_otp() now sends a branded HTML email
+#         (KoreData-EX verification template) with a plain-text
+#         fallback, instead of a bare plain-text message.
 #
-# FIX 3  Removed init_contact_table() call in lifespan.
-#         Was calling a function from the removed landing_routes import.
-#
-# v9.1 PATCH — landing_routes restored:
-#         Re-added landing_router + init_contact_table now that
-#         landing_routes.py exists. Fixes 404 on /about /services /contact.
+# Everything else is unchanged from v9.1.
 # =========================================================
 
 # ══ sys.path fix — MUST be before ALL imports ════════════
@@ -31,6 +27,7 @@ import secrets
 import logging
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -55,7 +52,7 @@ from simulation_engine  import simulation_router
 from activity_routes    import activity_router
 from ml_routes          import ml_router
 from account_routes     import account_router
-from landing_routes     import landing_router, init_contact_table   # ← PATCH v9.1
+from landing_routes     import landing_router, init_contact_table
 
 
 # ─── Lifespan ─────────────────────────────────────────────────────────────────
@@ -63,9 +60,9 @@ from landing_routes     import landing_router, init_contact_table   # ← PATCH 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    init_contact_table()   # ← PATCH v9.1
+    init_contact_table()
     logger.info(
-        "[Kore] v9.1 started — routers: simulation, activity, ml, account, landing"
+        "[Kore] v9.2 started — routers: simulation, activity, ml, account, landing"
         " | DEMO_MODE=%s", DEMO_MODE
     )
     yield
@@ -76,7 +73,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title       = "Kore_data-ex API",
-    version     = "9.1",
+    version     = "9.2",
     description = "End-to-end Data Intelligence & ML Recommendation Platform",
     lifespan    = lifespan,
 )
@@ -93,7 +90,7 @@ app.include_router(simulation_router)
 app.include_router(activity_router)
 app.include_router(ml_router)
 app.include_router(account_router)
-app.include_router(landing_router)   # ← PATCH v9.1
+app.include_router(landing_router)
 
 # ─── Static & Templates ───────────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -113,32 +110,196 @@ templates = Jinja2Templates(directory=TMPL_DIR) if os.path.isdir(TMPL_DIR) else 
 # ─── OTP / SMTP config ────────────────────────────────────────────────────────
 
 DEMO_MODE      = os.environ.get("DEMO_MODE", "false").lower() == "true"
-OTP_EXPIRY_MIN = int(os.environ.get("OTP_EXPIRY_MINUTES", "2"))
+OTP_EXPIRY_MIN = int(os.environ.get("OTP_EXPIRY_MINUTES", "10"))
 SMTP_HOST      = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT      = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_SENDER    = os.environ.get("SMTP_SENDER", "")
 SMTP_PASSWORD  = os.environ.get("SMTP_PASSWORD", "")
+SUPPORT_EMAIL  = os.environ.get("SUPPORT_EMAIL", "koredata.ai@gmail.com")
+SITE_URL       = os.environ.get("SITE_URL", "https://koredata.ai")
 
 
 def _generate_otp() -> str:
     return str(secrets.randbelow(900000) + 100000)
 
 
-def _send_email_otp(to_address: str, otp: str) -> None:
+# ── Branded HTML OTP email (KoreData-EX verification template) ───────────────
+
+def _build_otp_email_html(otp: str, first_name: str = "") -> str:
+    greeting = f"Hello {first_name}," if first_name else "Hello,"
+    return f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Your Email Address | KoreData-EX</title>
+</head>
+<body style="margin:0;padding:0;background-color:#000814;font-family:'DM Sans',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#000814;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:560px;background-color:#03101f;border:1px solid rgba(0,212,255,0.25);
+                      border-radius:12px;overflow:hidden;">
+
+          <!-- Header / Logo -->
+          <tr>
+            <td align="center" style="padding:32px 24px 16px;">
+              <div style="display:inline-flex;align-items:center;gap:10px;">
+                <span style="display:inline-block;width:40px;height:40px;line-height:40px;
+                             text-align:center;border:1px solid #00d4ff;border-radius:8px;
+                             color:#00d4ff;font-family:'DM Mono',Consolas,monospace;font-weight:800;">
+                  K∂
+                </span>
+                <span style="font-family:Arial,sans-serif;font-weight:800;letter-spacing:2px;
+                             text-transform:uppercase;color:#d9f3ff;font-size:20px;">
+                  Kore<span style="color:#00d4ff;">Data</span>-EX
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Title -->
+          <tr>
+            <td align="center" style="padding:0 24px 8px;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.02em;">
+                Verify Your Email Address
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:16px 32px 0;color:#9fc9de;font-size:14px;line-height:1.7;">
+              <p style="margin:0 0 12px;">{greeting}</p>
+              <p style="margin:0 0 12px;">
+                Welcome to <strong style="color:#d9f3ff;">KoreData-EX</strong>!
+              </p>
+              <p style="margin:0 0 12px;">
+                Thank you for creating your account. To complete your registration and secure
+                your account, please verify your email address using the One-Time Password (OTP) below.
+              </p>
+            </td>
+          </tr>
+
+          <!-- OTP box -->
+          <tr>
+            <td align="center" style="padding:24px 24px 8px;">
+              <div style="color:#7ab8d4;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+                          margin-bottom:10px;font-family:'DM Mono',Consolas,monospace;">
+                Your Verification Code
+              </div>
+              <div style="display:inline-block;padding:16px 36px;background:rgba(0,212,255,0.08);
+                          border:1px solid rgba(0,212,255,0.4);border-radius:10px;
+                          color:#00d4ff;font-size:34px;font-weight:800;letter-spacing:10px;
+                          font-family:'DM Mono',Consolas,monospace;">
+                {otp}
+              </div>
+              <div style="color:#658ba0;font-size:12px;margin-top:12px;">
+                This verification code is valid for {OTP_EXPIRY_MIN} minutes.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Security note -->
+          <tr>
+            <td style="padding:24px 32px 0;color:#9fc9de;font-size:13px;line-height:1.7;">
+              <p style="margin:0 0 8px;font-weight:700;color:#d9f3ff;">For your security:</p>
+              <ul style="margin:0 0 12px;padding-left:18px;">
+                <li>Do not share this code with anyone.</li>
+                <li>KoreData-EX will never ask for your OTP via phone, email, or social media.</li>
+                <li>If you did not request this verification, you can safely ignore this email.</li>
+              </ul>
+              <p style="margin:0 0 12px;">
+                Once verified, you'll be able to access the full KoreData-EX platform and begin
+                exploring AI-powered data analytics.
+              </p>
+              <p style="margin:0 0 4px;">If you need assistance, feel free to contact us.</p>
+              <p style="margin:0 0 4px;">📧 Email: <a href="mailto:{SUPPORT_EMAIL}" style="color:#00d4ff;text-decoration:none;">{SUPPORT_EMAIL}</a></p>
+              <p style="margin:0 0 16px;">🌐 Website: <a href="{SITE_URL}" style="color:#00d4ff;text-decoration:none;">{SITE_URL}</a></p>
+            </td>
+          </tr>
+
+          <!-- Sign-off -->
+          <tr>
+            <td style="padding:0 32px 24px;color:#9fc9de;font-size:13px;line-height:1.7;">
+              <p style="margin:0 0 4px;">Thank you for choosing KoreData-EX.</p>
+              <p style="margin:0 0 4px;color:#00ff88;font-weight:700;">Transform Data Into Intelligence</p>
+              <p style="margin:0;color:#658ba0;">KoreData-EX Team</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid rgba(0,212,255,0.15);">
+              <p style="margin:0;color:#5b7a8c;font-size:11px;">
+                This is an automated email. Please do not reply directly to this message.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:16px 24px 28px;background:rgba(0,212,255,0.04);">
+              <p style="margin:0;color:#5b7a8c;font-size:11px;letter-spacing:0.5px;">
+                © 2026 KoreData-EX. All Rights Reserved.<br/>
+                Transform Data Into Intelligence
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def _build_otp_email_text(otp: str, first_name: str = "") -> str:
+    greeting = f"Hello {first_name}," if first_name else "Hello,"
+    return (
+        f"Verify Your Email Address | KoreData-EX\n\n"
+        f"{greeting}\n\n"
+        f"Welcome to KoreData-EX!\n\n"
+        f"Thank you for creating your account. To complete your registration and secure your "
+        f"account, please verify your email address using the One-Time Password (OTP) below.\n\n"
+        f"Your Verification Code: {otp}\n\n"
+        f"This verification code is valid for {OTP_EXPIRY_MIN} minutes.\n\n"
+        f"For your security:\n"
+        f"- Do not share this code with anyone.\n"
+        f"- KoreData-EX will never ask for your OTP via phone, email, or social media.\n"
+        f"- If you did not request this verification, you can safely ignore this email.\n\n"
+        f"Once verified, you'll be able to access the full KoreData-EX platform and begin "
+        f"exploring AI-powered data analytics.\n\n"
+        f"If you need assistance, feel free to contact us.\n"
+        f"Email: {SUPPORT_EMAIL}\n"
+        f"Website: {SITE_URL}\n\n"
+        f"Thank you for choosing KoreData-EX.\n"
+        f"Transform Data Into Intelligence\n"
+        f"KoreData-EX Team\n\n"
+        f"This is an automated email. Please do not reply directly to this message.\n"
+        f"© 2026 KoreData-EX. All Rights Reserved."
+    )
+
+
+def _send_email_otp(to_address: str, otp: str, first_name: str = "") -> None:
     if not SMTP_SENDER or not SMTP_PASSWORD:
         raise HTTPException(
             status_code=500,
             detail="Email service not configured. Set SMTP_SENDER and SMTP_PASSWORD in .env",
         )
-    msg = MIMEText(
-        f"Your Kore Data verification code is: {otp}\n\n"
-        f"This code expires in {OTP_EXPIRY_MIN} minutes.\n"
-        f"Do not share it with anyone.",
-        "plain",
-    )
-    msg["Subject"] = "Your Kore Data OTP"
-    msg["From"]    = SMTP_SENDER
+
+    msg            = MIMEMultipart("alternative")
+    msg["Subject"] = "Verify Your Email Address | KoreData-EX"
+    msg["From"]    = f"KoreData-EX <{SMTP_SENDER}>"
     msg["To"]      = to_address
+
+    msg.attach(MIMEText(_build_otp_email_text(otp, first_name), "plain"))
+    msg.attach(MIMEText(_build_otp_email_html(otp, first_name), "html"))
+
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
             server.ehlo()
@@ -301,7 +462,7 @@ def health_check():
     return {
         "status":  "ok" if db_ok else "degraded",
         "db":      "connected" if db_ok else "unavailable",
-        "version": "9.1",
+        "version": "9.2",
         "service": "kore-data-ex",
     }
 
@@ -311,7 +472,7 @@ def version_info():
     import sys, platform
     return {
         "app":      "Kore_data-ex",
-        "version":  "9.1",
+        "version":  "9.2",
         "python":   sys.version,
         "platform": platform.system(),
     }
@@ -337,6 +498,19 @@ async def home(request: Request):
 
 @app.post("/auth/register")
 def register(body: RegisterRequest):
+    """
+    Registration ALWAYS requires email OTP verification before the account
+    becomes usable — even if the person sets a password during registration.
+
+    Flow:
+      1. Create the kore_users row with is_verified = 0
+         (password_hash is stored now if provided, but login is blocked
+         until OTP verification via /auth/verify-otp).
+      2. Generate + store an OTP (purpose='register') and email it using
+         the branded KoreData-EX HTML template.
+      3. Frontend shows the OTP entry step, then calls /auth/verify-otp,
+         which marks is_verified=1 and returns a session token (auto-login).
+    """
     password = body.password.strip()
     if password and len(password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
@@ -355,33 +529,30 @@ def register(body: RegisterRequest):
     if password:
         db_execute(
             "INSERT INTO kore_users (login_id, first_name, last_name, email, phone, password_hash, is_verified) "
-            "VALUES (%s, %s, %s, %s, %s, %s, 1)",
+            "VALUES (%s, %s, %s, %s, %s, %s, 0)",
             (login_id, body.first_name, body.last_name, body.email, body.phone, _hash_password(password)),
         )
-        return {
-            "ok": True,
-            "login_id": login_id,
-            "message": "Account created. Use this Login ID and password to sign in.",
-        }
-
-    db_execute(
-        "INSERT INTO kore_users (login_id, first_name, last_name, email, phone) "
-        "VALUES (%s, %s, %s, %s, %s)",
-        (login_id, body.first_name, body.last_name, body.email, body.phone),
-    )
+    else:
+        db_execute(
+            "INSERT INTO kore_users (login_id, first_name, last_name, email, phone) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (login_id, body.first_name, body.last_name, body.email, body.phone),
+        )
 
     otp = _generate_otp()
-    _store_otp(login_id, otp, body.otp_method, body.email)
+    _store_otp(login_id, otp, "email", body.email, purpose="register")
 
     demo_otp = None
     if DEMO_MODE:
         demo_otp = otp
     else:
-        _send_email_otp(body.email, otp)
+        _send_email_otp(body.email, otp, body.first_name)
 
     return {
-        "login_id": login_id,
-        "sent_to":  body.email,
+        "login_id":     login_id,
+        "sent_to":      body.email,
+        "requires_otp": True,
+        "message":      "Account created. Enter the OTP sent to your email to verify and continue.",
         **({"demo_otp": demo_otp} if demo_otp else {}),
     }
 
@@ -401,13 +572,13 @@ def login_request(body: LoginRequestBody):
         raise HTTPException(status_code=404, detail="No account found with that identifier")
 
     otp = _generate_otp()
-    _store_otp(user["login_id"], otp, "email", user["email"])
+    _store_otp(user["login_id"], otp, "email", user["email"], purpose="login")
 
     demo_otp = None
     if DEMO_MODE:
         demo_otp = otp
     else:
-        _send_email_otp(user["email"], otp)
+        _send_email_otp(user["email"], otp, user.get("first_name", ""))
 
     return {
         "login_id": user["login_id"],
@@ -477,7 +648,7 @@ def resend_otp(body: ResendOTPRequest):
     if DEMO_MODE:
         demo_otp = otp
     else:
-        _send_email_otp(contact, otp)
+        _send_email_otp(contact, otp, user.get("first_name", ""))
 
     return {"message": "OTP resent", **({"demo_otp": demo_otp} if demo_otp else {})}
 
@@ -543,6 +714,13 @@ def password_login(body: PasswordLoginRequest):
     )
     if not user:
         raise HTTPException(status_code=401, detail="Login ID not found. Please check and try again.")
+
+    if not user.get("is_verified"):
+        raise HTTPException(
+            status_code=403,
+            detail="Account not verified yet. Please complete the email OTP verification first.",
+        )
+
     pw_hash = user.get("password_hash")
     if not pw_hash:
         raise HTTPException(status_code=400, detail="No password set. Use OTP login or Forgot Password.")
@@ -579,12 +757,12 @@ def forgot_password_send_otp(body: ForgotSendOTPRequest):
     if body.method == "phone" and not DEMO_MODE:
         raise HTTPException(status_code=501, detail="SMS OTP not yet available. Use Email.")
     otp = _generate_otp()
-    _store_otp(user["login_id"], otp, body.method, contact)
+    _store_otp(user["login_id"], otp, body.method, contact, purpose="reset_password")
     demo_otp = None
     if DEMO_MODE:
         demo_otp = otp
     else:
-        _send_email_otp(contact, otp)
+        _send_email_otp(contact, otp, user.get("first_name", ""))
     return {"ok": True, "sent_to": contact, **({"demo_otp": demo_otp} if demo_otp else {})}
 
 
