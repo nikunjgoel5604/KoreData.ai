@@ -2,31 +2,22 @@
 # =========================================================
 # CHANGES vs v9.0
 # ─────────────────────────────────────────────────────────
-# FIX 1  "Unread result found" crash fixed.
-#         db_fetchone() / db_fetchall() / db_execute() now use
-#         conn.cursor(dictionary=True, buffered=True).
+# FIX 1  "mysql.connector.errors.InternalError: Unread result
+#         found" — db_fetchone() used an UNBUFFERED cursor.
+#         If a query matched more than one row (e.g. an OR
+#         condition across two unique columns matching two
+#         different existing rows), fetchone() only consumed
+#         the first row. Closing the cursor with a second row
+#         still unread raises InternalError on the *next*
+#         query that reuses the same pooled connection.
 #
-#         Root cause: with a non-buffered cursor, if a query
-#         returns more than one row and you only call
-#         fetchone(), the remaining row(s) stay unread on the
-#         socket. Because connections are reused from a pool,
-#         the NEXT query on that same pooled connection then
-#         raises mysql.connector.errors.InternalError:
-#         "Unread result found".
-#         This happened in /auth/register's duplicate check:
-#             SELECT login_id FROM kore_users
-#             WHERE email = %s OR phone = %s
-#         — if the email matches one user and the phone matches
-#         a DIFFERENT user, this returns 2 rows, and fetchone()
-#         only consumed 1, corrupting the pooled connection for
-#         whichever request grabbed it next.
+#         Fix: db_fetchone() and db_fetchall() now open the
+#         cursor with buffered=True, so MySQL Connector reads
+#         the entire result set into client memory immediately
+#         on execute() — there is never anything left "unread"
+#         when the cursor closes.
 #
-#         buffered=True makes the connector fetch the ENTIRE
-#         result set into memory as soon as execute() runs, so
-#         partial reads (fetchone() on a multi-row result) can
-#         never leave anything "unread" on the wire.
-#
-# All other logic is unchanged from v9.0.
+# Everything else is unchanged from v9.0.
 # =========================================================
 
 import os
@@ -101,7 +92,7 @@ def get_connection():
 
 def init_db() -> None:
     conn = get_connection()
-    cur  = conn.cursor(buffered=True)
+    cur  = conn.cursor()
     try:
 
         # ── kore_users ────────────────────────────────────────────────────────
@@ -233,7 +224,7 @@ def init_db() -> None:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """)
 
-        # ── ml_training_history ──────────────────────────────────────────────
+        # ── ml_training_history ─────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS ml_training_history (
                 id              INT           NOT NULL AUTO_INCREMENT,
@@ -282,7 +273,7 @@ def init_db() -> None:
               COMMENT='One row per ML training run. Links user to model metrics and saved file.'
         """)
 
-        # ── ml_saved_models ──────────────────────────────────────────────────
+        # ── ml_saved_models ────────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS ml_saved_models (
                 id              INT           NOT NULL AUTO_INCREMENT,
@@ -361,7 +352,7 @@ def init_db() -> None:
             ("kore_users", "last_login",    "ALTER TABLE kore_users ADD COLUMN last_login DATETIME NULL"),
         ])
 
-        logger.info("[DB] All tables ready (v9.1 — buffered cursors, ML Studio tables included).")
+        logger.info("[DB] All tables ready (v9.1 — buffered-cursor fix included).")
 
     finally:
         cur.close()
@@ -377,7 +368,10 @@ def _safe_migrate(cur, migrations: list) -> None:
                 "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
                 (table, column)
             )
-            if not cur.fetchone():
+            # This helper cursor is unbuffered by default (plain conn.cursor()),
+            # so fully drain it with fetchall() before the next execute().
+            row = cur.fetchall()
+            if not row:
                 cur.execute(ddl)
                 logger.info("[DB] Migration: added %s.%s", table, column)
         except Error as exc:
@@ -385,13 +379,14 @@ def _safe_migrate(cur, migrations: list) -> None:
 
 
 # ─── Query helpers ────────────────────────────────────────────────────────────
-# NOTE: buffered=True is the critical fix — it forces mysql-connector-python
-# to read the FULL result set into memory as soon as execute() runs.
-# Without it, fetchone() on a multi-row result leaves rows "unread" on the
-# socket, and the NEXT query on that pooled connection raises:
-#   mysql.connector.errors.InternalError: Unread result found
 
 def db_fetchone(query: str, params: tuple = ()) -> Optional[dict]:
+    """
+    FIX: buffered=True — without this, a query that matches more than
+    one row leaves unread rows behind after fetchone(). Closing that
+    cursor then raises mysql.connector.errors.InternalError:
+    'Unread result found' on this or the next connection reuse.
+    """
     conn = get_connection()
     cur  = conn.cursor(dictionary=True, buffered=True)
     try:

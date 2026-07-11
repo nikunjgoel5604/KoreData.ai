@@ -252,6 +252,10 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
               Login
               {!loading ? <ArrowRight size={16} /> : null}
             </button>
+
+            <div className="auth-switch">
+              Forgot your password or Login ID? <Link href="/forgot-password">Reset it</Link>
+            </div>
           </form>
         )}
 

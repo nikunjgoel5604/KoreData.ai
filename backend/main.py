@@ -285,7 +285,8 @@ def _build_otp_email_text(otp: str, first_name: str = "") -> str:
     )
 
 
-def _send_email_otp(to_address: str, otp: str, first_name: str = "") -> None:
+def _send_html_email(to_address: str, subject: str, html_body: str, text_body: str) -> None:
+    """Low-level branded-email sender shared by every OTP email in the app."""
     if not SMTP_SENDER or not SMTP_PASSWORD:
         raise HTTPException(
             status_code=500,
@@ -293,12 +294,12 @@ def _send_email_otp(to_address: str, otp: str, first_name: str = "") -> None:
         )
 
     msg            = MIMEMultipart("alternative")
-    msg["Subject"] = "Verify Your Email Address | KoreData-EX"
+    msg["Subject"] = subject
     msg["From"]    = f"KoreData-EX <{SMTP_SENDER}>"
     msg["To"]      = to_address
 
-    msg.attach(MIMEText(_build_otp_email_text(otp, first_name), "plain"))
-    msg.attach(MIMEText(_build_otp_email_html(otp, first_name), "html"))
+    msg.attach(MIMEText(text_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
 
     try:
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
@@ -311,6 +312,195 @@ def _send_email_otp(to_address: str, otp: str, first_name: str = "") -> None:
         raise HTTPException(status_code=500, detail="SMTP authentication failed.")
     except smtplib.SMTPException as e:
         raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
+
+
+def _send_email_otp(to_address: str, otp: str, first_name: str = "") -> None:
+    _send_html_email(
+        to_address,
+        "Verify Your Email Address | KoreData-EX",
+        _build_otp_email_html(otp, first_name),
+        _build_otp_email_text(otp, first_name),
+    )
+
+
+# ── Forgot Password / Forgot Login ID email ───────────────────────────────────
+# Same branded look as the verification email, but this one also reveals the
+# person's Login ID (since they may have forgotten that too), alongside the
+# password-reset OTP.
+
+def _build_forgot_password_email_html(otp: str, login_id: str, first_name: str = "") -> str:
+    greeting = f"Hello {first_name}," if first_name else "Hello,"
+    return f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reset Your Password | KoreData-EX</title>
+</head>
+<body style="margin:0;padding:0;background-color:#000814;font-family:'DM Sans',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background-color:#000814;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:560px;background-color:#03101f;border:1px solid rgba(0,212,255,0.25);
+                      border-radius:12px;overflow:hidden;">
+
+          <!-- Header / Logo -->
+          <tr>
+            <td align="center" style="padding:32px 24px 16px;">
+              <div style="display:inline-flex;align-items:center;gap:10px;">
+                <span style="display:inline-block;width:40px;height:40px;line-height:40px;
+                             text-align:center;border:1px solid #00d4ff;border-radius:8px;
+                             color:#00d4ff;font-family:'DM Mono',Consolas,monospace;font-weight:800;">
+                  K∂
+                </span>
+                <span style="font-family:Arial,sans-serif;font-weight:800;letter-spacing:2px;
+                             text-transform:uppercase;color:#d9f3ff;font-size:20px;">
+                  Kore<span style="color:#00d4ff;">Data</span>-EX
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Title -->
+          <tr>
+            <td align="center" style="padding:0 24px 8px;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.02em;">
+                Reset Your Password
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:16px 32px 0;color:#9fc9de;font-size:14px;line-height:1.7;">
+              <p style="margin:0 0 12px;">{greeting}</p>
+              <p style="margin:0 0 12px;">
+                We received a request to recover your <strong style="color:#d9f3ff;">KoreData-EX</strong>
+                account access. Here are your account details and a one-time code to reset your password.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Login ID box -->
+          <tr>
+            <td align="center" style="padding:16px 24px 0;">
+              <div style="color:#7ab8d4;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+                          margin-bottom:8px;font-family:'DM Mono',Consolas,monospace;">
+                Your Login ID
+              </div>
+              <div style="display:inline-block;padding:10px 28px;background:rgba(0,255,136,0.08);
+                          border:1px solid rgba(0,255,136,0.35);border-radius:8px;
+                          color:#00ff88;font-size:20px;font-weight:800;letter-spacing:3px;
+                          font-family:'DM Mono',Consolas,monospace;">
+                {login_id}
+              </div>
+            </td>
+          </tr>
+
+          <!-- OTP box -->
+          <tr>
+            <td align="center" style="padding:24px 24px 8px;">
+              <div style="color:#7ab8d4;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+                          margin-bottom:10px;font-family:'DM Mono',Consolas,monospace;">
+                Password Reset Code
+              </div>
+              <div style="display:inline-block;padding:16px 36px;background:rgba(0,212,255,0.08);
+                          border:1px solid rgba(0,212,255,0.4);border-radius:10px;
+                          color:#00d4ff;font-size:34px;font-weight:800;letter-spacing:10px;
+                          font-family:'DM Mono',Consolas,monospace;">
+                {otp}
+              </div>
+              <div style="color:#658ba0;font-size:12px;margin-top:12px;">
+                This code is valid for {OTP_EXPIRY_MIN} minutes.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Security note -->
+          <tr>
+            <td style="padding:24px 32px 0;color:#9fc9de;font-size:13px;line-height:1.7;">
+              <p style="margin:0 0 8px;font-weight:700;color:#d9f3ff;">For your security:</p>
+              <ul style="margin:0 0 12px;padding-left:18px;">
+                <li>Do not share your Login ID or this code with anyone.</li>
+                <li>KoreData-EX will never ask for your OTP via phone, email, or social media.</li>
+                <li>If you did not request this, you can safely ignore this email — your password will not change.</li>
+              </ul>
+              <p style="margin:0 0 4px;">If you need assistance, feel free to contact us.</p>
+              <p style="margin:0 0 4px;">📧 Email: <a href="mailto:{SUPPORT_EMAIL}" style="color:#00d4ff;text-decoration:none;">{SUPPORT_EMAIL}</a></p>
+              <p style="margin:0 0 16px;">🌐 Website: <a href="{SITE_URL}" style="color:#00d4ff;text-decoration:none;">{SITE_URL}</a></p>
+            </td>
+          </tr>
+
+          <!-- Sign-off -->
+          <tr>
+            <td style="padding:0 32px 24px;color:#9fc9de;font-size:13px;line-height:1.7;">
+              <p style="margin:0 0 4px;">Thank you for choosing KoreData-EX.</p>
+              <p style="margin:0 0 4px;color:#00ff88;font-weight:700;">Transform Data Into Intelligence</p>
+              <p style="margin:0;color:#658ba0;">KoreData-EX Team</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid rgba(0,212,255,0.15);">
+              <p style="margin:0;color:#5b7a8c;font-size:11px;">
+                This is an automated email. Please do not reply directly to this message.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:16px 24px 28px;background:rgba(0,212,255,0.04);">
+              <p style="margin:0;color:#5b7a8c;font-size:11px;letter-spacing:0.5px;">
+                © 2026 KoreData-EX. All Rights Reserved.<br/>
+                Transform Data Into Intelligence
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def _build_forgot_password_email_text(otp: str, login_id: str, first_name: str = "") -> str:
+    greeting = f"Hello {first_name}," if first_name else "Hello,"
+    return (
+        f"Reset Your Password | KoreData-EX\n\n"
+        f"{greeting}\n\n"
+        f"We received a request to recover your KoreData-EX account access.\n\n"
+        f"Your Login ID: {login_id}\n"
+        f"Your Password Reset Code: {otp}\n\n"
+        f"This code is valid for {OTP_EXPIRY_MIN} minutes.\n\n"
+        f"For your security:\n"
+        f"- Do not share your Login ID or this code with anyone.\n"
+        f"- KoreData-EX will never ask for your OTP via phone, email, or social media.\n"
+        f"- If you did not request this, you can safely ignore this email — your password will not change.\n\n"
+        f"If you need assistance, feel free to contact us.\n"
+        f"Email: {SUPPORT_EMAIL}\n"
+        f"Website: {SITE_URL}\n\n"
+        f"Thank you for choosing KoreData-EX.\n"
+        f"Transform Data Into Intelligence\n"
+        f"KoreData-EX Team\n\n"
+        f"This is an automated email. Please do not reply directly to this message.\n"
+        f"© 2026 KoreData-EX. All Rights Reserved."
+    )
+
+
+def _send_forgot_password_email(to_address: str, otp: str, login_id: str, first_name: str = "") -> None:
+    _send_html_email(
+        to_address,
+        "Reset Your Password | KoreData-EX",
+        _build_forgot_password_email_html(otp, login_id, first_name),
+        _build_forgot_password_email_text(otp, login_id, first_name),
+    )
 
 
 def _store_otp(login_id: str, otp: str, method: str, contact: str, purpose: str = "login") -> None:
@@ -401,6 +591,23 @@ class ForgotSendOTPRequest(BaseModel):
 class ForgotVerifyOTPRequest(BaseModel):
     login_id: str
     otp_code: str
+
+# ── Email-first "Forgot Password / Forgot Login ID" flow ─────────────────────
+# The person only needs to remember their email. The OTP email itself
+# reveals their Login ID, and after OTP verification they can set a
+# brand-new password — covering both "forgot password" and "forgot ID".
+
+class ForgotByEmailSendOTPRequest(BaseModel):
+    email: str
+
+class ForgotByEmailVerifyOTPRequest(BaseModel):
+    email:    str
+    otp_code: str
+
+class ForgotByEmailResetRequest(BaseModel):
+    email:        str
+    otp_code:     str
+    new_password: str
 
 class CodeRunRequest(BaseModel):
     code:    str
@@ -515,12 +722,25 @@ def register(body: RegisterRequest):
     if password and len(password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
 
-    existing = db_fetchone(
-        "SELECT login_id FROM kore_users WHERE email = %s OR phone = %s",
-        (body.email, body.phone),
+    # Check email and phone separately so the person gets a specific,
+    # accurate message instead of a generic "one of these is taken".
+    existing_email = db_fetchone(
+        "SELECT login_id FROM kore_users WHERE email = %s", (body.email,)
     )
-    if existing:
-        raise HTTPException(status_code=409, detail="Email or phone already registered")
+    if existing_email:
+        raise HTTPException(
+            status_code=409,
+            detail="This email is already used. Please login or use Forgot Password.",
+        )
+
+    existing_phone = db_fetchone(
+        "SELECT login_id FROM kore_users WHERE phone = %s", (body.phone,)
+    )
+    if existing_phone:
+        raise HTTPException(
+            status_code=409,
+            detail="This phone number is already used. Please use a different number or login.",
+        )
 
     login_id = "KD" + str(secrets.randbelow(900000) + 100000)
     while db_fetchone("SELECT 1 FROM kore_users WHERE login_id = %s", (login_id,)):
@@ -735,6 +955,123 @@ def password_login(body: PasswordLoginRequest):
         "email":     user["email"],
     }
 
+
+@app.post("/auth/forgot/send-otp")
+def forgot_by_email_send_otp(body: ForgotByEmailSendOTPRequest):
+    """
+    Step 1 of the "Forgot Password / Forgot Login ID" flow.
+    The person only needs their email. We look up the account, generate
+    a reset OTP, and email it together with their Login ID — so the
+    email itself recovers their forgotten ID as well as unlocking the
+    password reset.
+    """
+    email = body.email.strip()
+    user  = db_fetchone("SELECT * FROM kore_users WHERE email = %s", (email,))
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email address.")
+
+    otp = _generate_otp()
+    _store_otp(user["login_id"], otp, "email", email, purpose="reset_password")
+
+    demo_otp = None
+    if DEMO_MODE:
+        demo_otp = otp
+    else:
+        _send_forgot_password_email(email, otp, user["login_id"], user.get("first_name", ""))
+
+    return {
+        "ok":      True,
+        "sent_to": email,
+        "message": "If an account exists for this email, a Login ID reminder and reset code have been sent.",
+        **({"demo_otp": demo_otp, "demo_login_id": user["login_id"]} if demo_otp else {}),
+    }
+
+
+@app.post("/auth/forgot/verify-otp")
+def forgot_by_email_verify_otp(body: ForgotByEmailVerifyOTPRequest):
+    """
+    Step 2: verify the OTP from the email. On success we reveal the
+    Login ID in the API response too (the person already has it in
+    their inbox, this just mirrors it in the UI) and unlock step 3.
+    """
+    email = body.email.strip()
+    user  = db_fetchone("SELECT login_id, first_name FROM kore_users WHERE email = %s", (email,))
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email address.")
+
+    otp_row = db_fetchone(
+        "SELECT * FROM otp_tokens "
+        "WHERE login_id = %s AND otp_code = %s AND purpose = 'reset_password' "
+        "AND is_used = 0 AND expires_at > NOW() "
+        "ORDER BY id DESC LIMIT 1",
+        (user["login_id"], body.otp_code),
+    )
+    if not otp_row:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP. Please request a new one.")
+
+    db_execute("UPDATE otp_tokens SET is_used = 1 WHERE id = %s", (otp_row["id"],))
+
+    return {
+        "ok":       True,
+        "login_id": user["login_id"],
+        "message":  "OTP verified. Your Login ID has been recovered — you can now set a new password.",
+    }
+
+
+@app.post("/auth/forgot/reset-password")
+def forgot_by_email_reset_password(body: ForgotByEmailResetRequest):
+    """
+    Step 3: set the new password. Requires the same OTP that was just
+    verified in step 2 (it stays valid — but consumed — until it
+    expires), so this endpoint can't be called without having gone
+    through the email + OTP verification first.
+    """
+    if not body.new_password or len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+
+    email = body.email.strip()
+    user  = db_fetchone("SELECT login_id FROM kore_users WHERE email = %s", (email,))
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with that email address.")
+
+    otp_row = db_fetchone(
+        "SELECT * FROM otp_tokens "
+        "WHERE login_id = %s AND otp_code = %s AND purpose = 'reset_password' "
+        "AND is_used = 1 AND expires_at > NOW() "
+        "ORDER BY id DESC LIMIT 1",
+        (user["login_id"], body.otp_code),
+    )
+    if not otp_row:
+        raise HTTPException(
+            status_code=400,
+            detail="Your verification has expired. Please restart the Forgot Password process.",
+        )
+
+    db_execute(
+        "UPDATE kore_users SET password_hash = %s WHERE login_id = %s",
+        (_hash_password(body.new_password), user["login_id"]),
+    )
+    # Invalidate this OTP fully so it can't be replayed for another reset.
+    db_execute(
+        "UPDATE otp_tokens SET expires_at = NOW() WHERE id = %s",
+        (otp_row["id"],),
+    )
+    try:
+        db_execute(
+            "INSERT INTO password_reset_log (login_id, action) VALUES (%s, 'reset_password')",
+            (user["login_id"],),
+        )
+    except Exception:
+        pass
+
+    return {
+        "ok":       True,
+        "login_id": user["login_id"],
+        "message":  "Password reset successfully. You can now log in with your Login ID and new password.",
+    }
+
+
+# ── Legacy login_id-based forgot-password flow (kept for backward compatibility) ──
 
 @app.post("/auth/forgot-password/check")
 def forgot_password_check(body: ForgotCheckRequest):
