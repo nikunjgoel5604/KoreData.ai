@@ -629,6 +629,17 @@ class ApplyMissingRequest(BaseModel):
     columns:  list
 
 
+class WorkspaceSaveRequest(BaseModel):
+    eda_result:        Optional[str] = None
+    active_panels:     Optional[str] = None
+    selected_panel:    Optional[str] = None
+    sim_running:       int           = 0
+    current_stage_key: Optional[str] = None
+    sim_progress:      int           = 0
+    stage_statuses:    Optional[str] = None
+    logs:              Optional[str] = None
+
+
 # ─── Performance monitor ──────────────────────────────────────────────────────
 
 class PerformanceMonitor:
@@ -1159,6 +1170,13 @@ def my_files(authorization: Optional[str] = Header(None)):
     return {"files": files, "total": len(files)}
 
 
+@app.delete("/my-files/{file_id}")
+def delete_file(file_id: int, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    db_execute("DELETE FROM uploaded_files WHERE id = %s AND login_id = %s", (file_id, user["login_id"]))
+    return {"ok": True, "message": "File deleted successfully"}
+
+
 # ─── Notification routes ──────────────────────────────────────────────────────
 
 @app.get("/notifications")
@@ -1390,6 +1408,58 @@ async def dataset_apply_missing(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Missing value fill failed: {exc}")
+
+
+# ─── Workspace State Routes ───────────────────────────────────────────────────
+
+@app.get("/workspace/state")
+def get_workspace_state(authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    state = db_fetchone("SELECT * FROM kore_workspace_state WHERE login_id = %s", (user["login_id"],))
+    if not state:
+        return {
+            "eda_result": None,
+            "active_panels": None,
+            "selected_panel": "dashboard",
+            "sim_running": 0,
+            "current_stage_key": None,
+            "sim_progress": 0,
+            "stage_statuses": None,
+            "logs": None
+        }
+    return state
+
+
+@app.post("/workspace/state")
+def save_workspace_state(body: WorkspaceSaveRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    lid = user["login_id"]
+    
+    exists = db_fetchone("SELECT 1 FROM kore_workspace_state WHERE login_id = %s", (lid,))
+    if exists:
+        db_execute(
+            "UPDATE kore_workspace_state SET "
+            "eda_result = %s, active_panels = %s, selected_panel = %s, "
+            "sim_running = %s, current_stage_key = %s, sim_progress = %s, "
+            "stage_statuses = %s, logs = %s WHERE login_id = %s",
+            (
+                body.eda_result, body.active_panels, body.selected_panel,
+                body.sim_running, body.current_stage_key, body.sim_progress,
+                body.stage_statuses, body.logs, lid
+            )
+        )
+    else:
+        db_execute(
+            "INSERT INTO kore_workspace_state "
+            "(login_id, eda_result, active_panels, selected_panel, sim_running, current_stage_key, sim_progress, stage_statuses, logs) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                lid, body.eda_result, body.active_panels, body.selected_panel,
+                body.sim_running, body.current_stage_key, body.sim_progress,
+                body.stage_statuses, body.logs
+            )
+        )
+    return {"ok": True, "message": "Workspace state saved to MySQL"}
 
 
 # ─── Stats ───────────────────────────────────────────────────────────────────

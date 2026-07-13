@@ -305,6 +305,24 @@ def init_db() -> None:
               COMMENT='Persisted ML models per user. file_path points to .joblib on disk.'
         """)
 
+        # ── kore_workspace_state ───────────────────────────────────────────
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS kore_workspace_state (
+                login_id          VARCHAR(20)   NOT NULL,
+                eda_result        LONGTEXT      NULL,
+                active_panels     TEXT          NULL,
+                selected_panel    VARCHAR(50)   NULL,
+                sim_running       TINYINT(1)    NOT NULL DEFAULT 0,
+                current_stage_key VARCHAR(50)   NULL,
+                sim_progress      INT           NOT NULL DEFAULT 0,
+                stage_statuses    TEXT          NULL,
+                logs              LONGTEXT      NULL,
+                updated_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (login_id),
+                FOREIGN KEY (login_id) REFERENCES kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
         # ── Indexes (safe — ignores if already exist) ─────────────────────────
         indexes = [
             "CREATE INDEX idx_otp_active   ON otp_tokens(login_id, is_used)",

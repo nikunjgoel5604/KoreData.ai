@@ -38,7 +38,11 @@ import {
   Search,
   Settings,
   Grid,
-  ChevronDown
+  ChevronDown,
+  Trash2,
+  RefreshCw,
+  AlertOctagon,
+  Check
 } from "lucide-react";
 import Pipeline3D from "./Pipeline3D";
 
@@ -136,6 +140,9 @@ export default function DashboardClient() {
   const [pinnedPanels, setPinnedPanels] = useState<string[]>([]);
   const [view3D, setView3D] = useState(true);
 
+  // --- Upload Dataset Panel Sub-tabs ---
+  const [uploadSubTab, setUploadSubTab] = useState<"ingest" | "datasets">("ingest");
+
   // --- Right Sidebar logs ---
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -150,6 +157,7 @@ export default function DashboardClient() {
   const [stageStatuses, setStageStatuses] = useState<Record<string, "idle" | "running" | "success" | "warning" | "error">>({});
   const [stageTimes, setStageTimes] = useState<Record<string, number>>({});
   const [simEstTime, setSimEstTime] = useState<number>(0);
+  const esRef = useRef<EventSource | null>(null);
 
   // --- Imputation & Cleaning States ---
   const [selectedColumn, setSelectedColumn] = useState("");
@@ -178,11 +186,16 @@ export default function DashboardClient() {
   const [predictResult, setPredictResult] = useState<any>(null);
   const [predictLoading, setPredictLoading] = useState(false);
 
+  const updateInputRef = useRef<HTMLInputElement>(null);
+
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   useEffect(() => {
     document.body.classList.add("dashboard-mode");
-    return () => document.body.classList.remove("dashboard-mode");
+    return () => {
+      document.body.classList.remove("dashboard-mode");
+      esRef.current?.close();
+    };
   }, []);
 
   useEffect(() => {
@@ -197,6 +210,39 @@ export default function DashboardClient() {
     }
     setToken(savedToken);
   }, []);
+
+  // --- Workspace State Persistence in MySQL ---
+  useEffect(() => {
+    if (!token) return;
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const payload = {
+          eda_result: edaResult ? JSON.stringify(edaResult) : null,
+          active_panels: JSON.stringify(activePanels),
+          selected_panel: selectedPanel,
+          sim_running: simRunning ? 1 : 0,
+          current_stage_key: currentStageKey,
+          sim_progress: simProgress,
+          stage_statuses: JSON.stringify(stageStatuses),
+          logs: JSON.stringify(logs)
+        };
+
+        await fetch(`${API_BASE}/workspace/state`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders
+          },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error("Failed to persist workspace state in database:", err);
+      }
+    }, 1500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [edaResult, activePanels, selectedPanel, simRunning, currentStageKey, simProgress, stageStatuses, logs, token, authHeaders]);
 
   useEffect(() => {
     if (!token) return;
@@ -218,13 +264,14 @@ export default function DashboardClient() {
         setUser(await profileRes.json());
         addLog("Security", "User session verified securely.", "success");
 
-        const [filesRes, notifRes, modelsRes, savedRes, historyRes, activityRes] = await Promise.all([
+        const [filesRes, notifRes, modelsRes, savedRes, historyRes, activityRes, wsRes] = await Promise.all([
           fetch(`${API_BASE}/my-files`, { headers: authHeaders }).catch(() => null),
           fetch(`${API_BASE}/notifications`, { headers: authHeaders }).catch(() => null),
           fetch(`${API_BASE}/ml/models`, { headers: authHeaders }).catch(() => null),
           fetch(`${API_BASE}/ml/saved`, { headers: authHeaders }).catch(() => null),
           fetch(`${API_BASE}/ml/history`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/activity/dashboard`, { headers: authHeaders }).catch(() => null)
+          fetch(`${API_BASE}/activity/dashboard`, { headers: authHeaders }).catch(() => null),
+          fetch(`${API_BASE}/workspace/state`, { headers: authHeaders }).catch(() => null)
         ]);
 
         if (filesRes?.ok) {
@@ -256,9 +303,31 @@ export default function DashboardClient() {
           setActivity(await activityRes.json());
         }
 
+        let isSimRunning = false;
+        let lastStageKey: string | null = null;
+
+        if (wsRes?.ok) {
+          const ws = await wsRes.json();
+          if (ws.eda_result) setEdaResult(JSON.parse(ws.eda_result));
+          if (ws.active_panels) setActivePanels(JSON.parse(ws.active_panels));
+          if (ws.selected_panel) setSelectedPanel(ws.selected_panel);
+          setSimProgress(ws.sim_progress);
+          if (ws.stage_statuses) setStageStatuses(JSON.parse(ws.stage_statuses));
+          if (ws.logs) setLogs(JSON.parse(ws.logs));
+          if (ws.sim_running === 1) {
+            isSimRunning = true;
+            lastStageKey = ws.current_stage_key;
+          }
+        }
+
         setApiStatus("ready");
         setStatus("AI cloud runtime initialized");
         addLog("Runtime", "All endpoints bound successfully.", "success");
+
+        if (isSimRunning) {
+          if (lastStageKey) setCurrentStageKey(lastStageKey);
+          handleStartSimulation();
+        }
       } catch {
         setApiStatus("error");
         setStatus("Cloud backend disconnected.");
@@ -348,6 +417,51 @@ export default function DashboardClient() {
     }
   };
 
+  // --- DELETE Dataset from Database ---
+  const handleRemoveFile = async (fileId: number) => {
+    if (!confirm("Are you sure you want to remove this dataset from the database?")) return;
+    addLog("Database", `Deleting dataset ID: ${fileId}...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/my-files/${fileId}`, {
+        method: "DELETE",
+        headers: authHeaders
+      });
+      if (res.ok) {
+        setFiles(files.filter((f) => f.id !== fileId));
+        addLog("Database", `Removed dataset ID: ${fileId} successfully.`, "success");
+      } else {
+        alert("Failed to delete dataset.");
+        addLog("Database", `Failed to delete file ID: ${fileId}`, "error");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // --- Stop All Workspace Operations (Emergency Abort) ---
+  const handleStopAllOperations = () => {
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+
+    setSimRunning(false);
+    setSimProgress(0);
+    setCurrentStageKey(null);
+
+    const clearedStatuses: Record<string, "idle" | "running" | "success" | "warning" | "error"> = {};
+    SIMULATION_STAGES.forEach((s) => {
+      clearedStatuses[s.key] = "idle";
+    });
+    setStageStatuses(clearedStatuses);
+    addLog("Runtime", "Workspace processes terminated by emergency abort command.", "error");
+
+    window.localStorage.removeItem("kore-sim-running");
+    window.localStorage.removeItem("kore-current-stage-key");
+    window.localStorage.removeItem("kore-sim-progress");
+    window.localStorage.removeItem("kore-stage-statuses");
+  };
+
   const logout = async () => {
     if (token) {
       await fetch(`${API_BASE}/auth/logout`, {
@@ -370,7 +484,6 @@ export default function DashboardClient() {
     ];
   }, [edaResult]);
 
-  // Dynamic distribution counts computed directly on the active dataset slices
   const columnDistribution = useMemo(() => {
     if (!edaResult || !vizColumn) return [];
     const rows = (edaResult as any).dataset_slices?.head?.["100"] || [];
@@ -430,7 +543,7 @@ export default function DashboardClient() {
 
   // --- Simulation Runner (16-Stage) ---
   const handleStartSimulation = () => {
-    if (simRunning) return;
+    if (simRunning && esRef.current) return;
 
     setSimRunning(true);
     setSimProgress(0);
@@ -449,6 +562,7 @@ export default function DashboardClient() {
     addLog("Simulation", "Automated execution pipeline triggered.", "info");
 
     const es = new EventSource(`${API_BASE}/simulation/run`);
+    esRef.current = es;
 
     es.onmessage = (event) => {
       try {
@@ -459,6 +573,7 @@ export default function DashboardClient() {
           setCurrentStageKey(null);
           addLog("Simulation", "Pipeline execution completed successfully.", "success");
           es.close();
+          esRef.current = null;
         } else {
           const category = data.key;
           const status = data.status;
@@ -487,6 +602,7 @@ export default function DashboardClient() {
     es.onerror = () => {
       setSimRunning(false);
       es.close();
+      esRef.current = null;
       addLog("Simulation", "Pipeline execution failed or disconnected.", "error");
     };
   };
@@ -964,6 +1080,17 @@ export default function DashboardClient() {
               <span className={theme === "dark" ? "text-slate-300" : "text-slate-800"}>Upload New Data</span>
               <input type="file" onChange={handleUpload} className="hidden" />
             </label>
+
+            {/* Emergency Abort Operations Button */}
+            {(simRunning || codeRunning || cleanLoading) && (
+              <button
+                onClick={handleStopAllOperations}
+                className="flex items-center gap-2 border border-red-500/40 hover:border-red-500 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 font-mono text-xs px-3 py-1.5 rounded-lg transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+              >
+                <AlertOctagon size={14} className="animate-pulse" />
+                <span>Stop Operations</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -1076,6 +1203,7 @@ export default function DashboardClient() {
                 <div className="flex gap-2">
                   {[
                     { id: "dashboard", label: "Dashboard", icon: Grid },
+                    { id: "upload", label: "Dataset Ingestion", icon: FileUp },
                     { id: "simulation", label: "Run Simulation", icon: GitBranch },
                     { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
                     { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
@@ -1144,7 +1272,7 @@ export default function DashboardClient() {
 
                     {/* Bottom Analytics Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Data Preview Table (Themed Contrast Fix) */}
+                      {/* Data Preview Table */}
                       <div className={`p-5 rounded-xl border ${colors.card} col-span-1 lg:col-span-2`}>
                         <div className="flex justify-between items-center mb-4">
                           <h3 className={`text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 ${colors.textPrimary}`}>
@@ -1225,6 +1353,106 @@ export default function DashboardClient() {
                   </div>
                 )}
 
+                {/* DATASET INGESTION & DATASET ACTIONS TAB */}
+                {selectedPanel === "upload" && (
+                  <div className="space-y-6">
+                    <div className="h-9 border-b border-slate-800 bg-[#000814]/20 flex items-center gap-4 px-2 select-none mb-4">
+                      <button
+                        onClick={() => setUploadSubTab("ingest")}
+                        className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
+                          uploadSubTab === "ingest" ? "text-[#00D4FF] border-b-[#00D4FF]" : "text-slate-500 hover:text-slate-300 border-b-transparent"
+                        }`}
+                      >
+                        Ingest New Data
+                      </button>
+                      <button
+                        onClick={() => setUploadSubTab("datasets")}
+                        className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
+                          uploadSubTab === "datasets" ? "text-[#00D4FF] border-b-[#00D4FF]" : "text-slate-500 hover:text-slate-300 border-b-transparent"
+                        }`}
+                      >
+                        My Saved Datasets
+                      </button>
+                    </div>
+
+                    {uploadSubTab === "ingest" && (
+                      <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
+                        <h2 className={`text-lg font-bold mb-2 ${colors.textPrimary}`}>Upload & EDA Engine</h2>
+                        <p className={`text-sm mb-4 ${colors.textSecondary}`}>Select or drop tabular files. Python EDA computes schemas, anomalies, and statistics.</p>
+                        
+                        <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/40 bg-slate-950/40 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all">
+                          {uploading ? (
+                            <Loader2 className="spin text-cyan-400 mb-3" size={24} />
+                          ) : (
+                            <FileUp className="text-slate-500 mb-3" size={24} />
+                          )}
+                          <span className="text-sm font-mono text-slate-300 uppercase tracking-wider">
+                            {uploading ? "Parsing File..." : "Choose Dataset"}
+                          </span>
+                          <span className="text-xs text-slate-650 mt-1 font-mono">CSV, EXCEL, JSON, PARQUET</span>
+                          <input type="file" accept=".csv,.xlsx,.xls,.json,.parquet,.xml" onChange={handleUpload} className="hidden" />
+                        </label>
+                      </div>
+                    )}
+
+                    {uploadSubTab === "datasets" && (
+                      <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                        <h2 className={`text-lg font-bold ${colors.textPrimary}`}>Dataset Manager</h2>
+                        <div className="overflow-x-auto">
+                          <table className="w-full font-mono text-[10px]">
+                            <thead>
+                              <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
+                                <th className="pb-2">File ID</th>
+                                <th className="pb-2">File Name</th>
+                                <th className="pb-2">Format</th>
+                                <th className="pb-2">Size (KB)</th>
+                                <th className="pb-2">Upload Date</th>
+                                <th className="pb-2 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/40">
+                              {files.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="py-8 text-center text-slate-500">No saved datasets found. Ingest one to get started.</td>
+                                </tr>
+                              ) : (
+                                files.map((f) => (
+                                  <tr key={f.id} className={colors.tableRow}>
+                                    <td className="py-3 font-bold text-cyan-500">#{f.id}</td>
+                                    <td className="py-3 font-bold">{f.file_name}</td>
+                                    <td className="py-3 uppercase text-slate-400">{f.file_type}</td>
+                                    <td className="py-3">{f.file_size_kb} KB</td>
+                                    <td className="py-3">{f.uploaded_at}</td>
+                                    <td className="py-3 text-right space-x-2">
+                                      <button
+                                        onClick={() => updateInputRef.current?.click()}
+                                        title="Update Dataset"
+                                        className="p-1.5 rounded hover:bg-slate-800 text-[#00D4FF] inline-flex items-center gap-1 transition-all"
+                                      >
+                                        <RefreshCw size={12} />
+                                        <span>Update</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleRemoveFile(f.id)}
+                                        title="Remove Dataset"
+                                        className="p-1.5 rounded hover:bg-red-500/10 text-red-500 hover:text-red-400 inline-flex items-center gap-1 transition-all"
+                                      >
+                                        <Trash2 size={12} />
+                                        <span>Remove</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                          <input type="file" ref={updateInputRef} onChange={handleUpload} className="hidden" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {selectedPanel === "simulation" && (
                   <div className="space-y-6">
                     <div className="flex gap-4">
@@ -1258,7 +1486,6 @@ export default function DashboardClient() {
                   </div>
                 )}
 
-                {/* DETAILED EDA ANALYSIS PANEL */}
                 {selectedPanel === "eda-analysis" && (
                   <div className="space-y-6">
                     <h3 className={`text-sm font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Exploratory Data Analysis</h3>
@@ -1267,7 +1494,6 @@ export default function DashboardClient() {
                       <p className="text-slate-500 text-xs font-mono">No active dataset profile. Please upload a file to analyze statistics.</p>
                     ) : (
                       <div className="space-y-6">
-                        {/* Quality Checks scorecard list */}
                         <div className={`p-5 rounded-xl border ${colors.card}`}>
                           <h4 className={`text-xs font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Data Quality Dimension Checks</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
@@ -1291,7 +1517,6 @@ export default function DashboardClient() {
                           </div>
                         </div>
 
-                        {/* Column Wise Statistics Table */}
                         <div className={`p-5 rounded-xl border ${colors.card}`}>
                           <h4 className={`text-xs font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Column-wise Statistics</h4>
                           <div className="overflow-x-auto">
@@ -1327,14 +1552,12 @@ export default function DashboardClient() {
                   </div>
                 )}
 
-                {/* DATA CLEANING & CUSTOM SVG VISUALIZATIONS */}
                 {selectedPanel === "data-cleaning" && (
                   <div className="space-y-6">
                     <h3 className={`text-sm font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Dataset Cleaning & Visualization</h3>
                     
                     {edaResult ? (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Impute Actions */}
                         <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
                           <h4 className={`text-xs font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Imputation strategy</h4>
                           
@@ -1377,7 +1600,6 @@ export default function DashboardClient() {
                           </div>
                         </div>
 
-                        {/* Interactive SVG distribution histogram chart */}
                         <div className={`p-5 rounded-xl border ${colors.card} flex flex-col justify-between`}>
                           <div>
                             <h4 className={`text-xs font-bold font-mono uppercase tracking-wider mb-3 ${colors.textPrimary}`}>Column Distribution Chart</h4>
@@ -1399,9 +1621,8 @@ export default function DashboardClient() {
                               return (
                                 <div key={bIdx} className="flex-1 flex flex-col items-center group relative">
                                   <div className="w-full bg-[#0085FF]/35 group-hover:bg-[#00D4FF] rounded-t-sm transition-all" style={{ height: `${heightPct}%` }} />
-                                  <span className="text-[8px] font-mono text-slate-500 mt-2 truncate w-full text-center">{bar.label}</span>
+                                  <span className="text-[8px] font-mono text-slate-505 mt-2 truncate w-full text-center">{bar.label}</span>
                                   
-                                  {/* Tooltip */}
                                   <div className="absolute bottom-full mb-1 bg-slate-900 text-white text-[9px] p-1 rounded opacity-0 group-hover:opacity-100 transition-all font-mono pointer-events-none">
                                     Val: {bar.value}
                                   </div>
@@ -1450,10 +1671,10 @@ export default function DashboardClient() {
                       const isCurrent = currentStageKey === stage.key;
                       const isDone = status === "success";
 
-                      let cardBg = theme === "dark" ? "bg-slate-950/20 border-slate-850 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700";
+                      let cardBg = theme === "dark" ? "bg-slate-955/20 border-slate-855 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700";
                       let titleColor = theme === "dark" ? "text-slate-200" : "text-slate-900 font-bold";
 
-                      let badgeClass = "bg-slate-800 text-slate-500";
+                      let badgeClass = "bg-slate-850 text-slate-500";
                       if (isCurrent) badgeClass = "bg-[#00D4FF]/10 text-[#00D4FF] animate-pulse";
                       if (isDone) badgeClass = "bg-emerald-500/10 text-emerald-600 font-bold";
 
