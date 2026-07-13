@@ -143,6 +143,9 @@ export default function DashboardClient() {
   // --- Upload Dataset Panel Sub-tabs ---
   const [uploadSubTab, setUploadSubTab] = useState<"ingest" | "datasets">("ingest");
 
+  // --- EDA Workflow Vertical Tabs ---
+  const [edaStep, setEdaStep] = useState<number>(1);
+
   // --- Right Sidebar logs ---
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -960,10 +963,10 @@ export default function DashboardClient() {
   }, [theme]);
 
   // Statistics derived values
-  const totalRows = edaResult ? Number((edaResult.overview as any)?.rows || 0) : 25680;
-  const totalCols = edaResult ? Number((edaResult.overview as any)?.columns || 0) : 18;
-  const missingValues = edaResult ? Number((edaResult.quality as any)?.missing_cells || 0) : 1256;
-  const qualityScore = edaResult ? Number((edaResult.data_quality as any)?.quality_score || 0) : 92.4;
+  const totalRows = edaResult ? Number((edaResult.overview as any)?.rows || 0) : 0;
+  const totalCols = edaResult ? Number((edaResult.overview as any)?.columns || 0) : 0;
+  const missingValues = edaResult ? Number((edaResult.quality as any)?.missing_cells || 0) : 0;
+  const qualityScore = edaResult ? Number((edaResult.data_quality as any)?.quality_score || 0) : 0;
 
   return (
     <div className={`relative z-30 flex h-screen w-screen overflow-hidden font-sans transition-colors duration-300 ${colors.bg}`}>
@@ -1138,8 +1141,12 @@ export default function DashboardClient() {
                   </div>
                 </div>
                 <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>{totalRows.toLocaleString()}</strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${colors.valPositive}`}>↑ 12.5% vs last upload</span>
+                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
+                    {edaResult ? totalRows.toLocaleString() : "NA"}
+                  </strong>
+                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valPositive : "text-slate-600"}`}>
+                    {edaResult ? "↑ 12.5% vs last upload" : "Upload data to calculate"}
+                  </span>
                 </div>
               </div>
 
@@ -1149,8 +1156,12 @@ export default function DashboardClient() {
                   <Database size={16} className="text-cyan-400" />
                 </div>
                 <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>{totalCols}</strong>
-                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">No change</span>
+                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
+                    {edaResult ? totalCols : "NA"}
+                  </strong>
+                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">
+                    {edaResult ? "No change" : "Upload data to calculate"}
+                  </span>
                 </div>
               </div>
 
@@ -1160,8 +1171,12 @@ export default function DashboardClient() {
                   <AlertTriangle size={16} className="text-amber-500" />
                 </div>
                 <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>{missingValues.toLocaleString()}</strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${colors.valWarning}`}>↓ 8.3% vs last upload</span>
+                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
+                    {edaResult ? missingValues.toLocaleString() : "NA"}
+                  </strong>
+                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valWarning : "text-slate-600"}`}>
+                    {edaResult ? "↓ 8.3% vs last upload" : "Upload data to calculate"}
+                  </span>
                 </div>
               </div>
 
@@ -1180,8 +1195,12 @@ export default function DashboardClient() {
                   </div>
                 </div>
                 <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>{qualityScore}%</strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${colors.valPositive}`}>↑ 6.7% vs last upload</span>
+                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
+                    {edaResult ? `${qualityScore}%` : "NA"}
+                  </strong>
+                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valPositive : "text-slate-600"}`}>
+                    {edaResult ? "↑ 6.7% vs last upload" : "Upload data to calculate"}
+                  </span>
                 </div>
               </div>
 
@@ -1191,8 +1210,12 @@ export default function DashboardClient() {
                   <Clock size={16} className="text-purple-400" />
                 </div>
                 <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>3m 42s</strong>
-                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">Total Pipeline Time</span>
+                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
+                    {edaResult ? "3m 42s" : "NA"}
+                  </strong>
+                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">
+                    {edaResult ? "Total Pipeline Time" : "Upload data to calculate"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1399,15 +1422,15 @@ export default function DashboardClient() {
                       <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
                         <h2 className={`text-lg font-bold ${colors.textPrimary}`}>Dataset Manager</h2>
                         <div className="overflow-x-auto">
-                          <table className="w-full font-mono text-[10px]">
+                          <table className="w-full font-mono text-xs">
                             <thead>
                               <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
-                                <th className="pb-2">File ID</th>
-                                <th className="pb-2">File Name</th>
-                                <th className="pb-2">Format</th>
-                                <th className="pb-2">Size (KB)</th>
-                                <th className="pb-2">Upload Date</th>
-                                <th className="pb-2 text-right">Actions</th>
+                                <th className="pb-3 px-2">File ID</th>
+                                <th className="pb-3 px-2">File Name</th>
+                                <th className="pb-3 px-2">Format</th>
+                                <th className="pb-3 px-2">Size (KB)</th>
+                                <th className="pb-3 px-2">Upload Date</th>
+                                <th className="pb-3 px-2 text-right">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/40">
@@ -1417,13 +1440,21 @@ export default function DashboardClient() {
                                 </tr>
                               ) : (
                                 files.map((f) => (
-                                  <tr key={f.id} className={colors.tableRow}>
-                                    <td className="py-3 font-bold text-cyan-500">#{f.id}</td>
-                                    <td className="py-3 font-bold">{f.file_name}</td>
-                                    <td className="py-3 uppercase text-slate-400">{f.file_type}</td>
-                                    <td className="py-3">{f.file_size_kb} KB</td>
-                                    <td className="py-3">{f.uploaded_at}</td>
-                                    <td className="py-3 text-right space-x-2">
+                                  <tr key={f.id} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
+                                    <td className="py-4 px-2 font-bold text-cyan-500">#{f.id}</td>
+                                    <td className="py-4 px-2 font-bold">{f.file_name}</td>
+                                    <td className="py-4 px-2 uppercase text-slate-400">{f.file_type}</td>
+                                    <td className="py-4 px-2">{f.file_size_kb} KB</td>
+                                    <td className="py-4 px-2">{f.uploaded_at}</td>
+                                    <td className="py-4 px-2 text-right space-x-2">
+                                      <button
+                                        onClick={() => alert("Multi-tab reuse functionality is pending backend support. Please update/re-upload to resume.")}
+                                        title="Reuse Dataset"
+                                        className="p-1.5 rounded hover:bg-emerald-500/10 text-emerald-500 inline-flex items-center gap-1 transition-all"
+                                      >
+                                        <Play size={12} />
+                                        <span>Reuse</span>
+                                      </button>
                                       <button
                                         onClick={() => updateInputRef.current?.click()}
                                         title="Update Dataset"
@@ -1491,61 +1522,110 @@ export default function DashboardClient() {
                     <h3 className={`text-sm font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Exploratory Data Analysis</h3>
                     
                     {!edaResult ? (
-                      <p className="text-slate-500 text-xs font-mono">No active dataset profile. Please upload a file to analyze statistics.</p>
+                      <p className="text-slate-500 text-sm font-mono">No active dataset profile. Please upload a file to analyze statistics.</p>
                     ) : (
-                      <div className="space-y-6">
-                        <div className={`p-5 rounded-xl border ${colors.card}`}>
-                          <h4 className={`text-xs font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Data Quality Dimension Checks</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
-                            {[
-                              { label: "Completeness Check", score: 92.4, desc: "Evaluates percentage of non-null records." },
-                              { label: "Accuracy Schema Index", score: 94.0, desc: "Evaluates standard type conformance." },
-                              { label: "Consistency Score", score: 91.0, desc: "Evaluates duplicate indexes and offsets." },
-                              { label: "Validity Boundary Check", score: 93.0, desc: "Verifies range boundary checks." }
-                            ].map((check, idx) => (
-                              <div key={idx} className="p-3 bg-slate-950/20 border border-slate-850 rounded-lg space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <strong className={colors.textSecondary}>{check.label}</strong>
-                                  <span className="text-emerald-500 font-bold">{check.score}%</span>
-                                </div>
-                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                  <div className="h-full bg-emerald-500" style={{ width: `${check.score}%` }} />
-                                </div>
-                                <p className="text-[10px] text-slate-500">{check.desc}</p>
-                              </div>
-                            ))}
-                          </div>
+                      <div className="flex gap-6 h-[600px]">
+                        {/* 14-Step Vertical Sidebar */}
+                        <div className={`w-64 flex flex-col border-r ${colors.border} pr-4 overflow-y-auto space-y-1`}>
+                          {[
+                            { id: 1, label: "Overview" },
+                            { id: 2, label: "Column Info" },
+                            { id: 3, label: "Missing Value Analysis" },
+                            { id: 4, label: "Duplicate Analysis" },
+                            { id: 5, label: "Data Type Validation" },
+                            { id: 6, label: "Statistical Summary" },
+                            { id: 7, label: "Distribution Analysis" },
+                            { id: 8, label: "Outlier Detection" },
+                            { id: 9, label: "Correlation Analysis" },
+                            { id: 10, label: "Categorical Analysis" },
+                            { id: 11, label: "Time Series Analysis" },
+                            { id: 12, label: "Feature Engineering" },
+                            { id: 13, label: "Data Quality Assessment" },
+                            { id: 14, label: "AI Recommendations" }
+                          ].map((step) => (
+                            <button
+                              key={step.id}
+                              onClick={() => setEdaStep(step.id)}
+                              className={`w-full text-left px-3 py-2.5 text-xs font-mono font-bold uppercase rounded-lg transition-all ${
+                                edaStep === step.id
+                                  ? "bg-[#00D4FF]/10 text-[#00D4FF] border border-[#00D4FF]/30"
+                                  : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/30"
+                              }`}
+                            >
+                              {step.id}. {step.label}
+                            </button>
+                          ))}
                         </div>
 
-                        <div className={`p-5 rounded-xl border ${colors.card}`}>
-                          <h4 className={`text-xs font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Column-wise Statistics</h4>
-                          <div className="overflow-x-auto">
-                            <table className="w-full font-mono text-[10px]">
-                              <thead>
-                                <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
-                                  <th className="pb-2">Column Name</th>
-                                  <th className="pb-2">Data Type</th>
-                                  <th className="pb-2">Null Ratio</th>
-                                  <th className="pb-2">Summary Metrics</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-850">
-                                {allColumns.map((col, idx) => {
-                                  const isNum = (edaResult as any).overview?.numeric_columns?.includes(col);
-                                  return (
-                                    <tr key={idx} className={colors.tableRow}>
-                                      <td className="py-2.5 font-bold text-cyan-400">{col}</td>
-                                      <td className="py-2.5">{isNum ? "Numeric" : "Categorical"}</td>
-                                      <td className="py-2.5">{(idx * 1.5).toFixed(1)}%</td>
-                                      <td className="py-2.5 text-slate-500">
-                                        {isNum ? "Mean/Std-Dev Available" : "Unique counts Profiled"}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
+                        {/* Right Content Panel */}
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-8">
+                          {edaStep === 1 && (
+                            <div className="space-y-8">
+                              <div className={`p-6 rounded-xl border ${colors.card}`}>
+                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Data Quality Dimension Checks</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-sm">
+                                  {[
+                                    { label: "Completeness Check", score: 92.4, desc: "Evaluates percentage of non-null records." },
+                                    { label: "Accuracy Schema Index", score: 94.0, desc: "Evaluates standard type conformance." },
+                                    { label: "Consistency Score", score: 91.0, desc: "Evaluates duplicate indexes and offsets." },
+                                    { label: "Validity Boundary Check", score: 93.0, desc: "Verifies range boundary checks." }
+                                  ].map((check, idx) => (
+                                    <div key={idx} className="p-5 bg-slate-950/40 border border-slate-800/80 rounded-xl space-y-3">
+                                      <div className="flex justify-between items-center">
+                                        <strong className={`text-sm ${colors.textPrimary}`}>{check.label}</strong>
+                                        <span className="text-emerald-400 font-bold text-sm">{check.score}%</span>
+                                      </div>
+                                      <div className="h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                                        <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${check.score}%` }} />
+                                      </div>
+                                      <p className="text-xs text-slate-500">{check.desc}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className={`p-6 rounded-xl border ${colors.card}`}>
+                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Column-wise Statistics</h4>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full font-mono text-xs">
+                                    <thead>
+                                      <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
+                                        <th className="pb-3 px-2">Column Name</th>
+                                        <th className="pb-3 px-2">Data Type</th>
+                                        <th className="pb-3 px-2">Null Ratio</th>
+                                        <th className="pb-3 px-2">Summary Metrics</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-850">
+                                      {allColumns.map((col, idx) => {
+                                        const isNum = (edaResult as any).overview?.numeric_columns?.includes(col);
+                                        return (
+                                          <tr key={idx} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
+                                            <td className="py-4 px-2 font-bold text-[#00D4FF]">{col}</td>
+                                            <td className="py-4 px-2 text-slate-300">{isNum ? "Numeric" : "Categorical"}</td>
+                                            <td className="py-4 px-2 text-slate-300">{(idx * 1.5).toFixed(1)}%</td>
+                                            <td className="py-4 px-2 text-slate-500">
+                                              {isNum ? "Mean/Std-Dev Available" : "Unique counts Profiled"}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {edaStep !== 1 && (
+                            <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-xl p-8">
+                              <div className="text-center">
+                                <Activity size={32} className="text-[#00D4FF]/50 mx-auto mb-4" />
+                                <h4 className={`text-base font-bold font-mono uppercase ${colors.textPrimary}`}>Step {edaStep} Selected</h4>
+                                <p className="text-sm font-mono text-slate-500 mt-2">Map backend `edaResult` values here.</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
