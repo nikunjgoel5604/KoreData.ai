@@ -4,7 +4,6 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState, useRef } from "re
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
-  BarChart3,
   Bell,
   BrainCircuit,
   Code2,
@@ -14,7 +13,6 @@ import {
   FileUp,
   Gauge,
   GitBranch,
-  History,
   Layers3,
   Loader2,
   LogOut,
@@ -34,7 +32,13 @@ import {
   X,
   FileText,
   Clock,
-  Compass
+  Compass,
+  Sun,
+  Moon,
+  Search,
+  Settings,
+  Grid,
+  ChevronDown
 } from "lucide-react";
 import Pipeline3D from "./Pipeline3D";
 
@@ -123,13 +127,21 @@ export default function DashboardClient() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // --- Docking / Workspace Layout ---
-  const [activePanels, setActivePanels] = useState<string[]>(["overview", "upload-and-eda", "ml-studio", "simulation"]);
-  const [selectedPanel, setSelectedPanel] = useState<string>("overview");
-  const [maximizedPanel, setMaximizedPanel] = useState<string | null>(null);
+  // --- Themes ---
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  // --- Workspace Docking Tabs ---
+  const [activePanels, setActivePanels] = useState<string[]>(["dashboard", "simulation", "eda-analysis", "data-cleaning"]);
+  const [selectedPanel, setSelectedPanel] = useState<string>("dashboard");
   const [pinnedPanels, setPinnedPanels] = useState<string[]>([]);
+  const [view3D, setView3D] = useState(true);
+
+  // --- Right Sidebar logs ---
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // --- Bottom timeline tabs ---
+  const [bottomTab, setBottomTab] = useState<"timeline" | "code-editor" | "sql-query" | "console">("timeline");
 
   // --- 16-Stage Simulation States ---
   const [simRunning, setSimRunning] = useState(false);
@@ -137,10 +149,9 @@ export default function DashboardClient() {
   const [currentStageKey, setCurrentStageKey] = useState<string | null>(null);
   const [stageStatuses, setStageStatuses] = useState<Record<string, "idle" | "running" | "success" | "warning" | "error">>({});
   const [stageTimes, setStageTimes] = useState<Record<string, number>>({});
-  const [simEstTime, setSimEstTime] = useState<number>(0); // in seconds
-  const [simStartTime, setSimStartTime] = useState<number | null>(null);
+  const [simEstTime, setSimEstTime] = useState<number>(0);
 
-  // --- Imputation & Edit States ---
+  // --- Imputation & Cleaning States ---
   const [selectedColumn, setSelectedColumn] = useState("");
   const [selectedStrategy, setSelectedStrategy] = useState("mean");
   const [cleanLoading, setCleanLoading] = useState(false);
@@ -253,7 +264,6 @@ export default function DashboardClient() {
     loadDashboard();
   }, [authHeaders, token]);
 
-  // Set default values when edaResult updates
   useEffect(() => {
     if (edaResult) {
       setCodeText(
@@ -274,17 +284,6 @@ export default function DashboardClient() {
     }
   }, [edaResult]);
 
-  const allColumns = useMemo(() => {
-    if (!edaResult) return [];
-    const over = (edaResult as any).overview || {};
-    return [
-      ...(over.numeric_columns || []),
-      ...(over.categorical_columns || []),
-      ...(over.datetime_columns || [])
-    ];
-  }, [edaResult]);
-
-  // Autoscroll live logs box
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
@@ -353,15 +352,23 @@ export default function DashboardClient() {
     window.location.href = "/login";
   };
 
-  // --- Docking Tab Controls ---
+  const allColumns = useMemo(() => {
+    if (!edaResult) return [];
+    const over = (edaResult as any).overview || {};
+    return [
+      ...(over.numeric_columns || []),
+      ...(over.categorical_columns || []),
+      ...(over.datetime_columns || [])
+    ];
+  }, [edaResult]);
+
+  // --- Docking Panels Controls ---
   const togglePanel = (panelId: string) => {
-    if (activePanels.includes(panelId)) {
-      setSelectedPanel(panelId);
-    } else {
+    if (!activePanels.includes(panelId)) {
       setActivePanels([...activePanels, panelId]);
-      setSelectedPanel(panelId);
     }
-    addLog("Workspace", `Opened workspace tab: ${panelId}`, "info");
+    setSelectedPanel(panelId);
+    addLog("Workspace", `Focused panel: ${panelId}`, "info");
   };
 
   const closePanel = (panelId: string, e: React.MouseEvent) => {
@@ -371,29 +378,16 @@ export default function DashboardClient() {
     if (selectedPanel === panelId && remaining.length > 0) {
       setSelectedPanel(remaining[0]);
     }
-    if (maximizedPanel === panelId) {
-      setMaximizedPanel(null);
-    }
-    addLog("Workspace", `Closed workspace tab: ${panelId}`, "info");
   };
 
-  const togglePin = (panelId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPinnedPanels((prev) =>
-      prev.includes(panelId) ? prev.filter((id) => id !== panelId) : [...prev, panelId]
-    );
-  };
-
-  // --- Real-Time 16-Stage SSE simulation ---
+  // --- Simulation Runner (16-Stage) ---
   const handleStartSimulation = () => {
     if (simRunning) return;
 
     setSimRunning(true);
     setSimProgress(0);
-    setSimStartTime(Date.now());
     setCurrentStageKey("upload");
 
-    // Initialize all stage states
     const initStatus: Record<string, "idle" | "running" | "success" | "warning" | "error"> = {};
     const initTimes: Record<string, number> = {};
     SIMULATION_STAGES.forEach((s) => {
@@ -404,7 +398,7 @@ export default function DashboardClient() {
     setStageTimes(initTimes);
     setSimEstTime(12);
 
-    addLog("Simulation", "Real-time SSE simulation graph started.", "info");
+    addLog("Simulation", "Automated execution pipeline triggered.", "info");
 
     const es = new EventSource(`${API_BASE}/simulation/run`);
 
@@ -415,14 +409,13 @@ export default function DashboardClient() {
           setSimProgress(100);
           setSimRunning(false);
           setCurrentStageKey(null);
-          addLog("Simulation", "Real-time analysis pipeline complete.", "success");
+          addLog("Simulation", "Pipeline execution completed successfully.", "success");
           es.close();
         } else {
-          // Advance frontend sub-stages mapped to backend pipeline category
-          const category = data.key; // e.g. "load", "missing", "inspect", etc.
-          const status = data.status; // "running" | "done"
+          const category = data.key;
+          const status = data.status;
           
-          SIMULATION_STAGES.forEach((stage, idx) => {
+          SIMULATION_STAGES.forEach((stage) => {
             if (stage.category === category) {
               setStageStatuses((prev) => ({
                 ...prev,
@@ -431,14 +424,11 @@ export default function DashboardClient() {
               if (status === "running") {
                 setCurrentStageKey(stage.key);
                 setStageTimes((prev) => ({ ...prev, [stage.key]: (prev[stage.key] || 0) + 1 }));
-                addLog("Pipeline", `${stage.label} is currently active...`, "info");
-              } else {
-                addLog("Pipeline", `${stage.label} completed successfully.`, "success");
+                addLog("Pipeline", `${stage.label} active...`, "info");
               }
             }
           });
 
-          // Sync global progress bar
           setSimProgress(data.progress);
         }
       } catch (err) {
@@ -449,7 +439,7 @@ export default function DashboardClient() {
     es.onerror = () => {
       setSimRunning(false);
       es.close();
-      addLog("Simulation", "SSE connection dropped.", "error");
+      addLog("Simulation", "Pipeline execution failed or disconnected.", "error");
     };
   };
 
@@ -457,7 +447,7 @@ export default function DashboardClient() {
   const handleApplyImputation = async () => {
     if (!edaResult || !selectedColumn || cleanLoading) return;
     setCleanLoading(true);
-    addLog("EDA Engine", `Applying Imputation on column: ${selectedColumn}`, "info");
+    addLog("Cleaning", `Applying Imputation on column: ${selectedColumn}`, "info");
 
     try {
       const dataSlices = (edaResult as any).dataset_slices || {};
@@ -477,11 +467,10 @@ export default function DashboardClient() {
       const data = await res.json();
       if (!res.ok) {
         alert(data.detail || "Imputation failed.");
-        addLog("EDA Engine", "Missing cells imputation failed.", "error");
+        addLog("Cleaning", "Missing cells imputation failed.", "error");
         return;
       }
 
-      // Re-run EDA by editing the dataset
       setStatus(`Re-calculating EDA stats...`);
       const editRes = await fetch(`${API_BASE}/dataset/edit`, {
         method: "POST",
@@ -500,7 +489,7 @@ export default function DashboardClient() {
 
       setEdaResult(editData);
       setStatus("EDA updated successfully");
-      addLog("EDA Engine", `Filled missing cells in ${selectedColumn}. Quality score: ${editData.data_quality?.quality_score}%`, "success");
+      addLog("Cleaning", `Filled missing cells in ${selectedColumn}. Quality score: ${editData.data_quality?.quality_score}%`, "success");
       alert(`Imputation applied successfully.`);
     } catch (err) {
       console.error(err);
@@ -517,7 +506,7 @@ export default function DashboardClient() {
     setConsoleOutput("Running script on backend...");
     setConsoleError("");
     setConsoleResult(null);
-    addLog("Code Runner", "Initializing sandboxed Python compilation.", "info");
+    addLog("Console", "Initializing sandboxed Python compilation.", "info");
 
     try {
       const dataSlices = (edaResult as any).dataset_slices || {};
@@ -538,18 +527,18 @@ export default function DashboardClient() {
       const data = await res.json();
       if (!res.ok) {
         setConsoleError(data.detail || "Execution failed.");
-        addLog("Code Runner", `Compilation Error: ${data.detail}`, "error");
+        addLog("Console", `Compilation Error: ${data.detail}`, "error");
         return;
       }
 
       setConsoleOutput(data.output || "");
       if (data.error) {
         setConsoleError(data.error);
-        addLog("Code Runner", "Runtime script exception detected.", "error");
+        addLog("Console", "Runtime script exception detected.", "error");
       }
       if (data.result) {
         setConsoleResult(data.result);
-        addLog("Code Runner", "Dataframe returned successfully.", "success");
+        addLog("Console", "Dataframe returned successfully.", "success");
       }
     } catch (err) {
       setConsoleError("Network error.");
@@ -681,7 +670,6 @@ export default function DashboardClient() {
 
       addLog("ML Studio", `Model trained successfully. Grade: ${reportData.report?.grade || "N/A"}`, "success");
 
-      // Reload model stats
       const [savedRes, historyRes] = await Promise.all([
         fetch(`${API_BASE}/ml/saved`, { headers: authHeaders }).catch(() => null),
         fetch(`${API_BASE}/ml/history`, { headers: authHeaders }).catch(() => null)
@@ -773,480 +761,424 @@ export default function DashboardClient() {
     }
   };
 
-  const overview = edaResult?.overview as { rows?: number; columns?: number } | undefined;
-  const quality = edaResult?.quality as { score?: number } | undefined;
+  // --- Dynamic Color Configurations ---
+  const colors = useMemo(() => {
+    const isDark = theme === "dark";
+    return {
+      bg: isDark ? "bg-[#030712] text-slate-100" : "bg-[#f8fafc] text-slate-800",
+      topbar: isDark ? "bg-[#0b1329]/95 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-800 shadow-sm",
+      sidebar: isDark ? "bg-[#0b1329] border-slate-800" : "bg-white border-slate-200 shadow-sm",
+      card: isDark ? "bg-[#0f172a]/95 border-slate-800/80 shadow-[0_4px_24px_rgba(0,0,0,0.25)]" : "bg-white border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.03)]",
+      cardHover: isDark ? "hover:border-[#00D4FF]/40 hover:shadow-[0_0_15px_rgba(0,212,255,0.06)]" : "hover:border-blue-500/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
+      border: isDark ? "border-slate-800/80" : "border-slate-200",
+      input: isDark ? "bg-[#020712] border-slate-800 text-slate-200 focus:border-[#00D4FF]/40" : "bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500",
+      textMuted: isDark ? "text-slate-400" : "text-slate-500",
+      textDim: isDark ? "text-slate-500 font-mono" : "text-slate-400 font-mono",
+      btnPrimary: isDark ? "bg-[#00D4FF] hover:bg-[#00b5da] text-[#030712]" : "bg-blue-600 hover:bg-blue-700 text-white",
+      tabActive: isDark ? "bg-[#0f172a] text-[#00D4FF] border-b-2 border-b-[#00D4FF]" : "bg-white text-blue-600 border-b-2 border-b-blue-600",
+      tabInactive: isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-500 hover:text-slate-800",
+    };
+  }, [theme]);
+
+  // Statistics derived values
+  const totalRows = edaResult ? Number((edaResult.overview as any)?.rows || 0) : 25680;
+  const totalCols = edaResult ? Number((edaResult.overview as any)?.columns || 0) : 18;
+  const missingValues = edaResult ? Number((edaResult.quality as any)?.missing_cells || 0) : 1256;
+  const qualityScore = edaResult ? Number((edaResult.data_quality as any)?.quality_score || 0) : 92.4;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#020712] text-slate-100 font-sans">
+    <div className={`flex h-screen w-screen overflow-hidden font-sans transition-colors duration-300 ${colors.bg}`}>
       
-      {/* 1. LEFT SIDEBAR NAVIGATION */}
-      <aside className="w-16 flex flex-col items-center justify-between border-r border-slate-800 bg-[#000814] py-4 z-20">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-10 h-10 rounded-lg border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-extrabold text-sm shadow-[0_0_15px_rgba(6,182,212,0.15)] bg-slate-900/50">
-            K∂
+      {/* LEFT SIDEBAR NAVIGATION */}
+      <aside className={`w-64 flex flex-col border-r ${colors.sidebar} transition-colors duration-300 z-20 select-none`}>
+        <div className="p-5 border-b border-slate-800/40 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#0085FF] to-[#00D4FF] flex items-center justify-center text-white font-mono font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.2)]">
+            K
           </div>
-          
-          <nav className="flex flex-col gap-3">
-            {[
-              { id: "overview", label: "Overview", icon: Activity },
-              { id: "upload-and-eda", label: "Upload & EDA", icon: FileUp },
-              { id: "python-sandbox", label: "Sandbox", icon: Code2 },
-              { id: "ml-studio", label: "ML Studio", icon: BrainCircuit },
-              { id: "simulation", label: "Pipeline SIM", icon: GitBranch },
-            ].map((item) => {
-              const Icon = item.icon;
-              const isActive = selectedPanel === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => togglePanel(item.id)}
-                  title={item.label}
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                    isActive
-                      ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                      : "text-slate-500 hover:text-slate-200 hover:bg-slate-800/40"
-                  }`}
-                >
-                  <Icon size={18} />
-                </button>
-              );
-            })}
-          </nav>
+          <div>
+            <strong className="block text-sm font-bold text-white tracking-widest uppercase">KoreData-EX</strong>
+            <small className="block text-[9px] text-[#00D4FF] tracking-wider uppercase font-mono">AI-Powered Data Analytics</small>
+          </div>
         </div>
 
-        <button onClick={logout} title="Log Out" className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
-          <LogOut size={18} />
-        </button>
-      </aside>
-
-      {/* MAIN CONTAINER */}
-      <div className="flex-1 flex flex-col min-w-0">
-        
-        {/* 2. TOP NAVBAR */}
-        <header className="h-14 border-b border-slate-800 bg-[#000814]/80 backdrop-blur-md flex items-center justify-between px-6 z-10">
-          <div className="flex items-center gap-3">
-            <span className={`w-2.5 h-2.5 rounded-full ${apiStatus === "ready" ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
-            <h1 className="text-sm font-mono tracking-wider text-slate-300">KOREDATA.AI // {status}</h1>
+        {/* SIDEBAR MAIN MENU */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          <div>
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Main Navigation</span>
+            <nav className="space-y-1">
+              {[
+                { id: "dashboard", label: "Dashboard", icon: Grid },
+                { id: "upload", label: "Upload Dataset", icon: FileUp },
+                { id: "simulation", label: "Simulation Pipeline", icon: GitBranch },
+                { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
+                { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
+                { id: "ml-studio", label: "Machine Learning", icon: BrainCircuit },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => togglePanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all ${
+                      isActive
+                        ? "bg-[#0085FF]/10 text-[#00D4FF] border border-[#0085FF]/20"
+                        : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/20"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          {simRunning && (
-            <div className="flex items-center gap-4 w-72">
-              <span className="text-xs text-cyan-400 font-mono animate-pulse">PIPELINE RUNNING:</span>
-              <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${simProgress}%` }} />
-              </div>
-              <span className="text-xs font-mono text-cyan-400">{simProgress}%</span>
-            </div>
-          )}
+          <div>
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Workspace</span>
+            <nav className="space-y-1">
+              {[
+                { id: "projects", label: "My Projects", icon: Compass },
+                { id: "saved", label: "Saved Pipelines", icon: FileClock },
+                { id: "sources", label: "Data Sources", icon: Database },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-xs font-mono text-slate-500 hover:text-slate-300 hover:bg-slate-800/10 rounded-lg"
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-3 text-xs text-slate-400 font-mono">
-            <UserRound size={14} className="text-cyan-500" />
-            <span>ID: {user?.login_id || "KD-0000"}</span>
+        {/* BOTTOM BRAND CARD */}
+        <div className="p-4 border-t border-slate-800/40">
+          <div className="p-4 bg-slate-900/60 border border-slate-800/60 rounded-xl mb-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+              <Sparkles size={16} className="animate-pulse" />
+            </div>
+            <div>
+              <strong className="block text-[11px] text-white uppercase font-mono">KoreData-EX</strong>
+              <span className="block text-[9px] text-slate-500 font-mono">Enterprise v2.0</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between text-[10px] font-mono pl-1">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>Operational</span>
+            </div>
+            <button onClick={logout} className="text-slate-500 hover:text-red-400 flex items-center gap-1 transition-all">
+              <LogOut size={12} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT REGION */}
+      <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* TOP NAVBAR */}
+        <header className={`h-14 border-b ${colors.topbar} flex items-center justify-between px-6 z-10 transition-colors duration-300`}>
+          <div className="flex items-center gap-4">
+            <div className={`px-2.5 py-1 text-[10px] font-mono border rounded-md uppercase ${
+              apiStatus === "ready"
+                ? "bg-green-500/5 border-green-500/20 text-green-400"
+                : "bg-amber-500/5 border-amber-500/20 text-amber-400"
+            }`}>
+              Project: Retail_Analytics
+            </div>
+
+            <label className="flex items-center bg-slate-950/20 border border-slate-800/40 rounded-lg px-3 py-1.5 gap-2 cursor-pointer hover:border-slate-800 transition-all text-xs font-mono">
+              <FileUp size={14} className="text-slate-500" />
+              <span>Upload New Data</span>
+              <input type="file" onChange={handleUpload} className="hidden" />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Theme Toggle (Sun/Moon) */}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className={`p-2 rounded-lg border transition-all ${
+                theme === "dark" ? "border-slate-800 text-slate-400 hover:text-white" : "border-slate-200 text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            {/* Profile Dropdown */}
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-800/40">
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-200 font-mono text-xs uppercase border border-slate-700">
+                NG
+              </div>
+              <div className="text-left select-none hidden md:block">
+                <strong className="block text-xs font-bold text-slate-200">Nikunj Goel</strong>
+                <span className="block text-[9px] text-slate-500 font-mono">Data Scientist</span>
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* WORKSPACE & BOTTOM TIMELINE SPLIT */}
+        {/* WORKSPACE AREA & BOTTOM TIMELINE SPLIT */}
         <div className="flex-1 flex min-h-0">
           
-          {/* CENTER PANEL SPACE & RIGHT SIDEBAR PANEL */}
-          <div className="flex-1 flex flex-col min-w-0">
+          {/* CENTER ACTIVE SPACE */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 space-y-6">
             
-            {/* 3. CENTER WORKSPACE (IDE TABS & CONTENT) */}
-            <div className="flex-1 flex flex-col min-h-0 bg-[#030914]">
-              {/* IDE TABS HEADER */}
-              <div className="h-9 border-b border-slate-800/80 bg-[#000814]/40 flex items-center justify-between px-4">
-                <div className="flex items-center gap-1 overflow-x-auto select-none">
-                  {activePanels.map((panelId) => {
-                    const isSelected = selectedPanel === panelId;
-                    const isPinned = pinnedPanels.includes(panelId);
+            {/* TOP STATS CARDS ROW */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Stat card 1: Total Rows */}
+              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Rows</span>
+                  <div className="w-16 h-8 flex items-end">
+                    <svg className="w-full h-full text-green-400" viewBox="0 0 50 15">
+                      <rect x="2" y="10" width="4" height="5" fill="currentColor" />
+                      <rect x="10" y="7" width="4" height="8" fill="currentColor" />
+                      <rect x="18" y="11" width="4" height="4" fill="currentColor" />
+                      <rect x="26" y="5" width="4" height="10" fill="currentColor" />
+                      <rect x="34" y="2" width="4" height="13" fill="currentColor" />
+                      <rect x="42" y="4" width="4" height="11" fill="currentColor" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <strong className="text-2xl font-mono text-white block mt-1">{totalRows.toLocaleString()}</strong>
+                  <span className="text-[9px] font-mono text-emerald-400 mt-1 block">↑ 12.5% vs last upload</span>
+                </div>
+              </div>
+
+              {/* Stat card 2: Total Columns */}
+              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Columns</span>
+                  <Database size={16} className="text-cyan-400" />
+                </div>
+                <div>
+                  <strong className="text-2xl font-mono text-white block mt-1">{totalCols}</strong>
+                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">No change</span>
+                </div>
+              </div>
+
+              {/* Stat card 3: Missing Values */}
+              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Missing Values</span>
+                  <AlertTriangle size={16} className="text-amber-500" />
+                </div>
+                <div>
+                  <strong className="text-2xl font-mono text-white block mt-1">{missingValues.toLocaleString()}</strong>
+                  <span className="text-[9px] font-mono text-amber-500 mt-1 block">↓ 8.3% vs last upload</span>
+                </div>
+              </div>
+
+              {/* Stat card 4: Data Quality Score */}
+              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Quality Score</span>
+                  <div className="w-10 h-10 flex items-center justify-center transform -rotate-90">
+                    <svg className="w-10 h-10">
+                      <circle cx="20" cy="20" r="16" stroke="rgba(16, 185, 129, 0.1)" strokeWidth="3" fill="transparent" />
+                      <circle
+                        cx="20" cy="20" r="16" stroke="#10B981" strokeWidth="3" fill="transparent"
+                        strokeDasharray={2 * Math.PI * 16}
+                        strokeDashoffset={2 * Math.PI * 16 - (qualityScore / 100) * (2 * Math.PI * 16)}
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <strong className="text-2xl font-mono text-white block mt-1">{qualityScore}%</strong>
+                  <span className="text-[9px] font-mono text-emerald-400 mt-1 block">↑ 6.7% vs last upload</span>
+                </div>
+              </div>
+
+              {/* Stat card 5: Processing Time */}
+              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
+                <div className="flex justify-between items-start">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Processing Time</span>
+                  <Clock size={16} className="text-purple-400" />
+                </div>
+                <div>
+                  <strong className="text-2xl font-mono text-white block mt-1">3m 42s</strong>
+                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">Total Pipeline Time</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TABBED CENTER PIECE TABS HEADER */}
+            <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
+              <div className="h-10 border-b border-slate-800 bg-[#000814]/40 flex items-center justify-between px-4 select-none">
+                <div className="flex gap-2">
+                  {[
+                    { id: "dashboard", label: "Dashboard", icon: Grid },
+                    { id: "simulation", label: "Run Simulation", icon: GitBranch },
+                    { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
+                    { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
+                  ].map((panel) => {
+                    const Icon = panel.icon;
+                    const isSelected = selectedPanel === panel.id;
                     return (
-                      <div
-                        key={panelId}
-                        onClick={() => setSelectedPanel(panelId)}
-                        className={`group h-9 px-3 flex items-center gap-2 border-r border-slate-800/60 cursor-pointer text-xs font-mono transition-all ${
+                      <button
+                        key={panel.id}
+                        onClick={() => setSelectedPanel(panel.id)}
+                        className={`h-10 px-3 flex items-center gap-2 text-xs font-mono transition-all border-b-2 ${
                           isSelected
-                            ? "bg-[#030914] text-cyan-400 font-bold border-b border-b-cyan-500"
-                            : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/20"
+                            ? "text-[#00D4FF] border-b-[#00D4FF] bg-slate-900/20"
+                            : "text-slate-500 hover:text-slate-300 border-b-transparent"
                         }`}
                       >
-                        <span className="capitalize">{panelId.replaceAll("-", " ")}</span>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                          <button
-                            onClick={(e) => togglePin(panelId, e)}
-                            className={`p-0.5 rounded hover:bg-slate-800 ${isPinned ? "text-cyan-400" : "text-slate-600"}`}
-                          >
-                            <Pin size={10} />
-                          </button>
-                          <button onClick={(e) => closePanel(panelId, e)} className="p-0.5 rounded hover:bg-slate-800 text-slate-600 hover:text-red-400">
-                            <X size={10} />
-                          </button>
-                        </div>
-                      </div>
+                        <Icon size={14} />
+                        <span>{panel.label}</span>
+                      </button>
                     );
                   })}
                 </div>
-                
-                {selectedPanel && (
+
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setMaximizedPanel(maximizedPanel ? null : selectedPanel)}
-                    className="p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300"
+                    onClick={() => setView3D(!view3D)}
+                    className="px-2 py-1 text-[9px] font-mono border border-slate-800 hover:border-[#00D4FF] rounded text-slate-400 hover:text-white transition-all"
                   >
-                    {maximizedPanel ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                    {view3D ? "2D View" : "3D View"}
                   </button>
-                )}
+                </div>
               </div>
 
-              {/* TABS WORKSPACE CONTENT (STATE PERSISTED via DISPLAY NONE) */}
-              <div className="flex-1 overflow-y-auto p-6 relative">
-                
-                {/* OVERVIEW PANEL */}
-                <div style={{ display: selectedPanel === "overview" ? "block" : "none" }}>
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    <h2 className="text-xl font-bold mb-2 text-white">System Environment</h2>
-                    <p className="text-slate-400 text-sm mb-6">Overview of current cloud active files, pipeline models, and database telemetry.</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-xl">
-                        <small className="text-slate-500 font-mono uppercase text-[10px]">Ingested Files</small>
-                        <strong className="block text-2xl mt-1 text-cyan-400">{files.length}</strong>
-                      </div>
-                      <div className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-xl">
-                        <small className="text-slate-500 font-mono uppercase text-[10px]">Cloud Models</small>
-                        <strong className="block text-2xl mt-1 text-purple-400">{models.length}</strong>
-                      </div>
-                      <div className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-xl">
-                        <small className="text-slate-500 font-mono uppercase text-[10px]">Notifications</small>
-                        <strong className="block text-2xl mt-1 text-emerald-400">{notifications.length}</strong>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                        <h3 className="text-sm font-bold text-slate-200 mb-3 uppercase tracking-wider font-mono">Dataset Overview</h3>
-                        {edaResult ? (
-                          <div className="space-y-3 font-mono text-xs">
-                            <div className="flex justify-between py-1 border-b border-slate-800/40">
-                              <span className="text-slate-500">Rows</span>
-                              <strong className="text-white">{overview?.rows}</strong>
-                            </div>
-                            <div className="flex justify-between py-1 border-b border-slate-800/40">
-                              <span className="text-slate-500">Columns</span>
-                              <strong className="text-white">{overview?.columns}</strong>
-                            </div>
-                            <div className="flex justify-between py-1">
-                              <span className="text-slate-500">EDA Quality Score</span>
-                              <strong className="text-emerald-400">{quality?.score}%</strong>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-slate-500 text-xs font-mono">No active dataset. Ingest a dataset first.</p>
-                        )}
-                      </div>
-
-                      <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                        <h3 className="text-sm font-bold text-slate-200 mb-3 uppercase tracking-wider font-mono">ML Studio Stats</h3>
-                        <div className="space-y-3 font-mono text-xs">
-                          <div className="flex justify-between py-1 border-b border-slate-800/40">
-                            <span className="text-slate-500">Saved Joblibs</span>
-                            <strong className="text-white">{savedModels.length}</strong>
-                          </div>
-                          <div className="flex justify-between py-1">
-                            <span className="text-slate-500">Training Runs Logged</span>
-                            <strong className="text-white">{mlHistory.length}</strong>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-
-                {/* UPLOAD & EDA PANEL */}
-                <div style={{ display: selectedPanel === "upload-and-eda" ? "block" : "none" }}>
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl mb-6">
-                      <h2 className="text-lg font-bold mb-2 text-white">Upload & EDA Engine</h2>
-                      <p className="text-slate-400 text-sm mb-4">Select or drop tabular files. Python EDA computes schemas, anomalies, and statistics.</p>
-                      
-                      <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/40 bg-slate-950/40 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all">
-                        {uploading ? (
-                          <Loader2 className="spin text-cyan-400 mb-3" size={24} />
-                        ) : (
-                          <FileUp className="text-slate-500 mb-3" size={24} />
-                        )}
-                        <span className="text-sm font-mono text-slate-300 uppercase tracking-wider">
-                          {uploading ? "Parsing File..." : "Choose Dataset"}
-                        </span>
-                        <span className="text-xs text-slate-600 mt-1 font-mono">CSV, EXCEL, JSON, PARQUET</span>
-                        <input type="file" accept=".csv,.xlsx,.xls,.json,.parquet,.xml" onChange={handleUpload} className="hidden" />
-                      </label>
-                    </div>
-
-                    {edaResult && (
-                      <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                        <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider font-mono flex items-center gap-2">
-                          <WandSparkles size={16} className="text-cyan-400" />
-                          Impute Missing Values
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Target Column</label>
-                            <select
-                              value={selectedColumn}
-                              onChange={(e) => setSelectedColumn(e.target.value)}
-                              className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
-                            >
-                              <option value="" disabled>-- Select --</option>
-                              {allColumns.map((col) => (
-                                <option key={col} value={col}>{col}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Strategy</label>
-                            <select
-                              value={selectedStrategy}
-                              onChange={(e) => setSelectedStrategy(e.target.value)}
-                              className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
-                            >
-                              <option value="mean">Mean (Numerical Only)</option>
-                              <option value="median">Median (Numerical Only)</option>
-                              <option value="mode">Mode (Most Common)</option>
-                              <option value="zero">Fill zero constant</option>
-                            </select>
-                          </div>
-
-                          <button
-                            onClick={handleApplyImputation}
-                            disabled={cleanLoading || !selectedColumn}
-                            className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-cyan-400 transition-all h-9"
-                          >
-                            {cleanLoading ? <Loader2 className="spin" size={14} /> : "Apply Cleaning"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-
-                {/* PYTHON CODE SANDBOX */}
-                <div style={{ display: selectedPanel === "python-sandbox" ? "block" : "none" }}>
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                      <h2 className="text-lg font-bold mb-2 text-white">Python Workspace Console</h2>
-                      <p className="text-slate-400 text-sm mb-4">Run safe, sandboxed Python code to clean and model the active dataset.</p>
-                      
-                      <textarea
-                        value={codeText}
-                        onChange={(e) => setCodeText(e.target.value)}
-                        className="w-full h-40 bg-slate-950/70 border border-slate-800 rounded-xl p-4 font-mono text-cyan-400 text-xs leading-relaxed focus:outline-none focus:border-cyan-500/40 mb-4"
-                      />
-
-                      <button
-                        onClick={handleRunCode}
-                        disabled={codeRunning || !edaResult}
-                        className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all mb-6"
-                      >
-                        {codeRunning ? "Running Script..." : "Execute Python"}
-                      </button>
-
-                      {(consoleOutput || consoleError || consoleResult) && (
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-widest block border-b border-slate-850 pb-2 mb-2">Stdout stream logs</span>
-                          {consoleOutput && <pre className="text-slate-300 whitespace-pre-wrap">{consoleOutput}</pre>}
-                          {consoleError && <pre className="text-red-400 mt-2 whitespace-pre-wrap">{consoleError}</pre>}
-                          {consoleResult && (
-                            <div className="mt-3 pt-3 border-t border-slate-850">
-                              <span className="text-[10px] text-emerald-400 uppercase tracking-widest block mb-2">Evaluated Result:</span>
-                              <pre className="text-emerald-400 whitespace-pre-wrap overflow-x-auto">
-                                {typeof consoleResult === "string" ? consoleResult : JSON.stringify(consoleResult, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-
-                {/* ML STUDIO PANEL */}
-                <div style={{ display: selectedPanel === "ml-studio" ? "block" : "none" }}>
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                      <h2 className="text-lg font-bold mb-2 text-white">Machine Learning Studio</h2>
-                      
-                      {!edaResult ? (
-                        <p className="text-slate-500 text-sm font-mono">No active dataset. Upload a dataset to begin ML training.</p>
+              {/* CENTER WORKSPACE TABS */}
+              <div className="p-6">
+                {selectedPanel === "dashboard" && (
+                  <div className="space-y-6">
+                    {/* Visualizer Area */}
+                    <div className="w-full relative rounded-xl border border-slate-800/80 overflow-hidden bg-slate-950/40">
+                      {view3D ? (
+                        <Pipeline3D activeStage={currentStageKey} />
                       ) : (
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Target Column</label>
-                              <select
-                                value={targetCol}
-                                onChange={(e) => setTargetCol(e.target.value)}
-                                className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
-                              >
-                                {allColumns.map((col) => (
-                                  <option key={col} value={col}>{col}</option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div>
-                              <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Task Hint</label>
-                              <select
-                                value={taskHint}
-                                onChange={(e) => setTaskHint(e.target.value)}
-                                className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
-                              >
-                                <option value="auto-detect">Auto-detect task</option>
-                                <option value="classification">Classification</option>
-                                <option value="regression">Regression</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Prompt / prediction goal (Optional)</label>
-                            <textarea
-                              value={promptText}
-                              onChange={(e) => setPromptText(e.target.value)}
-                              placeholder="e.g. classify user behavior patterns..."
-                              className="w-full h-16 bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg resize-none"
-                            />
-                          </div>
-
-                          <div className="flex gap-3">
-                            <button
-                              onClick={handleGetRecommendations}
-                              disabled={mlRecommendLoading}
-                              className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all"
-                            >
-                              {mlRecommendLoading ? <Loader2 className="spin" size={14} /> : "Analyze Suitability"}
-                            </button>
-
-                            <button
-                              onClick={() => handleTrainModel("", true)}
-                              disabled={trainingLoading !== false}
-                              className="bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-slate-700 transition-all"
-                            >
-                              {trainingLoading === "auto" ? <Loader2 className="spin" size={14} /> : "Auto-Train Best"}
-                            </button>
-                          </div>
-
-                          {recommendationData && (
-                            <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl space-y-4">
-                              <h4 className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                                <Sparkles size={14} />
-                                Model Recommendations
-                              </h4>
-                              <p className="text-slate-300 text-xs leading-relaxed">{recommendationData.explanation || recommendationData.prompt_note}</p>
-                              
-                              <div className="space-y-2">
-                                {recommendationData.recommendations?.slice(0, 3).map((rec: any) => {
-                                  const isTrainingThis = trainingLoading === rec.model_key;
-                                  return (
-                                    <div key={rec.model_key} className="flex items-center justify-between p-3 bg-slate-950/40 border border-slate-850 rounded-lg">
-                                      <div className="font-mono text-xs">
-                                        <div className="flex items-center gap-2">
-                                          <strong className="text-white">{rec.name}</strong>
-                                          <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">{rec.speed}</span>
-                                        </div>
-                                        <span className="text-[10px] text-slate-500 mt-1 block">Score: {rec.score}/100</span>
-                                      </div>
-                                      <button
-                                        onClick={() => handleTrainModel(rec.model_key)}
-                                        disabled={trainingLoading !== false}
-                                        className="bg-cyan-500 text-[#000814] font-bold text-[10px] uppercase tracking-wider py-1 px-3 rounded hover:bg-cyan-400 transition-all"
-                                      >
-                                        {isTrainingThis ? <Loader2 className="spin" size={12} /> : "Train"}
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                          {trainedModelCard && (
-                            <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-4">
-                              <div className="flex items-center justify-between border-b border-emerald-500/10 pb-3">
-                                <div>
-                                  <h4 className="text-xs font-bold font-mono text-emerald-400 uppercase tracking-widest">Trained Model Artifact</h4>
-                                  <span className="text-[10px] text-slate-400 font-mono mt-1 block">{trainedModelCard.rawResult.model_name}</span>
-                                </div>
-                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase font-mono">
-                                  Grade: {trainedModelCard.report?.grade}
-                                </span>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                {Object.keys(trainedModelCard.rawResult.metrics || {}).map((mKey) => (
-                                  <div key={mKey} className="p-2 bg-slate-950/40 border border-slate-850 rounded-lg text-center">
-                                    <span className="text-[9px] text-slate-500 font-mono uppercase block">{mKey.replaceAll("_", " ")}</span>
-                                    <strong className="text-sm font-mono text-white mt-1 block">{trainedModelCard.rawResult.metrics[mKey]}</strong>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <button
-                                onClick={() => handleDownloadModel(trainedModelCard.rawResult.model_key)}
-                                className="w-full bg-slate-900 border border-slate-800 text-slate-300 font-mono text-xs uppercase py-2 rounded-lg hover:bg-slate-800 transition-all"
-                              >
-                                Download joblib Model
-                              </button>
-
-                              {trainedModelCard.rawResult.feature_names && (
-                                <form onSubmit={handlePredict} className="border-t border-slate-850 pt-4 mt-2">
-                                  <span className="text-xs font-bold text-cyan-400 font-mono block mb-3 uppercase tracking-wider">Deploy & Run Inference</span>
-                                  
-                                  <div className="grid grid-cols-2 gap-2 mb-3">
-                                    {trainedModelCard.rawResult.feature_names.map((feat: string) => (
-                                      <div key={feat}>
-                                        <label className="text-[9px] text-slate-500 font-mono block mb-1 truncate">{feat}</label>
-                                        <input
-                                          type="text"
-                                          value={predictInputs[feat] || "0"}
-                                          onChange={(e) => setPredictInputs({ ...predictInputs, [feat]: e.target.value })}
-                                          className="w-full bg-slate-950 border border-slate-850 text-white text-xs p-1.5 rounded"
-                                          required
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-
-                                  <button
-                                    type="submit"
-                                    disabled={predictLoading}
-                                    className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase py-1.5 px-3 rounded hover:bg-cyan-400 transition-all"
-                                  >
-                                    {predictLoading ? <Loader2 className="spin" size={12} /> : "Run Inference"}
-                                  </button>
-
-                                  {predictResult && (
-                                    <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                                      <span className="text-[9px] text-emerald-400 font-mono block uppercase">Output prediction</span>
-                                      <strong className="text-lg font-mono text-white mt-1 block">{predictResult.predictions?.[0]}</strong>
-                                    </div>
-                                  )}
-                                </form>
-                              )}
-                            </div>
-                          )}
+                        <div className="p-8 flex items-center justify-center min-h-[260px] font-mono text-xs">
+                          {/* SVG flow diagram */}
+                          <svg className="w-full max-w-xl h-24" viewBox="0 0 600 80">
+                            <defs>
+                              <linearGradient id="cyan-blue" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#0085FF" />
+                                <stop offset="100%" stopColor="#00D4FF" />
+                              </linearGradient>
+                            </defs>
+                            {/* Connector line */}
+                            <path d="M 50 40 L 550 40" stroke="url(#cyan-blue)" strokeWidth="3" fill="none" className="stroke-dasharray animate-[dash_2s_linear_infinite]" strokeDasharray="10, 5" />
+                            {/* Render stages */}
+                            {["Upload", "Cleaning", "EDA", "ML Studio", "Report"].map((label, idx) => {
+                              const x = 50 + idx * 125;
+                              return (
+                                <g key={idx}>
+                                  <circle cx={x} cy="40" r="16" fill="#0b1329" stroke="#00D4FF" strokeWidth="2.5" />
+                                  <text x={x} y="44" fill="#00D4FF" fontSize="9" fontFamily="monospace" textAnchor="middle" fontWeight="bold">{idx + 1}</text>
+                                  <text x={x} y="72" fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">{label}</text>
+                                </g>
+                              );
+                            })}
+                          </svg>
                         </div>
                       )}
                     </div>
-                  </motion.div>
-                </div>
 
-                {/* SIMULATION PIPELINE */}
-                <div style={{ display: selectedPanel === "simulation" ? "block" : "none" }}>
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                    <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                      <h2 className="text-lg font-bold mb-2 text-white">Simulation Pipeline Control</h2>
-                      <p className="text-slate-400 text-sm mb-4">Run SSE events stream mapping the full 16-stage pipeline node execution.</p>
+                    {/* Bottom Analytics Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Data Preview Table */}
+                      <div className={`p-5 rounded-xl border ${colors.card} col-span-1 lg:col-span-2`}>
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xs font-bold text-white font-mono uppercase tracking-wider flex items-center gap-2">
+                            <FileSpreadsheet size={14} className="text-cyan-400" />
+                            Data Preview
+                          </h3>
+                        </div>
 
+                        <div className="overflow-x-auto">
+                          <table className="w-full font-mono text-[10px] text-slate-400">
+                            <thead>
+                              <tr className="border-b border-slate-800 text-left text-slate-500 uppercase tracking-wider">
+                                <th className="pb-2">Row ID</th>
+                                <th className="pb-2">Column 1</th>
+                                <th className="pb-2">Column 2</th>
+                                <th className="pb-2">Column 3</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/40">
+                              {edaResult ? (
+                                (edaResult as any).dataset_slices?.head?.["100"]?.slice(0, 4).map((row: any, rIdx: number) => (
+                                  <tr key={rIdx}>
+                                    <td className="py-2.5 text-cyan-400 font-bold">#{rIdx + 1}</td>
+                                    {Object.values(row).slice(0, 3).map((val: any, cIdx: number) => (
+                                      <td key={cIdx} className="py-2.5 text-slate-300 truncate max-w-[120px]">{String(val)}</td>
+                                    ))}
+                                  </tr>
+                                ))
+                              ) : (
+                                [1, 2, 3, 4].map((i) => (
+                                  <tr key={i}>
+                                    <td className="py-2.5 text-cyan-400 font-bold">#{i}</td>
+                                    <td className="py-2.5 text-slate-300">CA-2016-152156</td>
+                                    <td className="py-2.5 text-slate-300">Furniture</td>
+                                    <td className="py-2.5 text-slate-300">261.96</td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Radar Quality Score Chart */}
+                      <div className={`p-5 rounded-xl border ${colors.card} flex flex-col justify-between`}>
+                        <h3 className="text-xs font-bold text-white font-mono uppercase tracking-wider mb-4">
+                          Data Quality Dimensions
+                        </h3>
+                        
+                        <div className="flex-1 flex items-center justify-center min-h-[140px]">
+                          {/* Beautiful SVG Radar graph representation */}
+                          <svg className="w-36 h-36" viewBox="0 0 100 100">
+                            {/* Spider grid circles */}
+                            <polygon points="50,10 88,38 73,83 27,83 12,38" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <polygon points="50,25 78,45 67,73 33,73 22,45" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <polygon points="50,40 68,52 61,63 39,63 32,52" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            
+                            {/* Axis lines */}
+                            <line x1="50" y1="50" x2="50" y2="10" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <line x1="50" y1="50" x2="88" y2="38" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <line x1="50" y1="50" x2="73" y2="83" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <line x1="50" y1="50" x2="27" y2="83" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                            <line x1="50" y1="50" x2="12" y2="38" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+
+                            {/* Data polygon */}
+                            <polygon points="50,18 84,40 69,76 34,79 19,41" fill="rgba(6, 182, 212, 0.2)" stroke="#00D4FF" strokeWidth="1.5" />
+                          </svg>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[9px] font-mono text-slate-500">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]" />
+                            <span>Validity: 93%</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]" />
+                            <span>Accuracy: 94%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPanel === "simulation" && (
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
                       <button
                         onClick={handleStartSimulation}
                         disabled={simRunning}
@@ -1256,94 +1188,207 @@ export default function DashboardClient() {
                         Run Simulation Pipeline
                       </button>
                     </div>
-                  </motion.div>
-                </div>
 
+                    <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl">
+                      <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider mb-4">Python Sandbox Code Runner</h3>
+                      <textarea
+                        value={codeText}
+                        onChange={(e) => setCodeText(e.target.value)}
+                        className="w-full h-32 bg-[#020712] border border-slate-800 text-cyan-400 font-mono text-xs p-3 rounded-lg focus:outline-none mb-4"
+                      />
+                      <button
+                        onClick={handleRunCode}
+                        disabled={codeRunning || !edaResult}
+                        className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all"
+                      >
+                        {codeRunning ? "Running..." : "Execute Script"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {selectedPanel === "eda-analysis" && (
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">Exploratory Data Analysis</h3>
+                    <p className="text-slate-400 text-xs font-mono">Upload a dataset to compute correlation matrices and charts automatically.</p>
+                  </div>
+                )}
+
+                {selectedPanel === "data-cleaning" && (
+                  <div className="space-y-6">
+                    <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">Data Cleaning & Imputation</h3>
+                    
+                    {edaResult ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div>
+                          <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Target Column</label>
+                          <select
+                            value={selectedColumn}
+                            onChange={(e) => setSelectedColumn(e.target.value)}
+                            className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
+                          >
+                            <option value="" disabled>-- Select --</option>
+                            {allColumns.map((col) => (
+                              <option key={col} value={col}>{col}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-slate-500 font-mono uppercase block mb-1">Strategy</label>
+                          <select
+                            value={selectedStrategy}
+                            onChange={(e) => setSelectedStrategy(e.target.value)}
+                            className="w-full bg-[#020712] border border-slate-800 text-slate-300 text-xs p-2 rounded-lg"
+                          >
+                            <option value="mean">Mean</option>
+                            <option value="median">Median</option>
+                            <option value="mode">Mode</option>
+                            <option value="zero">Fill Zero</option>
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={handleApplyImputation}
+                          disabled={cleanLoading || !selectedColumn}
+                          className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all h-9"
+                        >
+                          Fill Missing Cells
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 text-xs font-mono">No active dataset uploaded.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 5. BOTTOM PANEL (16-STAGE TIMELINE / CONSOLE) */}
-            <footer className="h-48 border-t border-slate-800 bg-[#000814]/90 flex flex-col min-h-[12rem] z-10 select-none">
-              {/* TIMELINE CONTROLS HEADER */}
-              <div className="h-8 border-b border-slate-850 px-6 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <div className="flex items-center gap-2">
-                  <Terminal size={12} className="text-cyan-500" />
-                  <span className="uppercase tracking-widest">Active Execution Timeline</span>
-                </div>
-                <span>16 STAGES INTEGRATED</span>
+            {/* BOTTOM WORKSPACE PANEL (TIMELINE / CODE EDITORS) */}
+            <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
+              <div className="h-9 border-b border-slate-800 bg-[#000814]/40 flex items-center gap-4 px-4 select-none">
+                {[
+                  { id: "timeline", label: "Pipeline Timeline" },
+                  { id: "code-editor", label: "Code Editor" },
+                  { id: "sql-query", label: "SQL Query" },
+                  { id: "console", label: "Python Console" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setBottomTab(tab.id as any)}
+                    className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
+                      bottomTab === tab.id
+                        ? "text-[#00D4FF] border-b-[#00D4FF]"
+                        : "text-slate-500 hover:text-slate-300 border-b-transparent"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
-              {/* TIMELINE HORIZONTAL SCROLL BOX (FIXED OVERLAPPING WITH PROPER SPACING) */}
-              <div className="flex-1 overflow-x-auto flex items-center px-6 gap-6 py-4">
-                {SIMULATION_STAGES.map((stage, index) => {
-                  const status = stageStatuses[stage.key] || "idle";
-                  const isCurrent = currentStageKey === stage.key;
-                  const isDone = status === "success";
+              <div className="p-5">
+                {bottomTab === "timeline" && (
+                  <div className="flex gap-4 overflow-x-auto pb-2">
+                    {SIMULATION_STAGES.slice(0, 10).map((stage, idx) => {
+                      const status = stageStatuses[stage.key] || "idle";
+                      const isCurrent = currentStageKey === stage.key;
+                      const isDone = status === "success";
 
-                  let colorClass = "text-slate-500 border-slate-800 bg-slate-900/10";
-                  let badgeColor = "bg-slate-800 text-slate-500";
-                  let borderGlow = "";
+                      let badgeClass = "bg-slate-800 text-slate-500";
+                      if (isCurrent) badgeClass = "bg-[#00D4FF]/10 text-[#00D4FF] animate-pulse";
+                      if (isDone) badgeClass = "bg-emerald-500/10 text-emerald-400";
 
-                  if (isCurrent) {
-                    colorClass = "text-cyan-400 border-cyan-500/40 bg-cyan-500/5";
-                    badgeColor = "bg-cyan-500/10 text-cyan-400";
-                    borderGlow = "shadow-[0_0_15px_rgba(6,182,212,0.1)]";
-                  } else if (isDone) {
-                    colorClass = "text-emerald-400 border-emerald-500/40 bg-emerald-500/5";
-                    badgeColor = "bg-emerald-500/10 text-emerald-400";
-                  }
+                      return (
+                        <div key={stage.key} className="flex-shrink-0 w-44 p-3 bg-slate-950/20 border border-slate-850 rounded-lg">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase">Stage {idx + 1}</span>
+                          <h4 className="text-xs font-bold text-slate-200 mt-1 truncate">{stage.label}</h4>
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-mono font-bold uppercase block w-fit mt-2 ${badgeClass}`}>
+                            {isCurrent ? "In Progress" : isDone ? "Completed" : "Pending"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-                  return (
-                    <div
-                      key={stage.key}
-                      className={`flex-shrink-0 w-52 p-3 border rounded-xl flex flex-col justify-between h-28 transition-all ${colorClass} ${borderGlow}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <span className="text-[10px] font-mono font-bold text-slate-500">{String(index + 1).padStart(2, "0")}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${badgeColor}`}>
-                          {isCurrent ? "Active" : isDone ? "Done" : "Idle"}
-                        </span>
-                      </div>
-                      
-                      <div className="mt-2">
-                        <h4 className="text-xs font-bold text-slate-200 truncate">{stage.label}</h4>
-                        <p className="text-[9px] text-slate-500 mt-1 line-clamp-2 leading-relaxed">{stage.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {bottomTab === "code-editor" && (
+                  <div className="font-mono text-xs text-slate-500">Code editor panel loaded. Ready for script configurations.</div>
+                )}
+
+                {bottomTab === "sql-query" && (
+                  <div className="font-mono text-xs text-slate-500">SQL compiler connection ready.</div>
+                )}
+
+                {bottomTab === "console" && (
+                  <div className="font-mono text-xs text-slate-500">Interactive sandbox terminal online.</div>
+                )}
               </div>
-            </footer>
+            </div>
 
           </div>
 
-          {/* 4. RIGHT SIDEBAR (3D SCENE & LIVE LOGS TERMINAL) */}
-          <aside className="w-80 border-l border-slate-800 bg-[#000814]/90 flex flex-col z-15 min-w-[20rem]">
-            {/* Embedded 3D scene visualizer */}
-            <div className="p-4 border-b border-slate-850">
-              <Pipeline3D activeStage={currentStageKey} />
-            </div>
+          {/* RIGHT SIDEBAR PANEL */}
+          <aside className="w-80 border-l border-slate-800 bg-[#000814]/95 flex flex-col z-10 select-none">
+            
+            {/* Simulation Progress Card */}
+            <div className="p-5 border-b border-slate-850 space-y-4">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Simulation Progress</span>
+              
+              <div className="flex items-center gap-4">
+                {/* Circular Progress Ring */}
+                <div className="w-16 h-16 relative flex items-center justify-center transform -rotate-90">
+                  <svg className="w-16 h-16">
+                    <circle cx="32" cy="32" r="26" stroke="rgba(0, 133, 255, 0.1)" strokeWidth="4" fill="transparent" />
+                    <circle
+                      cx="32" cy="32" r="26" stroke="#0085FF" strokeWidth="4" fill="transparent"
+                      strokeDasharray={2 * Math.PI * 26}
+                      strokeDashoffset={2 * Math.PI * 26 - (simProgress / 100) * (2 * Math.PI * 26)}
+                      className="transition-all duration-300"
+                    />
+                  </svg>
+                  <span className="absolute text-xs font-mono font-bold text-white transform rotate-90">{simProgress}%</span>
+                </div>
 
-            {/* LIVE SCROLLING LOGS BOX */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="h-8 border-b border-slate-850 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500 select-none">
-                <span className="uppercase tracking-widest">Synchronized Logs</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping" />
+                <div>
+                  <span className="text-[10px] text-slate-500 font-mono block">Current Step</span>
+                  <strong className="text-xs text-slate-200 mt-1 block truncate">
+                    {currentStageKey ? SIMULATION_STAGES.find((s) => s.key === currentStageKey)?.label : "Pipeline Idle"}
+                  </strong>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-2 bg-[#00040a]/40">
+              <div className="grid grid-cols-2 gap-2 pt-2 text-[9px] font-mono">
+                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
+                  <span className="text-slate-500 block">STARTED AT</span>
+                  <strong className="text-slate-300 mt-1 block">10:24:53 AM</strong>
+                </div>
+                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
+                  <span className="text-slate-500 block">ETA</span>
+                  <strong className="text-slate-300 mt-1 block">2m 18s</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE LOGS SECTION */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="h-8 border-b border-slate-850 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                <span className="uppercase tracking-widest">Live Logs</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-2 bg-[#00040a]/30">
                 {logs.length === 0 ? (
-                  <span className="text-slate-600 block text-center mt-8">Terminal logs stream empty.</span>
+                  <span className="text-slate-600 block text-center mt-6">Log feed empty. Run pipeline.</span>
                 ) : (
-                  logs.map((log, i) => {
+                  logs.map((log, idx) => {
                     let typeColor = "text-slate-500";
                     if (log.type === "success") typeColor = "text-emerald-400";
-                    if (log.type === "warning") typeColor = "text-amber-400";
                     if (log.type === "error") typeColor = "text-red-400";
-                    if (log.type === "info") typeColor = "text-cyan-400";
+                    if (log.type === "info") typeColor = "text-[#00D4FF]";
 
                     return (
-                      <div key={i} className="leading-relaxed border-b border-slate-850/20 pb-1.5">
+                      <div key={idx} className="leading-relaxed border-b border-slate-850/10 pb-1">
                         <span className="text-slate-600">[{log.timestamp}]</span>{" "}
                         <span className={`${typeColor} font-bold`}>{log.node.toUpperCase()}</span>:{" "}
                         <span className="text-slate-300">{log.message}</span>
@@ -1358,27 +1403,6 @@ export default function DashboardClient() {
 
         </div>
       </div>
-    </div>
-  );
-}
-
-function Metric({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
-  return (
-    <article className="p-4 bg-slate-900/40 border border-slate-800/60 rounded-xl flex items-center justify-between">
-      <div>
-        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">{label}</span>
-        <strong className="block text-xl font-mono text-cyan-400 mt-1">{value}</strong>
-      </div>
-      <Icon size={20} className="text-slate-700" />
-    </article>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="p-3 bg-slate-900/60 border border-slate-850 rounded-lg">
-      <span className="text-[9px] text-slate-500 font-mono uppercase block">{label}</span>
-      <strong className="text-sm font-mono text-white mt-1 block">{value}</strong>
     </div>
   );
 }
