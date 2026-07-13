@@ -2177,3 +2177,20 @@ body.dashboard-mode {
     grid-template-columns: 1fr;
   }
 }
+
+/* Hide landing page background effects in Dashboard Mode */
+body.dashboard-mode .ai-bg-video,
+body.dashboard-mode .ai-bg-overlay,
+body.dashboard-mode .bg-grid,
+body.dashboard-mode .display-light {
+  display: none !important;
+}
+
+/* Light mode specific body reset */
+[data-theme="light"] body.dashboard-mode {
+  background: #f8fafc !important;
+}
+
+[data-theme="dark"] body.dashboard-mode {
+  background: #030712 !important;
+}
