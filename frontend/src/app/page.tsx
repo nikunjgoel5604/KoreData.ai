@@ -1,146 +1,148 @@
-import { ArrowRight, CheckCircle2, Database, FileText, Network, ShieldCheck, Users } from "lucide-react";
-import { clientSteps, platformLayers } from "@/constants/site";
+"use client";
 
-const metrics = [
-  ["Clients", "24"],
-  ["Datasets", "128K"],
-  ["Reports", "318"],
-  ["API Health", "99.9%"]
-];
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, Calendar, Play } from "lucide-react";
+import HeroScene from "@/components/HeroScene";
+import { features, solutions, trust, workflow } from "@/constants/site";
 
 export default function HomePage() {
   return (
     <main>
       <section className="hero">
-        <div>
-          <p className="eyebrow">Next Step: Client Management</p>
-          <h1>Frontend architecture for a clean AI data platform.</h1>
-          <p className="hero-copy">
-            This screen moves the product from a plain landing page into an application-style
-            architecture view with client onboarding, protected workflows, API layers, and support tooling.
-          </p>
-        </div>
+        <div className="hero-inner">
+          <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+            <div className="eyebrow"><span className="live-dot" /> Enterprise AI Data Platform</div>
+            <h1>
+              Transform Data into <span className="gradient-text">Intelligent Decisions</span>
+            </h1>
+            <p className="hero-copy">
+              Analyze, visualize, predict, and automate your data using artificial intelligence,
+              machine learning, LLMs, retrieval-augmented generation, and enterprise-grade analytics.
+            </p>
 
-        <div className="metric-grid">
-          {metrics.map(([label, value]) => (
-            <article className="metric-card" key={label}>
-              <span>{label}</span>
-              <strong>{value}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
+            <div className="hero-actions">
+              <Link className="btn btn-primary" href="/register">Get Started <ArrowRight size={16} /></Link>
+              <Link className="btn" href="/contact"><Calendar size={16} /> Book Demo</Link>
+              <button className="btn"><Play size={16} /> Watch Demo</button>
+            </div>
 
-      <section className="architecture-section" id="architecture">
-        <div className="section-head">
-          <p className="eyebrow">Layered Design</p>
-          <h2>Application structure mapped like the reference diagram.</h2>
-        </div>
+            <div className="trust-row">
+              {trust.map(([value, label]) => (
+                <div className="trust-card" key={label}>
+                  <strong>{value}</strong>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
 
-        <div className="architecture-board">
-          <aside className="side-labels">
-            {platformLayers.map((layer) => (
-              <span key={layer.label}>{layer.label}</span>
-            ))}
-          </aside>
+          <motion.div className="hero-visual" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9 }}>
+            <HeroScene />
+            <div className="dashboard-preview cornered">
+              <div className="preview-top">
+                <span>KoreData Intelligence Console</span>
+                <span>Live</span>
+              </div>
 
-          <div className="layer-stack">
-            {platformLayers.map((layer) => (
-              <div className={`layer layer-${layer.tone}`} key={layer.label}>
-                <div className="layer-title">{layer.label}</div>
-                <div className="layer-items">
-                  {layer.items.map((item) => (
-                    <div className="layer-box" key={item}>
-                      {item}
-                    </div>
+              <div className="preview-grid">
+                <div className="metric">
+                  <small>EDA Accuracy</small>
+                  <strong>94.2%</strong>
+                </div>
+                <div className="metric">
+                  <small>Forecast Lift</small>
+                  <strong>31%</strong>
+                </div>
+                <div className="metric">
+                  <small>Rows Analyzed</small>
+                  <strong>128K</strong>
+                </div>
+                <div className="metric">
+                  <small>Missing Data</small>
+                  <strong>0.2%</strong>
+                </div>
+                <div className="chart-panel">
+                  {[44, 66, 52, 86, 72, 95, 78, 100, 83].map((h, i) => (
+                    <div className="bar" style={{ height: `${h}%` }} key={i} />
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
-
-          <aside className="tool-rail">
-            <div>Permission Control</div>
-            <div>Function Tools</div>
-          </aside>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      <section className="split-section" id="client-management">
-        <div className="panel">
-          <div className="panel-title">
-            <Users size={22} />
-            <span>Client Management Module</span>
-          </div>
-          <h2>Move from foundation to real customer operations.</h2>
-          <p>
-            The next product step is client management: create client records, connect admins,
-            register datasets, and track each client through the analytics workflow.
-          </p>
-
-          <div className="step-list">
-            {clientSteps.map((step, index) => (
-              <div key={step}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{step}</strong>
-                <CheckCircle2 size={18} />
-              </div>
-            ))}
-          </div>
+      <Section kicker="Capabilities" title="Everything your data team needs, redesigned for AI.">
+        <div className="feature-grid">
+          {features.map(([title, Icon, desc]) => (
+            <motion.article className="card cornered" whileHover={{ y: -6 }} key={title as string}>
+              <div className="card-icon"><Icon size={21} /></div>
+              <h3>{title as string}</h3>
+              <p>{desc as string}</p>
+            </motion.article>
+          ))}
         </div>
+      </Section>
 
-        <div className="panel workflow-panel" id="workflow">
-          <div className="panel-title">
-            <Network size={22} />
-            <span>Request Flow</span>
-          </div>
-          {[
-            ["Frontend Form", "React validates client data"],
-            ["API Service", "Request interceptor adds session token"],
-            ["Backend", "FastAPI validates and stores records"],
-            ["Database", "Client profile is linked to activity data"]
-          ].map(([title, text]) => (
-            <div className="flow-row" key={title}>
-              <Database size={18} />
-              <div>
-                <strong>{title}</strong>
-                <p>{text}</p>
-              </div>
-              <ArrowRight size={16} />
+      <Section kicker="Workflow" title="From raw file to executive-ready intelligence.">
+        <div className="workflow">
+          {workflow.map((step, i) => (
+            <div className="workflow-step cornered" key={step}>
+              <span>{String(i + 1).padStart(2, "0")}</span>
+              <strong>{step}</strong>
             </div>
           ))}
         </div>
-      </section>
+      </Section>
 
-      <section className="run-section" id="run">
-        <div>
-          <p className="eyebrow">Run Locally</p>
-          <h2>Use these commands after saving the frontend source.</h2>
+      <Section kicker="Solutions" title="Built for data-heavy teams across industries.">
+        <div className="solution-grid">
+          {solutions.map((solution) => (
+            <article className="card" key={solution}>
+              <h3>{solution}</h3>
+              <p>Deploy AI analytics, forecasting, dashboards, and secure data workflows for {solution.toLowerCase()} teams.</p>
+            </article>
+          ))}
         </div>
-        <div className="command-grid">
-          <code>cd E:\KoreData.ai\frontend</code>
-          <code>npm install</code>
-          <code>npm run dev</code>
-        </div>
-      </section>
+      </Section>
 
-      <section className="feature-row">
-        <article>
-          <ShieldCheck size={24} />
-          <strong>Protected workflows</strong>
-          <p>Prepared for role-based access and session-aware API calls.</p>
-        </article>
-        <article>
-          <FileText size={24} />
-          <strong>Report-ready structure</strong>
-          <p>Reports, alerts, analytics, and dashboards can sit inside the same shell.</p>
-        </article>
-        <article>
-          <Database size={24} />
-          <strong>Backend aligned</strong>
-          <p>The frontend flow matches the existing Python backend direction.</p>
-        </article>
+      <Section kicker="Pricing" title="Simple plans for startups, teams, and enterprises.">
+        <div className="pricing-grid">
+          {["Starter", "Professional", "Enterprise"].map((plan, i) => (
+            <article className="card pricing-card cornered" key={plan}>
+              <h3>{plan}</h3>
+              <div className="price">{i === 2 ? "Custom" : `$${i === 0 ? 29 : 99}`}</div>
+              <p>{i === 2 ? "For scaled enterprise deployment." : "Per user / month."}</p>
+              <ul>
+                <li>AI analytics workspace</li>
+                <li>LLM assistant</li>
+                <li>RAG search</li>
+                <li>Automated reports</li>
+                <li>{i === 0 ? "Community support" : "Priority support"}</li>
+              </ul>
+            </article>
+          ))}
+        </div>
+      </Section>
+
+      <section className="cta cornered">
+        <h2>Ready to analyze your data with AI?</h2>
+        <p>Turn datasets, dashboards, reports, and business knowledge into fast, reliable decisions.</p>
+        <Link className="btn btn-primary" href="/register">Create Free Account <ArrowRight size={16} /></Link>
       </section>
     </main>
+  );
+}
+
+function Section({ kicker, title, children }: { kicker: string; title: string; children: React.ReactNode }) {
+  return (
+    <section className="section">
+      <div className="section-inner">
+        <div className="section-kicker">// {kicker}</div>
+        <h2 className="section-heading">{title}</h2>
+        {children}
+      </div>
+    </section>
   );
 }
