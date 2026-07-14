@@ -81,7 +81,12 @@ connection_pool = _create_pool()
 def get_connection():
     try:
         if connection_pool:
-            return connection_pool.get_connection()
+            conn = connection_pool.get_connection()
+            try:
+                conn.ping(reconnect=True, attempts=3, delay=1)
+            except Error:
+                pass
+            return conn
         logger.warning("[DB] Pool unavailable — direct connection.")
         return mysql.connector.connect(**DB_CONFIG)
     except Error as exc:
@@ -373,8 +378,10 @@ def init_db() -> None:
         logger.info("[DB] All tables ready (v9.1 — buffered-cursor fix included).")
 
     finally:
-        cur.close()
-        conn.close()
+        try: cur.close()
+        except: pass
+        try: conn.close()
+        except: pass
 
 
 def _safe_migrate(cur, migrations: list) -> None:
@@ -411,8 +418,10 @@ def db_fetchone(query: str, params: tuple = ()) -> Optional[dict]:
         cur.execute(query, params)
         return cur.fetchone()
     finally:
-        cur.close()
-        conn.close()
+        try: cur.close()
+        except: pass
+        try: conn.close()
+        except: pass
 
 
 def db_fetchall(query: str, params: tuple = ()) -> List[dict]:
@@ -422,8 +431,10 @@ def db_fetchall(query: str, params: tuple = ()) -> List[dict]:
         cur.execute(query, params)
         return cur.fetchall()
     finally:
-        cur.close()
-        conn.close()
+        try: cur.close()
+        except: pass
+        try: conn.close()
+        except: pass
 
 
 def db_execute(query: str, params: tuple = ()) -> int:
@@ -433,5 +444,7 @@ def db_execute(query: str, params: tuple = ()) -> int:
         cur.execute(query, params)
         return cur.lastrowid
     finally:
-        cur.close()
-        conn.close()
+        try: cur.close()
+        except: pass
+        try: conn.close()
+        except: pass
