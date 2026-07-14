@@ -151,14 +151,17 @@ def init_db() -> None:
         # ── uploaded_files ────────────────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS uploaded_files (
-                id           INT          NOT NULL AUTO_INCREMENT,
-                login_id     VARCHAR(20)  NOT NULL,
-                file_name    VARCHAR(255) NOT NULL,
-                file_type    VARCHAR(20)  NOT NULL,
-                file_size_kb FLOAT        NOT NULL,
-                row_count    INT          NULL,
-                col_count    INT          NULL,
-                uploaded_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                id               INT          NOT NULL AUTO_INCREMENT,
+                login_id         VARCHAR(20)  NOT NULL,
+                file_name        VARCHAR(255) NOT NULL,
+                file_type        VARCHAR(20)  NOT NULL,
+                file_size_kb     FLOAT        NOT NULL,
+                row_count        INT          NULL,
+                col_count        INT          NULL,
+                eda_json_path    VARCHAR(500) NULL,
+                report_json_path VARCHAR(500) NULL,
+                cache_version    INT          NOT NULL DEFAULT 1,
+                uploaded_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (id),
                 FOREIGN KEY (login_id) REFERENCES kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -313,18 +316,53 @@ def init_db() -> None:
         # ── kore_workspace_state ───────────────────────────────────────────
         cur.execute("""
             CREATE TABLE IF NOT EXISTS kore_workspace_state (
-                login_id          VARCHAR(20)   NOT NULL,
-                eda_result        LONGTEXT      NULL,
-                active_panels     TEXT          NULL,
-                selected_panel    VARCHAR(50)   NULL,
-                sim_running       TINYINT(1)    NOT NULL DEFAULT 0,
-                current_stage_key VARCHAR(50)   NULL,
-                sim_progress      INT           NOT NULL DEFAULT 0,
-                stage_statuses    TEXT          NULL,
-                logs              LONGTEXT      NULL,
-                updated_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                login_id                VARCHAR(20)   NOT NULL,
+                eda_result              LONGTEXT      NULL,
+                active_panels           TEXT          NULL,
+                selected_panel          VARCHAR(50)   NULL,
+                sim_running             TINYINT(1)    NOT NULL DEFAULT 0,
+                current_stage_key       VARCHAR(50)   NULL,
+                sim_progress            INT           NOT NULL DEFAULT 0,
+                stage_statuses          TEXT          NULL,
+                logs                    LONGTEXT      NULL,
+                open_tabs_json          LONGTEXT      NULL,
+                active_tab_id           VARCHAR(50)   NULL,
+                workspace_settings_json LONGTEXT      NULL,
+                workspace_history_json  LONGTEXT      NULL,
+                updated_at              TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (login_id),
                 FOREIGN KEY (login_id) REFERENCES kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
+        # ── simulation_sessions ─────────────────────────────────────────────
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS simulation_sessions (
+                simulation_id VARCHAR(50)   NOT NULL,
+                login_id      VARCHAR(20)   NOT NULL,
+                dataset_id    INT           NULL,
+                status        VARCHAR(20)   NOT NULL DEFAULT 'idle',
+                progress      INT           NOT NULL DEFAULT 0,
+                stage         VARCHAR(50)   NULL,
+                logs_path     VARCHAR(500)  NULL,
+                created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                completed_at  DATETIME      NULL,
+                PRIMARY KEY (simulation_id),
+                FOREIGN KEY (login_id) REFERENCES kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """)
+
+        # ── dataset_versions ────────────────────────────────────────────────
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dataset_versions (
+                id            INT          NOT NULL AUTO_INCREMENT,
+                dataset_id    INT          NOT NULL,
+                version_num   INT          NOT NULL DEFAULT 1,
+                file_path     VARCHAR(500) NOT NULL,
+                created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                FOREIGN KEY (dataset_id) REFERENCES uploaded_files(id) ON DELETE CASCADE ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """)
 
@@ -373,6 +411,13 @@ def init_db() -> None:
             ("kore_users", "email_verified","ALTER TABLE kore_users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0"),
             ("kore_users", "phone_verified","ALTER TABLE kore_users ADD COLUMN phone_verified TINYINT(1) NOT NULL DEFAULT 0"),
             ("kore_users", "last_login",    "ALTER TABLE kore_users ADD COLUMN last_login DATETIME NULL"),
+            ("kore_workspace_state", "open_tabs_json", "ALTER TABLE kore_workspace_state ADD COLUMN open_tabs_json LONGTEXT NULL"),
+            ("kore_workspace_state", "active_tab_id",  "ALTER TABLE kore_workspace_state ADD COLUMN active_tab_id VARCHAR(50) NULL"),
+            ("kore_workspace_state", "workspace_settings_json", "ALTER TABLE kore_workspace_state ADD COLUMN workspace_settings_json LONGTEXT NULL"),
+            ("kore_workspace_state", "workspace_history_json", "ALTER TABLE kore_workspace_state ADD COLUMN workspace_history_json LONGTEXT NULL"),
+            ("uploaded_files", "eda_json_path", "ALTER TABLE uploaded_files ADD COLUMN eda_json_path VARCHAR(500) NULL"),
+            ("uploaded_files", "report_json_path", "ALTER TABLE uploaded_files ADD COLUMN report_json_path VARCHAR(500) NULL"),
+            ("uploaded_files", "cache_version", "ALTER TABLE uploaded_files ADD COLUMN cache_version INT NOT NULL DEFAULT 1"),
         ])
 
         logger.info("[DB] All tables ready (v9.1 — buffered-cursor fix included).")

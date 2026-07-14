@@ -93,11 +93,20 @@ app.include_router(account_router)
 app.include_router(landing_router)
 
 # ─── Static & Templates ───────────────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-TMPL_DIR   = os.path.join(BASE_DIR, "templates")
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR  = os.path.join(BASE_DIR, "static")
+TMPL_DIR    = os.path.join(BASE_DIR, "templates")
+STORAGE_DIR = os.path.join(BASE_DIR, "storage")
+EDA_DIR     = os.path.join(STORAGE_DIR, "eda")
+REPORTS_DIR = os.path.join(STORAGE_DIR, "reports")
 
-for _d, _name in [(STATIC_DIR, "backend/static"), (TMPL_DIR, "backend/templates")]:
+for _d, _name in [
+    (STATIC_DIR, "backend/static"),
+    (TMPL_DIR, "backend/templates"),
+    (STORAGE_DIR, "backend/storage"),
+    (EDA_DIR, "backend/storage/eda"),
+    (REPORTS_DIR, "backend/storage/reports"),
+]:
     if not os.path.isdir(_d):
         os.makedirs(_d, exist_ok=True)
         logger.info("[Kore] Created directory: %s", _d)
@@ -631,14 +640,18 @@ class ApplyMissingRequest(BaseModel):
 
 
 class WorkspaceSaveRequest(BaseModel):
-    eda_result:        Optional[str] = None
-    active_panels:     Optional[str] = None
-    selected_panel:    Optional[str] = None
-    sim_running:       int           = 0
-    current_stage_key: Optional[str] = None
-    sim_progress:      int           = 0
-    stage_statuses:    Optional[str] = None
-    logs:              Optional[str] = None
+    eda_result:              Optional[str] = None
+    active_panels:           Optional[str] = None
+    selected_panel:          Optional[str] = None
+    sim_running:             int           = 0
+    current_stage_key:       Optional[str] = None
+    sim_progress:            int           = 0
+    stage_statuses:          Optional[str] = None
+    logs:                    Optional[str] = None
+    open_tabs_json:          Optional[str] = None
+    active_tab_id:           Optional[str] = None
+    workspace_settings_json: Optional[str] = None
+    workspace_history_json:  Optional[str] = None
 
 
 # ─── Performance monitor ──────────────────────────────────────────────────────
@@ -1178,6 +1191,29 @@ def delete_file(file_id: int, authorization: Optional[str] = Header(None)):
     return {"ok": True, "message": "File deleted successfully"}
 
 
+@app.get("/my-files/{file_id}/eda")
+def get_file_eda(file_id: int, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    row = db_fetchone(
+        "SELECT eda_json_path FROM uploaded_files WHERE id = %s AND login_id = %s",
+        (file_id, user["login_id"])
+    )
+    if not row or not row.get("eda_json_path"):
+        raise HTTPException(status_code=404, detail="EDA result not found or cache is empty")
+    
+    full_path = os.path.join(BASE_DIR, row["eda_json_path"])
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="EDA JSON file does not exist on disk")
+        
+    try:
+        import json
+        with open(full_path, "r", encoding="utf-8") as f_in:
+            data = json.load(f_in)
+        return data
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read cached EDA: {exc}")
+
+
 # ─── Notification routes ──────────────────────────────────────────────────────
 
 @app.get("/notifications")
@@ -1260,12 +1296,28 @@ async def upload_file(
                 size_kb = round(len(contents) / 1024, 2)
                 rows    = eda_result.get("overview", {}).get("rows",    None)
                 cols    = eda_result.get("overview", {}).get("columns", None)
-                db_execute(
+                file_id = db_execute(
                     "INSERT INTO uploaded_files "
                     "(login_id, file_name, file_type, file_size_kb, row_count, col_count) "
                     "VALUES (%s, %s, %s, %s, %s, %s)",
                     (user["login_id"], file.filename, ext, size_kb, rows, cols),
                 )
+                
+                # Cache EDA result in local storage files
+                import json
+                eda_filename = f"{user['login_id']}_{file_id}_eda.json"
+                eda_rel_path = os.path.join("storage", "eda", eda_filename)
+                eda_full_path = os.path.join(BASE_DIR, eda_rel_path)
+                try:
+                    with open(eda_full_path, "w", encoding="utf-8") as f_out:
+                        json.dump(eda_result, f_out, ensure_ascii=False, indent=2)
+                    
+                    db_execute(
+                        "UPDATE uploaded_files SET eda_json_path = %s WHERE id = %s",
+                        (eda_rel_path, file_id)
+                    )
+                except Exception as file_exc:
+                    logger.error(f"[Kore] Failed to write EDA JSON to disk: {file_exc}")
                 try:
                     notif.create_notification(
                         user["login_id"],
@@ -1426,7 +1478,11 @@ def get_workspace_state(authorization: Optional[str] = Header(None)):
             "current_stage_key": None,
             "sim_progress": 0,
             "stage_statuses": None,
-            "logs": None
+            "logs": None,
+            "open_tabs_json": None,
+            "active_tab_id": None,
+            "workspace_settings_json": None,
+            "workspace_history_json": None
         }
     return state
 
@@ -1442,22 +1498,26 @@ def save_workspace_state(body: WorkspaceSaveRequest, authorization: Optional[str
             "UPDATE kore_workspace_state SET "
             "eda_result = %s, active_panels = %s, selected_panel = %s, "
             "sim_running = %s, current_stage_key = %s, sim_progress = %s, "
-            "stage_statuses = %s, logs = %s WHERE login_id = %s",
+            "stage_statuses = %s, logs = %s, open_tabs_json = %s, active_tab_id = %s, "
+            "workspace_settings_json = %s, workspace_history_json = %s WHERE login_id = %s",
             (
                 body.eda_result, body.active_panels, body.selected_panel,
                 body.sim_running, body.current_stage_key, body.sim_progress,
-                body.stage_statuses, body.logs, lid
+                body.stage_statuses, body.logs, body.open_tabs_json, body.active_tab_id,
+                body.workspace_settings_json, body.workspace_history_json, lid
             )
         )
     else:
         db_execute(
             "INSERT INTO kore_workspace_state "
-            "(login_id, eda_result, active_panels, selected_panel, sim_running, current_stage_key, sim_progress, stage_statuses, logs) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "(login_id, eda_result, active_panels, selected_panel, sim_running, current_stage_key, "
+            "sim_progress, stage_statuses, logs, open_tabs_json, active_tab_id, workspace_settings_json, workspace_history_json) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 lid, body.eda_result, body.active_panels, body.selected_panel,
                 body.sim_running, body.current_stage_key, body.sim_progress,
-                body.stage_statuses, body.logs
+                body.stage_statuses, body.logs, body.open_tabs_json, body.active_tab_id,
+                body.workspace_settings_json, body.workspace_history_json
             )
         )
     return {"ok": True, "message": "Workspace state saved to MySQL"}
