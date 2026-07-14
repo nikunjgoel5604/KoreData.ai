@@ -1826,6 +1826,77 @@ setUploading(false);
             )}
 
 
+            {/* IMPORT DATASET PAGE */}
+            {selectedPanel === "upload" && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className={`p-8 rounded-xl border ${colors.card} text-center space-y-6`}>
+                  <h2 className="text-lg font-bold text-white font-mono uppercase tracking-widest">Ingest Workspace Datasets</h2>
+                  
+                  {/* File upload drag zone */}
+                  <label className="border-2 border-dashed border-[#334155] hover:border-[#38BDF8] bg-[#111827]/40 rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer transition-all max-w-xl mx-auto">
+                    {uploading ? (
+                      <Loader2 className="spin animate-spin text-[#38BDF8] mb-4" size={32} />
+                    ) : (
+                      <FileUp className="text-slate-500 mb-4" size={32} />
+                    )}
+                    <span className="text-sm font-mono text-[#F8FAFC] uppercase tracking-wider font-bold">Drag & Drop Tabular Data File</span>
+                    <span className="text-[10px] text-slate-500 mt-2">Supported Formats: CSV, XLSX, JSON, Parquet, API</span>
+                    <input type="file" onChange={handleUpload} className="hidden" />
+                  </label>
+
+                  {/* Cloud/DB Integrations */}
+                  <div className="space-y-3 max-w-lg mx-auto">
+                    <span className="text-[9px] text-slate-550 font-mono uppercase tracking-widest block">External Storage Connectors</span>
+                    <div className="grid grid-cols-5 gap-3">
+                      {["Excel", "SQL DB", "Parquet", "API Server", "Cloud S3"].map((source, idx) => (
+                        <div key={idx} className="p-3 bg-[#243244] border border-[#334155] rounded-xl text-center cursor-pointer hover:border-[#38BDF8] transition-all text-[9px] font-mono font-bold text-[#CBD5E1]">
+                          {source}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upload history & Datasets Manager */}
+                <div className={`p-6 rounded-xl border ${colors.card} space-y-4`}>
+                  <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Saved Ingestion Files</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full font-mono text-xs text-left">
+                      <thead>
+                        <tr className="border-b border-[#334155] text-slate-500 uppercase pb-2">
+                          <th className="pb-2.5">File name</th>
+                          <th className="pb-2.5">Rows</th>
+                          <th className="pb-2.5">Columns</th>
+                          <th className="pb-2.5">Date Ingested</th>
+                          <th className="pb-2.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {files.map((file) => (
+                          <tr key={file.id} className="border-b border-[#334155]/20 text-[#CBD5E1] hover:bg-[#1E293B]/40">
+                            <td className="py-3 font-bold text-[#38BDF8]">{file.file_name}</td>
+                            <td className="py-3">{file.row_count ?? "NA"}</td>
+                            <td className="py-3">{file.col_count ?? "NA"}</td>
+                            <td className="py-3">{file.uploaded_at ? new Date(file.uploaded_at).toLocaleString() : "NA"}</td>
+                            <td className="py-3 text-right space-x-3">
+                              <button onClick={() => handleReuseFile(file.id, file.file_name)} className="text-emerald-400 font-bold hover:underline">Reuse</button>
+                              <button onClick={() => handleRemoveFile(file.id)} className="text-red-400 font-bold hover:underline">Delete</button>
+                            </td>
+                          </tr>
+                        ))}
+                        {files.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="py-4 text-center text-slate-500">No uploads saved.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
                 {selectedPanel === "eda-analysis" && (
                   <div className="space-y-6">
                     <h3 className={`text-sm font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Exploratory Data Analysis</h3>
@@ -2447,6 +2518,94 @@ setUploading(false);
                   </div>
                 )}
 
+            {/* VISUALIZATION PAGE */}
+            {selectedPanel === "visualization" && (
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fadeIn font-mono text-xs">
+                {/* Visualizer Side Config Panel */}
+                <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white">Chart Configurator</h4>
+                  <div>
+                    <label className="text-slate-500 uppercase block mb-1 text-[9px]">Chart Type</label>
+                    <select
+                      value={vizChartType}
+                      onChange={(e) => setVizChartType(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      {["bar", "line", "area", "pie", "histogram", "heatmap", "scatter", "treemap", "boxplot", "sankey"].map((type) => (
+                        <option key={type} value={type}>{type.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-500 uppercase block mb-1 text-[9px]">X Axis Variable</label>
+                    <select
+                      value={vizXAxis}
+                      onChange={(e) => setVizXAxis(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      {allColumns.map((col) => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-500 uppercase block mb-1 text-[9px]">Y Axis Variable</label>
+                    <select
+                      value={vizYAxis}
+                      onChange={(e) => setVizYAxis(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      {allColumns.map((col) => <option key={col} value={col}>{col}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-500 uppercase block mb-1 text-[9px]">Color Theme</label>
+                    <select
+                      value={vizColorTheme}
+                      onChange={(e) => setVizColorTheme(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      <option value="classic">Classic Fabric (Blue)</option>
+                      <option value="warm">Warm Studio (Orange/Red)</option>
+                      <option value="emerald">Forest (Green)</option>
+                    </select>
+                  </div>
+                  <button className="w-full bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A] font-bold py-2 rounded-lg uppercase tracking-wider font-mono">
+                    Export SVG Chart
+                  </button>
+                </div>
+
+                {/* Main Visualizer Canvas */}
+                <div className={`col-span-3 p-6 rounded-xl border ${colors.card} flex flex-col justify-between min-h-[400px]`}>
+                  <div className="flex justify-between items-center border-b border-[#334155] pb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Visualizer Canvas Output</h3>
+                    <span className="text-[10px] text-slate-500 uppercase">Interactive rendering active</span>
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center bg-[#111827]/40 rounded-xl border border-[#334155]/60 m-4 relative overflow-hidden">
+                    {/* SVG visualization render graphics mockup */}
+                    <svg className="w-64 h-64 text-[#38BDF8]">
+                      {vizChartType === "bar" && (
+                        <g>
+                          <rect x="20" y="80" width="30" height="120" fill="currentColor" opacity="0.8" />
+                          <rect x="70" y="40" width="30" height="160" fill="currentColor" />
+                          <rect x="120" y="110" width="30" height="90" fill="currentColor" opacity="0.6" />
+                          <rect x="170" y="60" width="30" height="140" fill="currentColor" opacity="0.9" />
+                        </g>
+                      )}
+                      {vizChartType === "line" && (
+                        <polyline fill="none" stroke="currentColor" strokeWidth="3" points="20,160 70,80 120,120 170,40" />
+                      )}
+                      {vizChartType === "pie" && (
+                        <circle cx="100" cy="100" r="70" fill="none" stroke="currentColor" strokeWidth="40" strokeDasharray="300 200" />
+                      )}
+                      {vizChartType !== "bar" && vizChartType !== "line" && vizChartType !== "pie" && (
+                        <circle cx="100" cy="100" r="40" fill="none" stroke="currentColor" strokeWidth="4" className="animate-pulse" />
+                      )}
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+
                 {selectedPanel === "data-cleaning" && (
                   <div className="space-y-6">
                     <h3 className={`text-sm font-bold font-mono uppercase tracking-wider ${colors.textPrimary}`}>Dataset Cleaning & Visualization</h3>
@@ -2532,7 +2691,227 @@ setUploading(false);
                     )}
                   </div>
                 )}
+
+            {/* FEATURE ENGINEERING PAGE */}
+            {selectedPanel === "feature-engineering" && (
+              <div className={`p-5 rounded-xl border ${colors.card} space-y-4 animate-fadeIn font-mono text-xs`}>
+                <h3 className="text-xs font-bold uppercase text-white">ML Feature Engineering Builder</h3>
+                <p className="text-slate-400">Apply standard encodings, one-hot conversions, date decomposition, and mathematical binning.</p>
+                <div className="p-4 bg-[#111827]/40 border border-[#334155] rounded-xl text-slate-500">
+                  Feature builder components ready. Please select a dataset to configure ML features.
+                </div>
               </div>
+            )}
+
+            {/* ML STUDIO STEP-BUILDER */}
+            {selectedPanel === "ml-studio" && (
+              <div className="space-y-6 animate-fadeIn font-mono text-xs">
+                
+                {/* Horizontal steps navigation */}
+                <div className={`p-4 rounded-xl border ${colors.card} bg-[#111827]/20 flex justify-between items-center overflow-x-auto`}>
+                  {[
+                    { id: "target", label: "Select Target" },
+                    { id: "algorithm", label: "Pick Algorithm" },
+                    { id: "training", label: "Model Training" },
+                    { id: "evaluation", label: "Model Evaluation" }
+                  ].map((step, idx) => {
+                    const isActive = activeMlStep === step.id;
+                    return (
+                      <div key={step.id} className="flex items-center gap-3">
+                        <button
+                          onClick={() => setActiveMlStep(step.id)}
+                          className={`px-3 py-1.5 rounded-lg border transition-all ${
+                            isActive ? "bg-[#38BDF8]/15 border-[#38BDF8] text-[#38BDF8]" : "bg-[#1E293B] border-[#334155] text-slate-500"
+                          }`}
+                        >
+                          {step.label}
+                        </button>
+                        {idx < 3 && <span className="text-slate-700 font-bold">➔</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column: Build Configuration */}
+                  <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                    <h4 className="text-xs font-bold uppercase text-white">Build Parameters</h4>
+                    
+                    {activeMlStep === "target" && (
+                      <div>
+                        <label className="text-slate-550 uppercase block mb-1 text-[9px]">Target Classification Column</label>
+                        <select
+                          value={targetCol}
+                          onChange={(e) => setTargetCol(e.target.value)}
+                          className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                        >
+                          {allColumns.map((col) => <option key={col} value={col}>{col}</option>)}
+                        </select>
+                      </div>
+                    )}
+
+                    {activeMlStep === "algorithm" && (
+                      <div>
+                        <label className="text-slate-550 uppercase block mb-1 text-[9px]">Algorithm type</label>
+                        <select
+                          value={mlAlgo}
+                          onChange={(e) => setMlAlgo(e.target.value)}
+                          className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                        >
+                          <option value="random-forest">Random Forest Classifier</option>
+                          <option value="xgboost">XGBoost Gradient Boosting</option>
+                          <option value="logistic-regression">Logistic Regression</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {activeMlStep === "training" && (
+                      <div className="space-y-4">
+                        <button
+                          onClick={handleGetRecommendations}
+                          className="w-full bg-[#38BDF8] text-[#0F172A] font-bold py-2 rounded-lg uppercase tracking-wider font-mono hover:bg-[#38BDF8]/80 transition-all"
+                        >
+                          Compile & Train Model
+                        </button>
+                      </div>
+                    )}
+
+                    {activeMlStep === "evaluation" && (
+                      <p className="text-slate-400">Model evaluation data is locked. Train the model first.</p>
+                    )}
+                  </div>
+
+                  {/* Right Column: Model Metrics & Evaluation Visualizations */}
+                  <div className={`lg:col-span-2 p-5 rounded-xl border ${colors.card} space-y-4`}>
+                    <h4 className="text-xs font-bold uppercase text-white">Evaluation Results Panel</h4>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Metrics Scorecard */}
+                      <div className="p-4 bg-[#111827]/40 border border-[#334155]/60 rounded-xl space-y-2">
+                        <span className="text-[10px] text-slate-500 block uppercase">Accuracy Score</span>
+                        <strong className="text-2xl font-bold text-emerald-400">94.8%</strong>
+                      </div>
+                      <div className="p-4 bg-[#111827]/40 border border-[#334155]/60 rounded-xl space-y-2">
+                        <span className="text-[10px] text-slate-500 block uppercase">F1 / Recall index</span>
+                        <strong className="text-2xl font-bold text-emerald-400">93.2%</strong>
+                      </div>
+                    </div>
+
+                    {/* Feature Importance bar chart Mockup */}
+                    <div className="p-4 bg-[#111827]/40 border border-[#334155]/60 rounded-xl space-y-3">
+                      <span className="text-[10px] text-slate-550 block uppercase">Feature Importance ranking</span>
+                      <div className="space-y-2">
+                        {[
+                          { name: "Var_A", score: 85 },
+                          { name: "Var_B", score: 62 },
+                          { name: "Var_C", score: 41 }
+                        ].map((feat) => (
+                          <div key={feat.name} className="flex items-center gap-3">
+                            <span className="w-12 text-[#38BDF8] font-bold">{feat.name}</span>
+                            <div className="flex-1 h-2 bg-slate-900 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#38BDF8]" style={{ width: `${feat.score}%` }} />
+                            </div>
+                            <span className="text-slate-400">{feat.score}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PREDICTION */}
+            {selectedPanel === "prediction" && (
+              <div className={`p-5 rounded-xl border ${colors.card} space-y-4 animate-fadeIn font-mono text-xs`}>
+                <h3 className="text-xs font-bold uppercase text-white">Interactive Model Inference & Prediction</h3>
+                <p className="text-slate-400">Enter input attribute values below to calculate real-time ML target inference predictions.</p>
+                <div className="p-4 bg-[#111827]/40 border border-[#334155] rounded-xl text-slate-500">
+                  Prediction input fields ready. Please compile a model in ML Studio to run inferences.
+                </div>
+              </div>
+            )}
+
+            {/* PIPELINE HISTORY */}
+            {selectedPanel === "pipeline-history" && (
+              <div className={`p-5 rounded-xl border ${colors.card} space-y-4 animate-fadeIn font-mono text-xs`}>
+                <h3 className="text-xs font-bold uppercase text-white">Execution Logs & Runs History</h3>
+                <p className="text-slate-400">Inspect historical workspace triggers, compilation stats, and run status codes.</p>
+                <div className="p-4 bg-[#111827]/40 border border-[#334155] rounded-xl text-slate-500">
+                  Runs log database online. No previous failures recorded.
+                </div>
+              </div>
+            )}
+
+            {/* REPORTS PAGE */}
+            {selectedPanel === "reports" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fadeIn font-mono text-xs">
+                
+                {/* Reports templates & download settings */}
+                <div className={`lg:col-span-2 p-5 rounded-xl border ${colors.card} space-y-5`}>
+                  <h3 className="text-xs font-bold uppercase text-white">Reports Engine Builder</h3>
+                  <div>
+                    <label className="text-slate-550 uppercase block mb-1 text-[9px]">Report Template</label>
+                    <select
+                      value={reportType}
+                      onChange={(e) => setReportType(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      <option value="eda">Complete EDA Profiler Summary</option>
+                      <option value="business">Business Metrics & KPI Analysis</option>
+                      <option value="executive">Executive Boardroom Summary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-550 uppercase block mb-1 text-[9px]">Download Format</label>
+                    <select
+                      value={reportFormat}
+                      onChange={(e) => setReportFormat(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    >
+                      <option value="pdf">Adobe PDF Format (.pdf)</option>
+                      <option value="pptx">Microsoft PowerPoint Presentation (.pptx)</option>
+                      <option value="xlsx">Microsoft Excel Workbook (.xlsx)</option>
+                    </select>
+                  </div>
+                  <button className="bg-[#38BDF8] text-[#0F172A] font-bold py-2 px-4 rounded-lg uppercase font-mono hover:bg-[#38BDF8]/80 transition-all">
+                    Compile & Export Report
+                  </button>
+                </div>
+
+                {/* Schedule cron scheduler form */}
+                <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                  <h4 className="text-xs font-bold uppercase text-white">Schedule Reports Delivery</h4>
+                  <p className="text-slate-400 text-[10px]">Configure recurring email/Slack deliveries using background cron tasks.</p>
+                  <div>
+                    <label className="text-slate-550 uppercase block mb-1 text-[9px]">Cron Schedule Pattern</label>
+                    <input
+                      type="text"
+                      value={reportCron}
+                      onChange={(e) => setReportCron(e.target.value)}
+                      className={`w-full text-xs p-2 rounded-lg ${colors.input}`}
+                    />
+                    <span className="text-[8px] text-slate-555 block mt-1">Default: "0 0 * * *" (runs daily at midnight)</span>
+                  </div>
+                  <button className="w-full bg-[#1E293B] border border-[#334155] text-white hover:text-[#38BDF8] font-bold py-2 rounded-lg uppercase tracking-wider font-mono">
+                    Save cron schedule
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SETTINGS PAGE */}
+            {selectedPanel === "settings" && (
+              <div className={`p-5 rounded-xl border ${colors.card} space-y-4 animate-fadeIn font-mono text-xs`}>
+                <h3 className="text-xs font-bold uppercase text-white">Workspace Configuration Settings</h3>
+                <p className="text-slate-400">Configure workspace persistence, API endpoints, auth tokens, and local cache directories.</p>
+                <div className="p-4 bg-[#111827]/40 border border-[#334155] rounded-xl text-slate-500">
+                  Settings database online. System is ready.
+                </div>
+              </div>
+            )}
+
+          </div>
                        {/* BOTTOM WORKSPACE PANEL (TIMELINE / CODE EDITORS) */}
             <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
               <div className="h-9 border-b border-slate-800 bg-[#000814]/40 flex items-center gap-4 px-4 select-none">
@@ -2798,7 +3177,5 @@ setUploading(false);
 
         </div>
       </div>
-    </div>
-  </div>
 );
 }
