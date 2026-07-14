@@ -97,6 +97,21 @@ type LogEntry = {
   type: "info" | "success" | "warning" | "error";
 };
 
+interface WorkspaceTab {
+  id: string;
+  datasetId?: number;
+  datasetName: string;
+  edaResult: Record<string, unknown> | null;
+  simRunning: boolean;
+  simProgress: number;
+  currentStageKey: string | null;
+  stageStatuses: Record<string, "idle" | "running" | "success" | "warning" | "error">;
+  logs: LogEntry[];
+  activePanels: string[];
+  selectedPanel: string;
+  pinned?: boolean;
+}
+
 const SIMULATION_STAGES = [
   { key: "upload", label: "File Ingestion", desc: "Reading file byte buffers from memory", category: "load" },
   { key: "validate", label: "Schema Validation", desc: "Verifying standard columns & formats", category: "load" },
@@ -125,7 +140,6 @@ export default function DashboardClient() {
   const [savedModels, setSavedModels] = useState<MlModel[]>([]);
   const [mlHistory, setMlHistory] = useState<Record<string, unknown>[]>([]);
   const [activity, setActivity] = useState<ActivitySummary | null>(null);
-  const [edaResult, setEdaResult] = useState<Record<string, unknown> | null>(null);
   const [status, setStatus] = useState("Checking workspace session...");
   const [apiStatus, setApiStatus] = useState<"ready" | "empty" | "error" | "loading">("loading");
   const [uploading, setUploading] = useState(false);
@@ -134,9 +148,76 @@ export default function DashboardClient() {
   // --- Themes ---
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
-  // --- Workspace Docking Tabs ---
-  const [activePanels, setActivePanels] = useState<string[]>(["dashboard", "simulation", "eda-analysis", "data-cleaning"]);
-  const [selectedPanel, setSelectedPanel] = useState<string>("dashboard");
+  // --- Multi-Tab Workspace States ---
+  const [tabs, setTabs] = useState<WorkspaceTab[]>([
+    {
+      id: "unsaved_workspace",
+      datasetName: "Unsaved Workspace",
+      edaResult: null,
+      simRunning: false,
+      simProgress: 0,
+      currentStageKey: null,
+      stageStatuses: {},
+      logs: [],
+      activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+      selectedPanel: "dashboard"
+    }
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>("unsaved_workspace");
+
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0] || {
+    id: "unsaved_workspace",
+    datasetName: "Unsaved Workspace",
+    edaResult: null,
+    simRunning: false,
+    simProgress: 0,
+    currentStageKey: null,
+    stageStatuses: {},
+    logs: [],
+    activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+    selectedPanel: "dashboard"
+  };
+
+  const edaResult = activeTab.edaResult;
+  const setEdaResult = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, edaResult: typeof val === 'function' ? val(t.edaResult) : val } : t));
+  };
+
+  const activePanels = activeTab.activePanels;
+  const setActivePanels = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, activePanels: typeof val === 'function' ? val(t.activePanels) : val } : t));
+  };
+
+  const selectedPanel = activeTab.selectedPanel;
+  const setSelectedPanel = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, selectedPanel: typeof val === 'function' ? val(t.selectedPanel) : val } : t));
+  };
+
+  const simRunning = activeTab.simRunning;
+  const setSimRunning = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simRunning: typeof val === 'function' ? val(t.simRunning) : val } : t));
+  };
+
+  const simProgress = activeTab.simProgress;
+  const setSimProgress = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simProgress: typeof val === 'function' ? val(t.simProgress) : val } : t));
+  };
+
+  const currentStageKey = activeTab.currentStageKey;
+  const setCurrentStageKey = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, currentStageKey: typeof val === 'function' ? val(t.currentStageKey) : val } : t));
+  };
+
+  const stageStatuses = activeTab.stageStatuses;
+  const setStageStatuses = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, stageStatuses: typeof val === 'function' ? val(t.stageStatuses) : val } : t));
+  };
+
+  const logs = activeTab.logs;
+  const setLogs = (val: any) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, logs: typeof val === 'function' ? val(t.logs) : val } : t));
+  };
+
   const [pinnedPanels, setPinnedPanels] = useState<string[]>([]);
   const [view3D, setView3D] = useState(true);
 
@@ -146,18 +227,11 @@ export default function DashboardClient() {
   // --- EDA Workflow Vertical Tabs ---
   const [edaStep, setEdaStep] = useState<number>(1);
 
-  // --- Right Sidebar logs ---
-  const [logs, setLogs] = useState<LogEntry[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // --- Bottom timeline tabs ---
   const [bottomTab, setBottomTab] = useState<"timeline" | "code-editor" | "sql-query" | "console">("timeline");
 
-  // --- 16-Stage Simulation States ---
-  const [simRunning, setSimRunning] = useState(false);
-  const [simProgress, setSimProgress] = useState(0);
-  const [currentStageKey, setCurrentStageKey] = useState<string | null>(null);
-  const [stageStatuses, setStageStatuses] = useState<Record<string, "idle" | "running" | "success" | "warning" | "error">>({});
   const [stageTimes, setStageTimes] = useState<Record<string, number>>({});
   const [simEstTime, setSimEstTime] = useState<number>(0);
   const esRef = useRef<EventSource | null>(null);
@@ -169,6 +243,9 @@ export default function DashboardClient() {
 
   // --- Visualization Column ---
   const [vizColumn, setVizColumn] = useState("");
+  const [edaHistCol, setEdaHistCol] = useState("");
+  const [edaBoxCol, setEdaBoxCol] = useState("");
+  const [edaCatCol, setEdaCatCol] = useState("");
 
   // --- Python Sandbox States ---
   const [codeText, setCodeText] = useState("");
@@ -221,14 +298,16 @@ export default function DashboardClient() {
     const delayDebounce = setTimeout(async () => {
       try {
         const payload = {
-          eda_result: edaResult ? JSON.stringify(edaResult) : null,
-          active_panels: JSON.stringify(activePanels),
-          selected_panel: selectedPanel,
-          sim_running: simRunning ? 1 : 0,
-          current_stage_key: currentStageKey,
-          sim_progress: simProgress,
-          stage_statuses: JSON.stringify(stageStatuses),
-          logs: JSON.stringify(logs)
+          eda_result: activeTab?.edaResult ? JSON.stringify(activeTab.edaResult) : null,
+          active_panels: JSON.stringify(activeTab?.activePanels || []),
+          selected_panel: activeTab?.selectedPanel || "dashboard",
+          sim_running: activeTab?.simRunning ? 1 : 0,
+          current_stage_key: activeTab?.currentStageKey || null,
+          sim_progress: activeTab?.simProgress || 0,
+          stage_statuses: JSON.stringify(activeTab?.stageStatuses || {}),
+          logs: JSON.stringify(activeTab?.logs || []),
+          open_tabs_json: JSON.stringify(tabs),
+          active_tab_id: activeTabId
         };
 
         await fetch(`${API_BASE}/workspace/state`, {
@@ -245,7 +324,7 @@ export default function DashboardClient() {
     }, 1500);
 
     return () => clearTimeout(delayDebounce);
-  }, [edaResult, activePanels, selectedPanel, simRunning, currentStageKey, simProgress, stageStatuses, logs, token, authHeaders]);
+  }, [tabs, activeTabId, token, authHeaders]);
 
   useEffect(() => {
     if (!token) return;
@@ -306,20 +385,47 @@ export default function DashboardClient() {
           setActivity(await activityRes.json());
         }
 
-        let isSimRunning = false;
-        let lastStageKey: string | null = null;
+        let shouldStartSim = false;
+        let simStageKey: string | null = null;
 
         if (wsRes?.ok) {
           const ws = await wsRes.json();
-          if (ws.eda_result) setEdaResult(JSON.parse(ws.eda_result));
-          if (ws.active_panels) setActivePanels(JSON.parse(ws.active_panels));
-          if (ws.selected_panel) setSelectedPanel(ws.selected_panel);
-          setSimProgress(ws.sim_progress);
-          if (ws.stage_statuses) setStageStatuses(JSON.parse(ws.stage_statuses));
-          if (ws.logs) setLogs(JSON.parse(ws.logs));
-          if (ws.sim_running === 1) {
-            isSimRunning = true;
-            lastStageKey = ws.current_stage_key;
+          if (ws.open_tabs_json) {
+            try {
+              const loadedTabs = JSON.parse(ws.open_tabs_json);
+              if (loadedTabs && loadedTabs.length > 0) {
+                setTabs(loadedTabs);
+                const activeId = ws.active_tab_id || loadedTabs[0].id;
+                setActiveTabId(activeId);
+                const activeTabObj = loadedTabs.find((t: any) => t.id === activeId);
+                if (activeTabObj && activeTabObj.simRunning) {
+                  shouldStartSim = true;
+                  simStageKey = activeTabObj.currentStageKey;
+                }
+              }
+            } catch (tabErr) {
+              console.error("Failed to parse loaded tabs:", tabErr);
+            }
+          } else if (ws.eda_result || ws.active_panels) {
+            // Fallback for single-tab migration
+            const legacyTab: WorkspaceTab = {
+              id: "unsaved_workspace",
+              datasetName: "Restored Workspace",
+              edaResult: ws.eda_result ? JSON.parse(ws.eda_result) : null,
+              simRunning: ws.sim_running === 1,
+              simProgress: ws.sim_progress,
+              currentStageKey: ws.current_stage_key,
+              stageStatuses: ws.stage_statuses ? JSON.parse(ws.stage_statuses) : {},
+              logs: ws.logs ? JSON.parse(ws.logs) : [],
+              activePanels: ws.active_panels ? JSON.parse(ws.active_panels) : ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+              selectedPanel: ws.selected_panel || "dashboard"
+            };
+            setTabs([legacyTab]);
+            setActiveTabId(legacyTab.id);
+            if (ws.sim_running === 1) {
+              shouldStartSim = true;
+              simStageKey = ws.current_stage_key;
+            }
           }
         }
 
@@ -327,8 +433,8 @@ export default function DashboardClient() {
         setStatus("AI cloud runtime initialized");
         addLog("Runtime", "All endpoints bound successfully.", "success");
 
-        if (isSimRunning) {
-          if (lastStageKey) setCurrentStageKey(lastStageKey);
+        if (shouldStartSim) {
+          if (simStageKey) setCurrentStageKey(simStageKey);
           handleStartSimulation();
         }
       } catch {
@@ -360,6 +466,17 @@ export default function DashboardClient() {
         setTargetCol(cols[cols.length - 1]);
         setSelectedColumn(cols[0]);
         setVizColumn(cols[0]);
+      }
+
+      const over = (edaResult as any).overview || {};
+      const numCols = over.numeric_columns || [];
+      const catCols = over.categorical_columns || [];
+      if (numCols.length > 0) {
+        setEdaHistCol(numCols[0]);
+        setEdaBoxCol(numCols[0]);
+      }
+      if (catCols.length > 0) {
+        setEdaCatCol(catCols[0]);
       }
     }
   }, [edaResult]);
@@ -415,8 +532,48 @@ export default function DashboardClient() {
       setStatus("Upload failed.");
       addLog("Ingestion", "Connection timeout during file processing.", "error");
     } finally {
-      setUploading(false);
+setUploading(false);
       event.target.value = "";
+    }
+  };
+
+  // --- REUSE Cached Dataset Profile in Workspace Tab ---
+  const handleReuseFile = async (fileId: number, fileName: string) => {
+    addLog("Runtime", `Restoring dataset profile for: ${fileName}...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/my-files/${fileId}/eda`, { headers: authHeaders });
+      if (!res.ok) {
+        throw new Error("Failed to retrieve cached EDA results from database storage");
+      }
+      const cachedEda = await res.json();
+      
+      const tabId = `tab_${Date.now()}`;
+      const newTab: WorkspaceTab = {
+        id: tabId,
+        datasetId: fileId,
+        datasetName: fileName,
+        edaResult: cachedEda,
+        simRunning: false,
+        simProgress: 0,
+        currentStageKey: null,
+        stageStatuses: {},
+        logs: [{
+          timestamp: new Date().toLocaleTimeString(),
+          node: "Runtime",
+          message: `Workspace profile restored from cached file: ${fileName}`,
+          type: "success"
+        }],
+        activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+        selectedPanel: "dashboard"
+      };
+      
+      setTabs([...tabs, newTab]);
+      setActiveTabId(tabId);
+      addLog("Runtime", `Restored workspace dataset: ${fileName}`, "success");
+    } catch (err: any) {
+      console.error(err);
+      alert(`Could not reuse dataset: ${err.message}`);
+      addLog("Runtime", `Failed to restore cached profile for: ${fileName}`, "error");
     }
   };
 
@@ -547,22 +704,30 @@ export default function DashboardClient() {
   // --- Simulation Runner (16-Stage) ---
   const handleStartSimulation = () => {
     if (simRunning && esRef.current) return;
+    const targetTabId = activeTab.id;
 
-    setSimRunning(true);
-    setSimProgress(0);
-    setCurrentStageKey("upload");
+    const updateTab = (tabId: string, fields: Partial<WorkspaceTab> | ((t: WorkspaceTab) => Partial<WorkspaceTab>)) => {
+      setTabs(prev => prev.map(t => {
+        if (t.id === tabId) {
+          const resolved = typeof fields === 'function' ? fields(t) : fields;
+          return { ...t, ...resolved };
+        }
+        return t;
+      }));
+    };
 
-    const initStatus: Record<string, "idle" | "running" | "success" | "warning" | "error"> = {};
-    const initTimes: Record<string, number> = {};
-    SIMULATION_STAGES.forEach((s) => {
-      initStatus[s.key] = "idle";
-      initTimes[s.key] = 0;
+    updateTab(targetTabId, {
+      simRunning: true,
+      simProgress: 0,
+      currentStageKey: "upload",
+      stageStatuses: SIMULATION_STAGES.reduce((acc, s) => ({ ...acc, [s.key]: "idle" }), {}),
+      logs: [...(tabs.find(t => t.id === targetTabId)?.logs || []), {
+        timestamp: new Date().toLocaleTimeString(),
+        node: "Simulation",
+        message: "Automated execution pipeline triggered.",
+        type: "info"
+      }]
     });
-    setStageStatuses(initStatus);
-    setStageTimes(initTimes);
-    setSimEstTime(12);
-
-    addLog("Simulation", "Automated execution pipeline triggered.", "info");
 
     const es = new EventSource(`${API_BASE}/simulation/run`);
     esRef.current = es;
@@ -571,31 +736,50 @@ export default function DashboardClient() {
       try {
         const data = JSON.parse(event.data);
         if (data.status === "complete") {
-          setSimProgress(100);
-          setSimRunning(false);
-          setCurrentStageKey(null);
-          addLog("Simulation", "Pipeline execution completed successfully.", "success");
+          updateTab(targetTabId, t => ({
+            simProgress: 100,
+            simRunning: false,
+            currentStageKey: null,
+            logs: [...t.logs, {
+              timestamp: new Date().toLocaleTimeString(),
+              node: "Simulation",
+              message: "Pipeline execution completed successfully.",
+              type: "success"
+            }]
+          }));
           es.close();
           esRef.current = null;
         } else {
           const category = data.key;
           const status = data.status;
-          
-          SIMULATION_STAGES.forEach((stage) => {
-            if (stage.category === category) {
-              setStageStatuses((prev) => ({
-                ...prev,
-                [stage.key]: status === "running" ? "running" : "success",
-              }));
-              if (status === "running") {
-                setCurrentStageKey(stage.key);
-                setStageTimes((prev) => ({ ...prev, [stage.key]: (prev[stage.key] || 0) + 1 }));
-                addLog("Pipeline", `${stage.label} active...`, "info");
-              }
-            }
-          });
 
-          setSimProgress(data.progress);
+          updateTab(targetTabId, t => {
+            const nextStatuses = { ...t.stageStatuses };
+            let nextStageKey = t.currentStageKey;
+            const nextLogs = [...t.logs];
+
+            SIMULATION_STAGES.forEach((stage) => {
+              if (stage.category === category) {
+                nextStatuses[stage.key] = status === "running" ? "running" : "success";
+                if (status === "running") {
+                  nextStageKey = stage.key;
+                  nextLogs.push({
+                    timestamp: new Date().toLocaleTimeString(),
+                    node: "Pipeline",
+                    message: `${stage.label} active...`,
+                    type: "info"
+                  });
+                }
+              }
+            });
+
+            return {
+              stageStatuses: nextStatuses,
+              currentStageKey: nextStageKey,
+              logs: nextLogs,
+              simProgress: data.progress
+            };
+          });
         }
       } catch (err) {
         console.error(err);
@@ -603,10 +787,17 @@ export default function DashboardClient() {
     };
 
     es.onerror = () => {
-      setSimRunning(false);
+      updateTab(targetTabId, t => ({
+        simRunning: false,
+        logs: [...t.logs, {
+          timestamp: new Date().toLocaleTimeString(),
+          node: "Simulation",
+          message: "Pipeline execution failed or disconnected.",
+          type: "error"
+        }]
+      }));
       es.close();
       esRef.current = null;
-      addLog("Simulation", "Pipeline execution failed or disconnected.", "error");
     };
   };
 
@@ -1118,6 +1309,67 @@ export default function DashboardClient() {
           </div>
         </header>
 
+        {/* WORKSPACE TABS BAR */}
+        <div className={`h-11 border-b ${colors.topbar} flex items-center justify-between px-6 bg-[#000814]/25 select-none z-10`}>
+          <div className="flex items-center gap-1 overflow-x-auto h-full scrollbar-none">
+            {tabs.map((tab) => {
+              const isActive = tab.id === activeTabId;
+              return (
+                <div
+                  key={tab.id}
+                  onClick={() => setActiveTabId(tab.id)}
+                  className={`h-full px-4 flex items-center gap-2 text-xs font-mono border-r border-slate-800/40 cursor-pointer transition-all relative ${
+                    isActive
+                      ? "text-[#00D4FF] bg-slate-900/40 font-bold border-t-2 border-t-[#00D4FF]"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/10 border-t-2 border-t-transparent"
+                  }`}
+                >
+                  <span className="truncate max-w-[120px]">{tab.datasetName}</span>
+                  {tabs.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const index = tabs.findIndex(t => t.id === tab.id);
+                        const nextTabs = tabs.filter(t => t.id !== tab.id);
+                        setTabs(nextTabs);
+                        if (isActive && nextTabs.length > 0) {
+                          setActiveTabId(nextTabs[Math.max(0, index - 1)].id);
+                        }
+                      }}
+                      className="w-4 h-4 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-550 hover:text-red-400 font-bold text-[9px] transition-all ml-1"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            
+            <button
+              onClick={() => {
+                const newId = `tab_${Date.now()}`;
+                const newTab: WorkspaceTab = {
+                  id: newId,
+                  datasetName: `Workspace ${tabs.length + 1}`,
+                  edaResult: null,
+                  simRunning: false,
+                  simProgress: 0,
+                  currentStageKey: null,
+                  stageStatuses: {},
+                  logs: [],
+                  activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+                  selectedPanel: "dashboard"
+                };
+                setTabs([...tabs, newTab]);
+                setActiveTabId(newId);
+              }}
+              className="px-3 h-full flex items-center text-slate-500 hover:text-[#00D4FF] hover:bg-slate-900/10 text-xs transition-all font-mono"
+            >
+              + New Tab
+            </button>
+          </div>
+        </div>
+
         {/* WORKSPACE AREA */}
         <div className="flex-1 flex min-h-0">
           
@@ -1448,7 +1700,7 @@ export default function DashboardClient() {
                                     <td className="py-4 px-2">{f.uploaded_at}</td>
                                     <td className="py-4 px-2 text-right space-x-2">
                                       <button
-                                        onClick={() => alert("Multi-tab reuse functionality is pending backend support. Please update/re-upload to resume.")}
+                                        onClick={() => handleReuseFile(f.id, f.file_name)}
                                         title="Reuse Dataset"
                                         className="p-1.5 rounded hover:bg-emerald-500/10 text-emerald-500 inline-flex items-center gap-1 transition-all"
                                       >
