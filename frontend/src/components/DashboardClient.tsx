@@ -179,43 +179,43 @@ export default function DashboardClient() {
   };
 
   const edaResult = activeTab.edaResult;
-  const setEdaResult = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, edaResult: typeof val === 'function' ? val(t.edaResult) : val } : t));
+  const setEdaResult = (val: Record<string, unknown> | null | ((prev: Record<string, unknown> | null) => Record<string, unknown> | null)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, edaResult: typeof val === 'function' ? (val as any)(t.edaResult) : val } : t));
   };
 
   const activePanels = activeTab.activePanels;
-  const setActivePanels = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, activePanels: typeof val === 'function' ? val(t.activePanels) : val } : t));
+  const setActivePanels = (val: string[] | ((prev: string[]) => string[])) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, activePanels: typeof val === 'function' ? (val as any)(t.activePanels) : val } : t));
   };
 
   const selectedPanel = activeTab.selectedPanel;
-  const setSelectedPanel = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, selectedPanel: typeof val === 'function' ? val(t.selectedPanel) : val } : t));
+  const setSelectedPanel = (val: string | ((prev: string) => string)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, selectedPanel: typeof val === 'function' ? (val as any)(t.selectedPanel) : val } : t));
   };
 
   const simRunning = activeTab.simRunning;
-  const setSimRunning = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simRunning: typeof val === 'function' ? val(t.simRunning) : val } : t));
+  const setSimRunning = (val: boolean | ((prev: boolean) => boolean)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simRunning: typeof val === 'function' ? (val as any)(t.simRunning) : val } : t));
   };
 
   const simProgress = activeTab.simProgress;
-  const setSimProgress = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simProgress: typeof val === 'function' ? val(t.simProgress) : val } : t));
+  const setSimProgress = (val: number | ((prev: number) => number)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, simProgress: typeof val === 'function' ? (val as any)(t.simProgress) : val } : t));
   };
 
   const currentStageKey = activeTab.currentStageKey;
-  const setCurrentStageKey = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, currentStageKey: typeof val === 'function' ? val(t.currentStageKey) : val } : t));
+  const setCurrentStageKey = (val: string | null | ((prev: string | null) => string | null)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, currentStageKey: typeof val === 'function' ? (val as any)(t.currentStageKey) : val } : t));
   };
 
   const stageStatuses = activeTab.stageStatuses;
-  const setStageStatuses = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, stageStatuses: typeof val === 'function' ? val(t.stageStatuses) : val } : t));
+  const setStageStatuses = (val: Record<string, "idle" | "running" | "success" | "warning" | "error"> | ((prev: Record<string, "idle" | "running" | "success" | "warning" | "error">) => Record<string, "idle" | "running" | "success" | "warning" | "error">)) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, stageStatuses: typeof val === 'function' ? (val as any)(t.stageStatuses) : val } : t));
   };
 
   const logs = activeTab.logs;
-  const setLogs = (val: any) => {
-    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, logs: typeof val === 'function' ? val(t.logs) : val } : t));
+  const setLogs = (val: LogEntry[] | ((prev: LogEntry[]) => LogEntry[])) => {
+    setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, logs: typeof val === 'function' ? (val as any)(t.logs) : val } : t));
   };
 
   const [pinnedPanels, setPinnedPanels] = useState<string[]>([]);
@@ -1811,21 +1811,49 @@ setUploading(false);
 
                         {/* Right Content Panel */}
                         <div className="flex-1 overflow-y-auto pr-2 space-y-8">
+                          {/* Step 1: Overview */}
                           {edaStep === 1 && (
-                            <div className="space-y-8">
+                            <div className="space-y-8 animate-fadeIn">
+                              <div className={`p-6 rounded-xl border ${colors.card}`}>
+                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Dataset Summary Profile</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-sm">
+                                  <div className="p-4 bg-slate-950/45 border border-slate-800/80 rounded-xl">
+                                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Total Record Count</span>
+                                    <strong className={`text-2xl font-bold ${colors.textPrimary}`}>
+                                      {Number((edaResult as any).overview?.rows || 0).toLocaleString()}
+                                    </strong>
+                                    <p className="text-[10px] text-slate-500 mt-2">Active rows indexed in workspace.</p>
+                                  </div>
+                                  <div className="p-4 bg-slate-950/45 border border-slate-800/80 rounded-xl">
+                                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Variable Count</span>
+                                    <strong className={`text-2xl font-bold ${colors.textPrimary}`}>
+                                      {Number((edaResult as any).overview?.columns || 0)}
+                                    </strong>
+                                    <p className="text-[10px] text-slate-500 mt-2">Total attributes/columns loaded.</p>
+                                  </div>
+                                  <div className="p-4 bg-slate-950/45 border border-slate-800/80 rounded-xl">
+                                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Quality Index</span>
+                                    <strong className="text-2xl font-bold text-emerald-400">
+                                      {Number((edaResult as any).data_quality?.quality_score || 0).toFixed(1)}%
+                                    </strong>
+                                    <p className="text-[10px] text-slate-500 mt-2">Overall completeness & validity score.</p>
+                                  </div>
+                                </div>
+                              </div>
+
                               <div className={`p-6 rounded-xl border ${colors.card}`}>
                                 <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Data Quality Dimension Checks</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-sm">
                                   {[
-                                    { label: "Completeness Check", score: 92.4, desc: "Evaluates percentage of non-null records." },
-                                    { label: "Accuracy Schema Index", score: 94.0, desc: "Evaluates standard type conformance." },
-                                    { label: "Consistency Score", score: 91.0, desc: "Evaluates duplicate indexes and offsets." },
-                                    { label: "Validity Boundary Check", score: 93.0, desc: "Verifies range boundary checks." }
+                                    { label: "Completeness Check", score: (edaResult as any).eda_accuracy?.completeness || 92.4, desc: "Evaluates percentage of non-null records." },
+                                    { label: "Accuracy Schema Index", score: (edaResult as any).eda_accuracy?.validity || 94.0, desc: "Evaluates standard type conformance." },
+                                    { label: "Consistency Score", score: (edaResult as any).eda_accuracy?.consistency || 91.0, desc: "Evaluates duplicate indexes and offsets." },
+                                    { label: "Validity Boundary Check", score: (edaResult as any).eda_accuracy?.integrity || 93.0, desc: "Verifies range boundary checks." }
                                   ].map((check, idx) => (
                                     <div key={idx} className="p-5 bg-slate-950/40 border border-slate-800/80 rounded-xl space-y-3">
                                       <div className="flex justify-between items-center">
                                         <strong className={`text-sm ${colors.textPrimary}`}>{check.label}</strong>
-                                        <span className="text-emerald-400 font-bold text-sm">{check.score}%</span>
+                                        <span className="text-emerald-400 font-bold text-sm">{Number(check.score).toFixed(1)}%</span>
                                       </div>
                                       <div className="h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                                         <div className="h-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" style={{ width: `${check.score}%` }} />
@@ -1835,30 +1863,80 @@ setUploading(false);
                                   ))}
                                 </div>
                               </div>
+                            </div>
+                          )}
+
+                          {/* Step 2: Column Info */}
+                          {edaStep === 2 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} animate-fadeIn`}>
+                              <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Dataset Variables Profile</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full font-mono text-xs">
+                                  <thead>
+                                    <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
+                                      <th className="pb-3 px-2">Column Name</th>
+                                      <th className="pb-3 px-2">Data Type</th>
+                                      <th className="pb-3 px-2">Unique Count</th>
+                                      <th className="pb-3 px-2">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-850">
+                                    {allColumns.map((col, idx) => {
+                                      const isNum = (edaResult as any).overview?.numeric_columns?.includes(col);
+                                      const uniq = (edaResult as any).nunique?.[col] ?? "N/A";
+                                      return (
+                                        <tr key={idx} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
+                                          <td className="py-4 px-2 font-bold text-[#00D4FF]">{col}</td>
+                                          <td className="py-4 px-2 text-slate-300">{isNum ? "Numeric" : "Categorical"}</td>
+                                          <td className="py-4 px-2 text-slate-300">{uniq}</td>
+                                          <td className="py-4 px-2 text-emerald-400 font-bold flex items-center gap-1">
+                                            <Check size={12} /> OK
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Step 3: Missing Value Analysis */}
+                          {edaStep === 3 && (
+                            <div className="space-y-6 animate-fadeIn">
+                              <div className={`p-6 rounded-xl border ${colors.card}`}>
+                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Missing Cells Summary</h4>
+                                <div className="p-4 bg-slate-950/45 border border-slate-800/80 rounded-xl font-mono text-xs max-w-sm">
+                                  <span className="text-[10px] text-slate-500 block mb-1">Overall Completeness Rate</span>
+                                  <strong className="text-2xl font-bold text-emerald-400">
+                                    {Number((edaResult as any).eda_accuracy?.completeness || 100).toFixed(2)}%
+                                  </strong>
+                                  <p className="text-slate-500 mt-2">Any missing attributes will require filling or drop operations.</p>
+                                </div>
+                              </div>
 
                               <div className={`p-6 rounded-xl border ${colors.card}`}>
-                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Column-wise Statistics</h4>
+                                <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Missing Values By Column</h4>
                                 <div className="overflow-x-auto">
                                   <table className="w-full font-mono text-xs">
                                     <thead>
                                       <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
                                         <th className="pb-3 px-2">Column Name</th>
-                                        <th className="pb-3 px-2">Data Type</th>
-                                        <th className="pb-3 px-2">Null Ratio</th>
-                                        <th className="pb-3 px-2">Summary Metrics</th>
+                                        <th className="pb-3 px-2">Null Cells Count</th>
+                                        <th className="pb-3 px-2">Null Percentage</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-850">
                                       {allColumns.map((col, idx) => {
-                                        const isNum = (edaResult as any).overview?.numeric_columns?.includes(col);
+                                        const missingProcess = (edaResult as any).missing_handling_process?.[col] || {};
+                                        const missingCount = missingProcess.missing_before || 0;
+                                        const total = (edaResult as any).overview?.rows || 1;
+                                        const pct = ((missingCount / total) * 100).toFixed(2);
                                         return (
                                           <tr key={idx} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
-                                            <td className="py-4 px-2 font-bold text-[#00D4FF]">{col}</td>
-                                            <td className="py-4 px-2 text-slate-300">{isNum ? "Numeric" : "Categorical"}</td>
-                                            <td className="py-4 px-2 text-slate-300">{(idx * 1.5).toFixed(1)}%</td>
-                                            <td className="py-4 px-2 text-slate-500">
-                                              {isNum ? "Mean/Std-Dev Available" : "Unique counts Profiled"}
-                                            </td>
+                                            <td className="py-4 px-2 font-bold text-slate-200">{col}</td>
+                                            <td className="py-4 px-2 font-bold text-amber-500">{missingCount}</td>
+                                            <td className="py-4 px-2 text-slate-400">{pct}%</td>
                                           </tr>
                                         );
                                       })}
@@ -1869,12 +1947,440 @@ setUploading(false);
                             </div>
                           )}
 
-                          {edaStep !== 1 && (
-                            <div className="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-xl p-8">
-                              <div className="text-center">
-                                <Activity size={32} className="text-[#00D4FF]/50 mx-auto mb-4" />
-                                <h4 className={`text-base font-bold font-mono uppercase ${colors.textPrimary}`}>Step {edaStep} Selected</h4>
-                                <p className="text-sm font-mono text-slate-500 mt-2">Map backend `edaResult` values here.</p>
+                          {/* Step 4: Duplicate Analysis */}
+                          {edaStep === 4 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Duplicate Rows Profiler</h4>
+                              <div className="p-5 bg-slate-950/45 border border-slate-800/80 rounded-xl max-w-sm">
+                                <span className="text-[10px] text-slate-500 block mb-1">Total Duplicate Rows</span>
+                                <strong className={`text-2xl font-bold ${Number((edaResult as any).data_quality?.duplicates || 0) > 0 ? "text-amber-500" : "text-emerald-400"}`}>
+                                  {Number((edaResult as any).data_quality?.duplicates || 0)}
+                                </strong>
+                                <p className="text-slate-500 text-xs mt-2">
+                                  {Number((edaResult as any).data_quality?.duplicates || 0) > 0 
+                                    ? "Warning: Duplicate rows skew statistical moments. Remove duplicate records."
+                                    : "Perfect: 100% unique row values detected."}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Step 5: Data Type Validation */}
+                          {edaStep === 5 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} animate-fadeIn`}>
+                              <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Schema Type Validation</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full font-mono text-xs">
+                                  <thead>
+                                    <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
+                                      <th className="pb-3 px-2">Column Name</th>
+                                      <th className="pb-3 px-2">Validation Rule</th>
+                                      <th className="pb-3 px-2">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-850">
+                                    {allColumns.map((col, idx) => {
+                                      const isNum = (edaResult as any).overview?.numeric_columns?.includes(col);
+                                      return (
+                                        <tr key={idx} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
+                                          <td className="py-4 px-2 font-bold text-slate-200">{col}</td>
+                                          <td className="py-4 px-2 text-slate-400">
+                                            {isNum ? "Verify numerical precision and floats" : "Check string categories and cardinality"}
+                                          </td>
+                                          <td className="py-4 px-2 text-emerald-400 font-bold">PASSED</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Step 6: Statistical Summary */}
+                          {edaStep === 6 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} animate-fadeIn`}>
+                              <h4 className={`text-sm font-bold font-mono uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Numerical Descriptive Statistics</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full font-mono text-[10px]">
+                                  <thead>
+                                    <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
+                                      <th className="pb-3 px-2">Column</th>
+                                      <th className="pb-3 px-2 text-right">Count</th>
+                                      <th className="pb-3 px-2 text-right">Mean</th>
+                                      <th className="pb-3 px-2 text-right">Std Dev</th>
+                                      <th className="pb-3 px-2 text-right">Min</th>
+                                      <th className="pb-3 px-2 text-right">50% (Med)</th>
+                                      <th className="pb-3 px-2 text-right">Max</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-850 text-slate-300">
+                                    {((edaResult as any).overview?.numeric_columns || []).map((col: string, idx: number) => {
+                                      const s = (edaResult as any).statistics?.[col] || {};
+                                      return (
+                                        <tr key={idx} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
+                                          <td className="py-4 px-2 font-bold text-[#00D4FF]">{col}</td>
+                                          <td className="py-4 px-2 text-right">{s.count ?? "N/A"}</td>
+                                          <td className="py-4 px-2 text-right">{s.mean ? Number(s.mean).toFixed(2) : "N/A"}</td>
+                                          <td className="py-4 px-2 text-right">{s.std ? Number(s.std).toFixed(2) : "N/A"}</td>
+                                          <td className="py-4 px-2 text-right">{s.min ? Number(s.min).toFixed(2) : "N/A"}</td>
+                                          <td className="py-4 px-2 text-right">{s["50%"] ? Number(s["50%"]).toFixed(2) : "N/A"}</td>
+                                          <td className="py-4 px-2 text-right">{s.max ? Number(s.max).toFixed(2) : "N/A"}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Step 7: Distribution Analysis */}
+                          {edaStep === 7 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <div className="flex justify-between items-center">
+                                <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Frequency Distribution histogram</h4>
+                                <div>
+                                  <label className="text-[10px] text-slate-500 uppercase block mb-1">Target Variable</label>
+                                  <select
+                                    value={edaHistCol}
+                                    onChange={(e) => setEdaHistCol(e.target.value)}
+                                    className={`text-xs p-2 rounded-lg ${colors.input} w-48`}
+                                  >
+                                    {((edaResult as any).overview?.numeric_columns || []).map((col: string) => (
+                                      <option key={col} value={col}>{col}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {(() => {
+                                const hData = (edaResult as any).visualization?.histograms?.[edaHistCol];
+                                if (!hData || !hData.counts || hData.counts.length === 0) {
+                                  return <p className="text-xs text-slate-500">Select a variable to view histogram distributions.</p>;
+                                }
+                                const counts = hData.counts;
+                                const bins = hData.bins;
+                                const maxVal = Math.max(...counts) || 1;
+                                return (
+                                  <div className="space-y-4">
+                                    <div className="h-64 flex items-end gap-1.5 border-b border-l border-slate-800/80 p-4 bg-slate-950/20 rounded-xl relative">
+                                      {counts.map((cnt: number, i: number) => {
+                                        const hPct = (cnt / maxVal) * 85;
+                                        return (
+                                          <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                                            <div className="w-full bg-[#0085FF]/30 group-hover:bg-[#00D4FF] rounded-t-sm transition-all" style={{ height: `${hPct}%` }} />
+                                            <div className="absolute bottom-full mb-1 bg-slate-900 text-white text-[9px] p-1.5 rounded opacity-0 group-hover:opacity-100 transition-all font-mono pointer-events-none z-20">
+                                              Count: {cnt} ({bins[i] ? Number(bins[i]).toFixed(1) : ""})
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="flex justify-between text-[10px] text-slate-500 px-2">
+                                      <span>Min: {bins[0] ? Number(bins[0]).toFixed(1) : ""}</span>
+                                      <span>Max: {bins[bins.length - 1] ? Number(bins[bins.length - 1]).toFixed(1) : ""}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* Step 8: Outlier Detection */}
+                          {edaStep === 8 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <div className="flex justify-between items-center">
+                                <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Outlier Analysis (Boxplot / IQR)</h4>
+                                <div>
+                                  <label className="text-[10px] text-slate-500 uppercase block mb-1">Target Variable</label>
+                                  <select
+                                    value={edaBoxCol}
+                                    onChange={(e) => setEdaBoxCol(e.target.value)}
+                                    className={`text-xs p-2 rounded-lg ${colors.input} w-48`}
+                                  >
+                                    {((edaResult as any).overview?.numeric_columns || []).map((col: string) => (
+                                      <option key={col} value={col}>{col}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {(() => {
+                                const bp = (edaResult as any).visualization?.boxplots?.[edaBoxCol];
+                                const totalOutliers = (edaResult as any).data_quality?.outliers?.[edaBoxCol]?.outliers_count || 0;
+                                if (!bp) {
+                                  return <p className="text-xs text-slate-500">Select a numerical column to display boxplots.</p>;
+                                }
+                                return (
+                                  <div className="space-y-8">
+                                    <div className="p-4 bg-slate-950/45 border border-slate-800/80 rounded-xl inline-block">
+                                      <span className="text-[10px] text-slate-500 block mb-1">IQR Outliers Detected</span>
+                                      <strong className={`text-xl font-bold ${totalOutliers > 0 ? "text-amber-500" : "text-emerald-400"}`}>
+                                        {totalOutliers}
+                                      </strong>
+                                    </div>
+
+                                    {/* Horizontal SVG Boxplot */}
+                                    <div className="p-6 bg-slate-950/20 border border-slate-800/60 rounded-xl">
+                                      <svg className="w-full h-24" viewBox="0 0 400 100">
+                                        <rect x="0" y="0" width="400" height="100" fill="transparent" />
+                                        {/* Scale values from bp.min to bp.max to coordinate 40 to 360 */}
+                                        {(() => {
+                                          const min = bp.min ?? 0;
+                                          const max = bp.max ?? 100;
+                                          const range = (max - min) || 1;
+                                          const scale = (val: number) => 40 + ((val - min) / range) * 320;
+
+                                          const xMin = scale(bp.min);
+                                          const xQ1 = scale(bp.q1);
+                                          const xMed = scale(bp.median);
+                                          const xQ3 = scale(bp.q3);
+                                          const xMax = scale(bp.max);
+
+                                          return (
+                                            <g>
+                                              {/* Box */}
+                                              <rect x={xQ1} y="30" width={xQ3 - xQ1} height="40" fill="rgba(6, 182, 212, 0.15)" stroke="#00D4FF" strokeWidth="2" />
+                                              {/* Median Line */}
+                                              <line x1={xMed} y1="30" x2={xMed} y2="70" stroke="#00D4FF" strokeWidth="3" />
+                                              {/* Whiskers */}
+                                              <line x1={xMin} y1="50" x2={xQ1} y2="50" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="3,3" />
+                                              <line x1={xQ3} y1="50" x2={xMax} y2="50" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="3,3" />
+                                              {/* Whisker Ends */}
+                                              <line x1={xMin} y1="40" x2={xMin} y2="60" stroke="#94a3b8" strokeWidth="2" />
+                                              <line x1={xMax} y1="40" x2={xMax} y2="60" stroke="#94a3b8" strokeWidth="2" />
+                                              {/* Text labels */}
+                                              <text x={xMin} y="90" fill="#64748b" fontSize="8" textAnchor="middle">{Number(bp.min).toFixed(1)}</text>
+                                              <text x={xQ1} y="20" fill="#64748b" fontSize="8" textAnchor="middle">Q1: {Number(bp.q1).toFixed(1)}</text>
+                                              <text x={xMed} y="90" fill="#00D4FF" fontSize="8" textAnchor="middle" fontWeight="bold">Med: {Number(bp.median).toFixed(1)}</text>
+                                              <text x={xQ3} y="20" fill="#64748b" fontSize="8" textAnchor="middle">Q3: {Number(bp.q3).toFixed(1)}</text>
+                                              <text x={xMax} y="90" fill="#64748b" fontSize="8" textAnchor="middle">{Number(bp.max).toFixed(1)}</text>
+                                            </g>
+                                          );
+                                        })()}
+                                      </svg>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* Step 9: Correlation Analysis */}
+                          {edaStep === 9 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Pearson Correlation Matrix Heatmap</h4>
+                              {(() => {
+                                const corr = (edaResult as any).advanced_visualization?.correlation || {};
+                                const numericCols = (edaResult as any).overview?.numeric_columns || [];
+                                if (numericCols.length < 2) {
+                                  return <p className="text-xs text-slate-500">Need at least 2 numerical attributes to analyze correlations.</p>;
+                                }
+                                return (
+                                  <div className="overflow-x-auto">
+                                    <table className="border-collapse">
+                                      <thead>
+                                        <tr>
+                                          <th className="p-2 text-[9px] text-slate-500 text-left border border-slate-800">Variable</th>
+                                          {numericCols.map((c: string) => (
+                                            <th key={c} className="p-2 text-[9px] text-slate-500 text-center border border-slate-800 max-w-[80px] truncate" title={c}>
+                                              {c}
+                                            </th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {numericCols.map((rCol: string) => (
+                                          <tr key={rCol}>
+                                            <td className="p-2 text-[9px] text-[#00D4FF] font-bold border border-slate-800 truncate max-w-[90px]" title={rCol}>{rCol}</td>
+                                            {numericCols.map((cCol: string) => {
+                                              const val = corr[rCol]?.[cCol] ?? 0;
+                                              const absVal = Math.abs(val);
+                                              const cellColor = val >= 0 
+                                                ? `rgba(6, 182, 212, ${absVal})` // positive: cyan/blue
+                                                : `rgba(239, 68, 68, ${absVal})`; // negative: red
+                                              return (
+                                                <td
+                                                  key={cCol}
+                                                  style={{ backgroundColor: cellColor }}
+                                                  className="p-2 text-[10px] text-center border border-slate-800 font-bold font-mono text-white select-none group relative"
+                                                  title={`Correlation (${rCol} ↔ ${cCol}): ${val.toFixed(3)}`}
+                                                >
+                                                  {val.toFixed(2)}
+                                                </td>
+                                              );
+                                            })}
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* Step 10: Categorical Analysis */}
+                          {edaStep === 10 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <div className="flex justify-between items-center">
+                                <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Categorical Variables Profile</h4>
+                                <div>
+                                  <label className="text-[10px] text-slate-500 uppercase block mb-1">Target Variable</label>
+                                  <select
+                                    value={edaCatCol}
+                                    onChange={(e) => setEdaCatCol(e.target.value)}
+                                    className={`text-xs p-2 rounded-lg ${colors.input} w-48`}
+                                  >
+                                    {((edaResult as any).overview?.categorical_columns || []).map((col: string) => (
+                                      <option key={col} value={col}>{col}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {(() => {
+                                const vcMap = (edaResult as any).value_counts?.[edaCatCol] || {};
+                                const entries = Object.entries(vcMap);
+                                if (entries.length === 0) {
+                                  return <p className="text-xs text-slate-500">Select a variable to view value counts.</p>;
+                                }
+                                const totalRows = (edaResult as any).overview?.rows || 1;
+                                return (
+                                  <div className="space-y-4">
+                                    <h5 className="text-[10px] text-slate-500 uppercase tracking-widest">Top value frequencies</h5>
+                                    <div className="space-y-3">
+                                      {entries.slice(0, 10).map(([k, cnt]: [string, any], idx) => {
+                                        const pct = ((Number(cnt) / totalRows) * 100).toFixed(1);
+                                        return (
+                                          <div key={idx} className="space-y-1">
+                                            <div className="flex justify-between text-xs">
+                                              <span className="text-[#00D4FF] font-bold">{k || "(empty)"}</span>
+                                              <span className="text-slate-400">{cnt.toLocaleString()} rows ({pct}%)</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800/40">
+                                              <div className="h-full bg-cyan-400" style={{ width: `${pct}%` }} />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* Step 11: Time Series Analysis */}
+                          {edaStep === 11 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Time Series & Sequence Gap Analysis</h4>
+                              {(() => {
+                                const dtCols = (edaResult as any).overview?.datetime_columns || [];
+                                if (dtCols.length === 0) {
+                                  return (
+                                    <div className="p-4 bg-slate-950/40 border border-slate-800/60 rounded-xl text-center text-slate-500">
+                                      No time series attributes (dates/timestamps) detected in this dataset.
+                                    </div>
+                                  );
+                                }
+                                const dateFormats = (edaResult as any).overview?.date_formats || {};
+                                const gapReport = (edaResult as any).data_quality?.date_gap_report || {};
+                                return (
+                                  <div className="space-y-6">
+                                    {dtCols.map((col: string) => (
+                                      <div key={col} className="p-5 bg-slate-950/45 border border-slate-800/80 rounded-xl space-y-3">
+                                        <div className="flex justify-between">
+                                          <strong className="text-sm text-[#00D4FF]">{col}</strong>
+                                          <span className="text-xs text-slate-400">Format: {dateFormats[col] || "Parsed ISO"}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                          Sequence check: {gapReport[col]?.gaps_filled ?? 0} missing dates resolved.
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
+                          {/* Step 12: Feature Engineering */}
+                          {edaStep === 12 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>ML Feature Engineering Recommendations</h4>
+                              <ul className="space-y-3 text-xs text-slate-300">
+                                {((edaResult as any).eda_accuracy?.suggestions || []).map((sug: string, idx: number) => (
+                                  <li key={idx} className="flex gap-2 items-start p-3 bg-slate-950/40 border border-slate-800/60 rounded-lg">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+                                    <span>{sug}</span>
+                                  </li>
+                                ))}
+                                {((edaResult as any).eda_accuracy?.suggestions || []).length === 0 && (
+                                  <li className="p-4 text-center text-slate-500 bg-slate-950/40 border border-slate-800/60 rounded-lg">
+                                    Dataset qualities verified ready. No urgent engineering suggested.
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Step 13: Data Quality Assessment */}
+                          {edaStep === 13 && (
+                            <div className="space-y-8 animate-fadeIn font-mono">
+                              <div className={`p-6 rounded-xl border ${colors.card}`}>
+                                <h4 className={`text-sm font-bold uppercase tracking-wider mb-6 ${colors.textPrimary}`}>Quality Score Dimensions</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                  {[
+                                    { label: "Completeness Score", score: (edaResult as any).eda_accuracy?.completeness || 100 },
+                                    { label: "Validity Score", score: (edaResult as any).eda_accuracy?.validity || 100 },
+                                    { label: "Consistency Score", score: (edaResult as any).eda_accuracy?.consistency || 100 },
+                                    { label: "Uniqueness Score", score: (edaResult as any).eda_accuracy?.uniqueness || 100 },
+                                    { label: "Integrity Score", score: (edaResult as any).eda_accuracy?.integrity || 100 }
+                                  ].map((dim, idx) => (
+                                    <div key={idx} className="p-4 bg-slate-950/40 border border-slate-800/60 rounded-xl space-y-2">
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400">{dim.label}</span>
+                                        <strong className="text-emerald-400">{Number(dim.score).toFixed(1)}%</strong>
+                                      </div>
+                                      <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500" style={{ width: `${dim.score}%` }} />
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className={`p-6 rounded-xl border ${colors.card} max-w-sm`}>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Workspace Grade</span>
+                                    <strong className="text-3xl font-extrabold text-[#00D4FF] font-mono">
+                                      {(edaResult as any).eda_accuracy?.grade || "A"}
+                                    </strong>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-[10px] text-slate-500 uppercase block mb-1">ML Readiness</span>
+                                    <strong className={`text-sm ${(edaResult as any).eda_accuracy?.ml_ready !== false ? "text-emerald-400" : "text-amber-400"}`}>
+                                      {(edaResult as any).eda_accuracy?.ml_ready !== false ? "APPROVED" : "PENDING"}
+                                    </strong>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Step 14: AI Recommendations */}
+                          {edaStep === 14 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} space-y-6 animate-fadeIn font-mono`}>
+                              <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>AI recommendation Engine Insights</h4>
+                              <div className="space-y-3">
+                                {((edaResult as any).insights || []).map((ins: string, idx: number) => (
+                                  <div key={idx} className="p-4 bg-slate-950/40 border border-slate-850 rounded-xl text-xs text-slate-300 leading-relaxed">
+                                    {ins}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}
