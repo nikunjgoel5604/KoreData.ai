@@ -230,7 +230,8 @@ export default function DashboardClient() {
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // --- Bottom timeline tabs ---
-  const [bottomTab, setBottomTab] = useState<"timeline" | "code-editor" | "sql-query" | "console">("timeline");
+  const [bottomTab, setBottomTab] = useState<"code-editor" | "sql-query" | "console">("code-editor");
+  const [isSimPanelOpen, setIsSimPanelOpen] = useState(false);
 
   const [stageTimes, setStageTimes] = useState<Record<string, number>>({});
   const [simEstTime, setSimEstTime] = useState<number>(0);
@@ -1479,7 +1480,6 @@ setUploading(false);
                   {[
                     { id: "dashboard", label: "Dashboard", icon: Grid },
                     { id: "upload", label: "Dataset Ingestion", icon: FileUp },
-                    { id: "simulation", label: "Run Simulation", icon: GitBranch },
                     { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
                     { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
                   ].map((panel) => {
@@ -1736,38 +1736,6 @@ setUploading(false);
                   </div>
                 )}
 
-                {selectedPanel === "simulation" && (
-                  <div className="space-y-6">
-                    <div className="flex gap-4">
-                      <button
-                        onClick={handleStartSimulation}
-                        disabled={simRunning}
-                        className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all flex items-center gap-2"
-                      >
-                        {simRunning ? <Loader2 className="spin" size={14} /> : <Play size={14} />}
-                        Run Simulation Pipeline
-                      </button>
-                    </div>
-
-                    <div className="p-5 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                      <h3 className={`text-sm font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>Python Sandbox Code Runner</h3>
-                      <textarea
-                        value={codeText}
-                        onChange={(e) => setCodeText(e.target.value)}
-                        className={`w-full h-32 font-mono text-xs p-3 rounded-lg focus:outline-none mb-4 ${
-                          theme === "dark" ? "bg-[#020712] border-slate-800 text-cyan-400" : "bg-slate-50 border-slate-200 text-slate-800"
-                        }`}
-                      />
-                      <button
-                        onClick={handleRunCode}
-                        disabled={codeRunning || !edaResult}
-                        className="bg-cyan-500 text-[#000814] font-bold text-xs uppercase py-2 px-4 rounded-lg hover:bg-cyan-400 transition-all"
-                      >
-                        {codeRunning ? "Running..." : "Execute Script"}
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {selectedPanel === "eda-analysis" && (
                   <div className="space-y-6">
@@ -2476,13 +2444,10 @@ setUploading(false);
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* BOTTOM WORKSPACE PANEL (TIMELINE / CODE EDITORS) */}
+                       {/* BOTTOM WORKSPACE PANEL (TIMELINE / CODE EDITORS) */}
             <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
               <div className="h-9 border-b border-slate-800 bg-[#000814]/40 flex items-center gap-4 px-4 select-none">
                 {[
-                  { id: "timeline", label: "Pipeline Timeline" },
                   { id: "code-editor", label: "Code Editor" },
                   { id: "sql-query", label: "SQL Query" },
                   { id: "console", label: "Python Console" },
@@ -2502,35 +2467,26 @@ setUploading(false);
               </div>
 
               <div className="p-5">
-                {bottomTab === "timeline" && (
-                  <div className="flex gap-4 overflow-x-auto pb-2">
-                    {SIMULATION_STAGES.slice(0, 10).map((stage, idx) => {
-                      const status = stageStatuses[stage.key] || "idle";
-                      const isCurrent = currentStageKey === stage.key;
-                      const isDone = status === "success";
-
-                      let cardBg = theme === "dark" ? "bg-slate-955/20 border-slate-855 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-700";
-                      let titleColor = theme === "dark" ? "text-slate-200" : "text-slate-900 font-bold";
-
-                      let badgeClass = "bg-slate-850 text-slate-500";
-                      if (isCurrent) badgeClass = "bg-[#00D4FF]/10 text-[#00D4FF] animate-pulse";
-                      if (isDone) badgeClass = "bg-emerald-500/10 text-emerald-600 font-bold";
-
-                      return (
-                        <div key={stage.key} className={`flex-shrink-0 w-44 p-3 border rounded-lg ${cardBg}`}>
-                          <span className="text-[9px] font-mono text-slate-500 uppercase">Stage {idx + 1}</span>
-                          <h4 className={`text-xs mt-1 truncate ${titleColor}`}>{stage.label}</h4>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-mono font-bold uppercase block w-fit mt-2 ${badgeClass}`}>
-                            {isCurrent ? "In Progress" : isDone ? "Completed" : "Pending"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
                 {bottomTab === "code-editor" && (
-                  <div className="font-mono text-xs text-slate-500">Code editor panel loaded. Ready for script configurations.</div>
+                  <div className="space-y-3 font-mono">
+                    <textarea
+                      value={codeText}
+                      onChange={(e) => setCodeText(e.target.value)}
+                      placeholder="# Write custom python logic here. Assign output to 'result' to return it..."
+                      className={`w-full h-24 font-mono text-xs p-3 rounded-lg focus:outline-none border ${
+                        theme === "dark" ? "bg-[#020712] border-slate-800 text-cyan-400" : "bg-slate-50 border-slate-200 text-slate-800"
+                      }`}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleRunCode}
+                        disabled={codeRunning || !edaResult}
+                        className="bg-cyan-500 text-[#000814] font-bold text-[10px] uppercase py-1.5 px-4 rounded hover:bg-cyan-400 transition-all font-mono"
+                      >
+                        {codeRunning ? "Running..." : "Execute Script"}
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {bottomTab === "sql-query" && (
@@ -2538,84 +2494,218 @@ setUploading(false);
                 )}
 
                 {bottomTab === "console" && (
-                  <div className="font-mono text-xs text-slate-500">Interactive sandbox terminal online.</div>
+                  <div className="font-mono text-xs space-y-2 max-h-36 overflow-y-auto p-2 bg-slate-950/60 rounded border border-slate-855">
+                    {consoleOutput && <div className="text-slate-300 whitespace-pre-wrap">{consoleOutput}</div>}
+                    {consoleError && <div className="text-red-450 whitespace-pre-wrap">Error: {consoleError}</div>}
+                    {consoleResult && (
+                      <div className="text-emerald-400">
+                        Result: <pre className="text-[10px] mt-1 bg-slate-950 p-2 rounded border border-slate-850 overflow-x-auto">{JSON.stringify(consoleResult, null, 2)}</pre>
+                      </div>
+                    )}
+                    {!consoleOutput && !consoleError && !consoleResult && (
+                      <div className="text-slate-550">Interactive sandbox terminal output will print here. Run python script to test.</div>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
+            </div>   </div>
 
           </div>
 
-          {/* RIGHT SIDEBAR PANEL */}
-          <aside className="w-80 border-l border-slate-800 bg-[#000814]/95 flex flex-col z-10 select-none">
-            
-            {/* Simulation Progress Card */}
-            <div className="p-5 border-b border-slate-850 space-y-4">
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Simulation Progress</span>
-              
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 relative flex items-center justify-center transform -rotate-90">
-                  <svg className="w-16 h-16">
-                    <circle cx="32" cy="32" r="26" stroke="rgba(0, 133, 255, 0.1)" strokeWidth="4" fill="transparent" />
+          {/* FLOATING ACTION BUTTON (FAB) IN BOTTOM-RIGHT CORNER */}
+          <div className="fixed bottom-6 right-6 z-50">
+            <button
+              onClick={() => setIsSimPanelOpen(!isSimPanelOpen)}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative shadow-[0_0_15px_rgba(0,212,255,0.35)] ${
+                simRunning 
+                  ? "bg-[#00D4FF]/25 border border-[#00D4FF] text-[#00D4FF]"
+                  : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-[#00D4FF]"
+              }`}
+              title="Pipeline Simulation Monitor"
+            >
+              {simRunning ? (
+                <>
+                  {/* Spinning progress loader border */}
+                  <svg className="w-14 h-14 absolute inset-0 transform -rotate-90">
+                    <circle cx="28" cy="28" r="24" stroke="rgba(0, 212, 255, 0.1)" strokeWidth="3" fill="transparent" />
                     <circle
-                      cx="32" cy="32" r="26" stroke="#0085FF" strokeWidth="4" fill="transparent"
-                      strokeDasharray={2 * Math.PI * 26}
-                      strokeDashoffset={2 * Math.PI * 26 - (simProgress / 100) * (2 * Math.PI * 26)}
+                      cx="28" cy="28" r="24" stroke="#00D4FF" strokeWidth="3" fill="transparent"
+                      strokeDasharray={2 * Math.PI * 24}
+                      strokeDashoffset={2 * Math.PI * 24 - (simProgress / 100) * (2 * Math.PI * 24)}
                       className="transition-all duration-300"
                     />
                   </svg>
-                  <span className="absolute text-xs font-mono font-bold text-white transform rotate-90">{simProgress}%</span>
-                </div>
+                  <Activity className="animate-pulse" size={20} />
+                  {/* Floating notification badge showing percentage */}
+                  <span className="absolute -top-1 -right-1 bg-[#0085FF] text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold font-mono">
+                    {simProgress}%
+                  </span>
+                </>
+              ) : (
+                <GitBranch size={20} />
+              )}
+            </button>
+          </div>
 
-                <div>
-                  <span className="text-[10px] text-slate-500 font-mono block">Current Step</span>
-                  <strong className="text-xs text-slate-200 mt-1 block truncate">
-                    {currentStageKey ? SIMULATION_STAGES.find((s) => s.key === currentStageKey)?.label : "Pipeline Idle"}
-                  </strong>
+          {/* COLLAPSIBLE BOTTOM SIMULATION PANEL */}
+          <div
+            className={`fixed bottom-0 left-0 right-0 z-40 bg-[#000814]/95 border-t border-slate-800 transition-all duration-350 ease-in-out select-none ${
+              isSimPanelOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"
+            }`}
+            style={{ height: "340px" }}
+          >
+            <div className="h-full flex flex-col font-mono">
+              {/* Drawer Header */}
+              <div className="h-10 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-950/80">
+                <div className="flex items-center gap-3">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+                  <strong className="text-xs uppercase tracking-wider text-slate-200">Simulation Pipeline Monitor</strong>
+                  <span className="text-[10px] text-slate-500">|</span>
+                  <span className="text-[10px] text-slate-400">Workspace ID: {activeTab.datasetName}</span>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  {simRunning ? (
+                    <span className="text-[10px] font-bold text-[#00D4FF] bg-[#00D4FF]/10 px-2 py-0.5 rounded animate-pulse">
+                      SIMULATION ACTIVE ({simProgress}%)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded">
+                      PIPELINE IDLE
+                    </span>
+                  )}
+                  <button 
+                    onClick={() => setIsSimPanelOpen(false)}
+                    className="text-slate-500 hover:text-slate-200 transition-colors text-xs font-bold"
+                  >
+                    ✕ Close
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 text-[9px] font-mono">
-                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
-                  <span className="text-slate-500 block">STARTED AT</span>
-                  <strong className="text-slate-300 mt-1 block">10:24:53 AM</strong>
-                </div>
-                <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
-                  <span className="text-slate-500 block">ETA</span>
-                  <strong className="text-slate-300 mt-1 block">2m 18s</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* LIVE LOGS SECTION */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <div className="h-8 border-b border-slate-850 px-4 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                <span className="uppercase tracking-widest">Live Logs</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-2 bg-[#00040a]/30">
-                {logs.length === 0 ? (
-                  <span className="text-slate-600 block text-center mt-6">Log feed empty. Run pipeline.</span>
-                ) : (
-                  logs.map((log, idx) => {
-                    let typeColor = "text-slate-500";
-                    if (log.type === "success") typeColor = "text-emerald-400";
-                    if (log.type === "error") typeColor = "text-red-400";
-                    if (log.type === "info") typeColor = "text-[#00D4FF]";
-
-                    return (
-                      <div key={idx} className="leading-relaxed border-b border-slate-850/10 pb-1">
-                        <span className="text-slate-600">[{log.timestamp}]</span>{" "}
-                        <span className={`${typeColor} font-bold`}>{log.node.toUpperCase()}</span>:{" "}
-                        <span className="text-slate-300">{log.message}</span>
+              {/* Drawer Body Grid */}
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 min-h-0">
+                
+                {/* Column 1: Controls & Progress Circular Chart */}
+                <div className="p-5 border-r border-slate-850 flex flex-col justify-between bg-slate-950/20">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 relative flex items-center justify-center transform -rotate-90">
+                        <svg className="w-16 h-16">
+                          <circle cx="32" cy="32" r="26" stroke="rgba(0, 133, 255, 0.1)" strokeWidth="4" fill="transparent" />
+                          <circle
+                            cx="32" cy="32" r="26" stroke="#0085FF" strokeWidth="4" fill="transparent"
+                            strokeDasharray={2 * Math.PI * 26}
+                            strokeDashoffset={2 * Math.PI * 26 - (simProgress / 100) * (2 * Math.PI * 26)}
+                            className="transition-all duration-300"
+                          />
+                        </svg>
+                        <span className="absolute text-xs font-mono font-bold text-white transform rotate-90">{simProgress}%</span>
                       </div>
-                    );
-                  })
-                )}
-                <div ref={logsEndRef} />
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 block">CURRENT STEP</span>
+                        <strong className="text-xs text-slate-200 mt-1 block truncate max-w-[140px]" title={currentStageKey ? SIMULATION_STAGES.find((s) => s.key === currentStageKey)?.label : "Idle"}>
+                          {currentStageKey ? SIMULATION_STAGES.find((s) => s.key === currentStageKey)?.label : "Pipeline Idle"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[9px]">
+                      <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
+                        <span className="text-slate-500 block">STARTED AT</span>
+                        <strong className="text-slate-300 mt-0.5 block">10:24:53 AM</strong>
+                      </div>
+                      <div className="p-2 bg-slate-900/60 border border-slate-850 rounded-lg">
+                        <span className="text-slate-500 block">EST. REMAINING</span>
+                        <strong className="text-slate-300 mt-0.5 block">{simRunning ? "1m 45s" : "0s"}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button
+                      onClick={handleStartSimulation}
+                      disabled={simRunning || !edaResult}
+                      className="w-full bg-[#00D4FF] text-[#000814] font-bold text-xs uppercase tracking-wider py-2.5 rounded-lg hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none font-mono"
+                    >
+                      {simRunning ? <Loader2 className="spin animate-spin" size={14} /> : <Play size={14} />}
+                      Run Pipeline
+                    </button>
+                  </div>
+                </div>
+
+                {/* Column 2 & 3: Horizontal Stages Timeline */}
+                <div className="col-span-2 p-5 border-r border-slate-850 flex flex-col justify-between min-h-0 bg-slate-950/10">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-3">Simulation Steps Timeline</div>
+                  <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 min-h-0">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {SIMULATION_STAGES.map((stage, idx) => {
+                        const status = stageStatuses[stage.key] || "idle";
+                        const isCurrent = currentStageKey === stage.key;
+                        const isDone = status === "success";
+
+                        let cardBg = "bg-slate-950/40 border-slate-850/60 text-slate-400";
+                        let titleColor = "text-slate-400";
+                        let badgeClass = "bg-slate-900/80 text-slate-600";
+
+                        if (isCurrent) {
+                          cardBg = "bg-[#00D4FF]/5 border-[#00D4FF]/20 text-[#00D4FF]";
+                          titleColor = "text-slate-200 font-bold";
+                          badgeClass = "bg-[#00D4FF]/10 text-[#00D4FF] animate-pulse";
+                        } else if (isDone) {
+                          cardBg = "bg-emerald-500/5 border-emerald-500/20 text-emerald-400";
+                          titleColor = "text-slate-300";
+                          badgeClass = "bg-emerald-500/10 text-emerald-400 font-bold";
+                        }
+
+                        return (
+                          <div key={stage.key} className={`p-2 border rounded-lg flex items-center justify-between gap-2 ${cardBg} text-[10px] transition-all`}>
+                            <div className="truncate max-w-[110px]">
+                              <span className="text-[8px] text-slate-500 block">STAGE {idx + 1}</span>
+                              <span className={`truncate block ${titleColor}`}>{stage.label}</span>
+                            </div>
+                            <span className={`text-[7px] px-1.5 py-0.5 rounded font-bold uppercase ${badgeClass}`}>
+                              {isCurrent ? "Running" : isDone ? "Done" : "Idle"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 4: Log Output Console */}
+                <div className="p-5 flex flex-col min-h-0 bg-[#00040a]/40">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-3 flex items-center justify-between">
+                    <span>Operation Terminal Output</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                  </div>
+                  <div className="flex-1 overflow-y-auto font-mono text-[9px] space-y-2 pr-1 min-h-0">
+                    {logs.length === 0 ? (
+                      <span className="text-slate-600 block text-center mt-8">Terminal logs empty. Run simulation pipeline.</span>
+                    ) : (
+                      logs.map((log, idx) => {
+                        let typeColor = "text-slate-500";
+                        if (log.type === "success") typeColor = "text-emerald-400";
+                        if (log.type === "error") typeColor = "text-red-400";
+                        if (log.type === "info") typeColor = "text-[#00D4FF]";
+
+                        return (
+                          <div key={idx} className="leading-normal border-b border-slate-850/5 pb-1">
+                            <span className="text-slate-650">[{log.timestamp}]</span>{" "}
+                            <span className={`${typeColor} font-bold`}>{log.node.toUpperCase()}</span>:{" "}
+                            <span className="text-slate-300">{log.message}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={logsEndRef} />
+                  </div>
+                </div>
+
               </div>
             </div>
-          </aside>
 
         </div>
       </div>
