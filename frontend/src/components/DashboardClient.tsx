@@ -32,6 +32,10 @@ import {
   X,
   FileText,
   Clock,
+  Share2,
+  Copy,
+  Edit3,
+  PlusCircle,
   Compass,
   Sun,
   Moon,
@@ -220,6 +224,36 @@ export default function DashboardClient() {
 
   const [pinnedPanels, setPinnedPanels] = useState<string[]>([]);
   const [view3D, setView3D] = useState(true);
+  
+  // Workspace Tab actions
+  const [pinnedTabs, setPinnedTabs] = useState<string[]>([]);
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  const [renameText, setRenameText] = useState("");
+
+  // Collapsible Right AI Panel
+  const [isRightAIPanelOpen, setIsRightAIPanelOpen] = useState(true);
+  const [aiMessages, setAiMessages] = useState<{ sender: "user" | "ai"; text: string }[]>([
+    { sender: "ai", text: "Welcome to KoreData-EX AI Assistant. I can explain your dataset, recommend cleaning steps, generate reports, or compile SQL. Ask me anything!" }
+  ]);
+  const [aiInputText, setAiInputText] = useState("");
+
+  // Visualizer configurations
+  const [vizChartType, setVizChartType] = useState("bar");
+  const [vizXAxis, setVizXAxis] = useState("");
+  const [vizYAxis, setVizYAxis] = useState("");
+  const [vizColorTheme, setVizColorTheme] = useState("classic");
+
+  // Data Cleaning step selections
+  const [activeCleanStep, setActiveCleanStep] = useState("missing");
+
+  // ML Studio step builder configs
+  const [activeMlStep, setActiveMlStep] = useState("target");
+  const [mlAlgo, setMlAlgo] = useState("random-forest");
+
+  // Reports settings
+  const [reportType, setReportType] = useState("eda");
+  const [reportFormat, setReportFormat] = useState("pdf");
+  const [reportCron, setReportCron] = useState("0 0 * * *");
 
   // --- Upload Dataset Panel Sub-tabs ---
   const [uploadSubTab, setUploadSubTab] = useState<"ingest" | "datasets">("ingest");
@@ -230,7 +264,7 @@ export default function DashboardClient() {
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // --- Bottom timeline tabs ---
-  const [bottomTab, setBottomTab] = useState<"code-editor" | "sql-query" | "console">("code-editor");
+  const [bottomTab, setBottomTab] = useState<"logs" | "python" | "sql" | "terminal" | "notifications" | "pipeline" | "jobs">("logs");
   const [isSimPanelOpen, setIsSimPanelOpen] = useState(false);
 
   const [stageTimes, setStageTimes] = useState<Record<string, number>>({});
@@ -1122,37 +1156,37 @@ setUploading(false);
 
   // --- Theme-Responsive Contrast Palette Configurations ---
   const colors = useMemo(() => {
-    const isDark = theme === "dark";
     return {
-      bg: isDark ? "bg-[#030712] text-slate-100" : "bg-[#f8fafc] text-slate-800",
-      topbar: isDark ? "bg-[#0b1329]/95 border-slate-800 text-white" : "bg-white border-slate-200 text-slate-800 shadow-sm",
-      sidebar: isDark ? "bg-[#0b1329] border-slate-800" : "bg-white border-slate-200 shadow-sm",
-      card: isDark ? "bg-[#0f172a]/95 border-slate-800/80 shadow-[0_4px_24px_rgba(0,0,0,0.25)]" : "bg-white border-slate-200 shadow-[0_4px_16px_rgba(0,0,0,0.03)]",
-      border: isDark ? "border-slate-800/80" : "border-slate-200",
-      input: isDark ? "bg-[#020712] border-slate-800 text-slate-200 focus:border-[#00D4FF]/40" : "bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500",
+      bg: "bg-[#0F172A] text-[#F8FAFC]",
+      topbar: "bg-[#111827] border-[#334155] text-[#F8FAFC]",
+      sidebar: "bg-[#111827] border-[#334155]",
+      card: "bg-[#1E293B] border-[#334155] shadow-lg",
+      secondaryCard: "bg-[#243244] border-[#334155]",
+      border: "border-[#334155]",
+      input: "bg-[#1E293B] border-[#334155] text-[#F8FAFC] focus:border-[#38BDF8]/40",
       
       // Text contrast levels
-      textPrimary: isDark ? "text-white" : "text-slate-900 font-semibold",
-      textSecondary: isDark ? "text-slate-300" : "text-slate-700",
-      textMuted: isDark ? "text-slate-400" : "text-slate-600",
-      textDim: isDark ? "text-slate-500 font-mono" : "text-slate-500 font-mono",
+      textPrimary: "text-[#F8FAFC]",
+      textSecondary: "text-[#CBD5E1]",
+      textMuted: "text-slate-400",
+      textDim: "text-slate-500 font-mono",
       
       // Dynamic colors for variance indicators
-      valPositive: isDark ? "text-emerald-400 font-semibold" : "text-[#047857] font-semibold",
-      valWarning: isDark ? "text-amber-400 font-semibold" : "text-[#b45309] font-semibold",
+      valPositive: "text-emerald-400 font-semibold",
+      valWarning: "text-amber-400 font-semibold",
       
       // Table elements contrast
-      tableHeader: isDark ? "text-slate-400 border-slate-800" : "text-slate-700 border-slate-200 font-bold",
-      tableRow: isDark ? "border-slate-800/60 text-slate-200" : "border-slate-100 text-slate-900 font-medium",
+      tableHeader: "text-slate-400 border-[#334155] bg-[#111827]/40",
+      tableRow: "border-[#334155]/40 text-[#CBD5E1] hover:bg-[#1E293B]/50 transition-colors",
       
       // Visualizer canvas box theme background
-      visBg: isDark ? "bg-[#020712] border-slate-800" : "bg-[#f8fafc] border-slate-200",
+      visBg: "bg-[#1E293B] border-[#334155]",
       
-      btnPrimary: isDark ? "bg-[#00D4FF] hover:bg-[#00b5da] text-[#030712]" : "bg-blue-600 hover:bg-blue-700 text-white",
-      tabActive: isDark ? "bg-[#0f172a] text-[#00D4FF] border-b-2 border-b-[#00D4FF]" : "bg-white text-blue-600 border-b-2 border-b-blue-600",
-      tabInactive: isDark ? "text-slate-500 hover:text-slate-300" : "text-slate-500 hover:text-slate-850",
+      btnPrimary: "bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A]",
+      tabActive: "bg-[#1E293B] text-[#38BDF8] border-b-2 border-b-[#38BDF8]",
+      tabInactive: "text-slate-500 hover:text-slate-350",
     };
-  }, [theme]);
+  }, []);
 
   // Statistics derived values
   const totalRows = edaResult ? Number((edaResult.overview as any)?.rows || 0) : 0;
@@ -1160,44 +1194,75 @@ setUploading(false);
   const missingValues = edaResult ? Number((edaResult.quality as any)?.missing_cells || 0) : 0;
   const qualityScore = edaResult ? Number((edaResult.data_quality as any)?.quality_score || 0) : 0;
 
+  const handleRenameTab = (tabId: string, newName: string) => {
+    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, datasetName: newName } : t));
+    setRenamingTabId(null);
+  };
+
+  const handleDuplicateTab = (tab: WorkspaceTab) => {
+    const newId = `tab_${Date.now()}`;
+    const newTab: WorkspaceTab = {
+      ...tab,
+      id: newId,
+      datasetName: `${tab.datasetName} (Copy)`,
+    };
+    setTabs([...tabs, newTab]);
+    setActiveTabId(newId);
+  };
+
+  const handleTogglePinTab = (tabId: string) => {
+    setPinnedTabs(prev => prev.includes(tabId) ? prev.filter(id => id !== tabId) : [...prev, tabId]);
+  };
+
+  const pipelineStages = [
+    { id: "dashboard", label: "Workspace" },
+    { id: "upload", label: "Import Dataset" },
+    { id: "eda-analysis", label: "EDA Analysis" },
+    { id: "visualization", label: "Visualization" },
+    { id: "data-cleaning", label: "Data Cleaning" },
+    { id: "feature-engineering", label: "Feature Engineering" },
+    { id: "ml-studio", label: "Machine Learning" },
+    { id: "prediction", label: "Prediction" },
+    { id: "ai-assistant", label: "AI Insights" },
+    { id: "reports", label: "Reports" },
+    { id: "export", label: "Export" }
+  ];
+
   return (
     <div className={`relative z-30 flex h-screen w-screen overflow-hidden font-sans transition-colors duration-300 ${colors.bg}`}>
       
-      {/* LEFT SIDEBAR NAVIGATION */}
+      {/* LEFT NAVIGATION SIDEBAR */}
       <aside className={`w-64 flex flex-col border-r ${colors.sidebar} transition-colors duration-300 z-20 select-none`}>
-        <div className="p-5 border-b border-slate-800/40 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#0085FF] to-[#00D4FF] flex items-center justify-center text-white font-mono font-extrabold text-sm shadow-[0_0_15px_rgba(0,212,255,0.2)]">
+        <div className="p-5 border-b border-[#334155] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#38BDF8] to-[#06B6D4] flex items-center justify-center text-[#0F172A] font-mono font-extrabold text-sm shadow-[0_0_15px_rgba(56,189,248,0.3)]">
             K
           </div>
           <div>
-            <strong className={`block text-sm font-bold tracking-widest uppercase ${theme === "dark" ? "text-white" : "text-slate-900"}`}>KoreData-EX</strong>
-            <small className="block text-[9px] text-[#00D4FF] tracking-wider uppercase font-mono">AI-Powered Data Analytics</small>
+            <strong className="block text-sm font-bold tracking-widest uppercase text-[#F8FAFC]">KoreData-EX</strong>
+            <small className="block text-[9px] text-[#38BDF8] tracking-wider uppercase font-mono">Enterprise AI Workspace</small>
           </div>
         </div>
 
         {/* SIDEBAR MAIN MENU */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
           <div>
-            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Main Navigation</span>
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Platform Core</span>
             <nav className="space-y-1">
               {[
                 { id: "dashboard", label: "Dashboard", icon: Grid },
-                { id: "upload", label: "Upload Dataset", icon: FileUp },
-                { id: "simulation", label: "Simulation Pipeline", icon: GitBranch },
-                { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
-                { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
-                { id: "ml-studio", label: "Machine Learning", icon: BrainCircuit },
+                { id: "upload", label: "Import Dataset", icon: FileUp },
+                { id: "dataset-manager", label: "Dataset Manager", icon: Database },
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = selectedPanel === item.id;
                 return (
                   <button
                     key={item.id}
-                    onClick={() => togglePanel(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all ${
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all border ${
                       isActive
-                        ? "bg-[#0085FF]/10 text-[#00D4FF] border border-[#0085FF]/20"
-                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/20"
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/20 border-transparent"
                     }`}
                   >
                     <Icon size={16} />
@@ -1209,18 +1274,57 @@ setUploading(false);
           </div>
 
           <div>
-            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Workspace</span>
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Pipelines & ML</span>
             <nav className="space-y-1">
               {[
-                { id: "projects", label: "My Projects", icon: Compass },
-                { id: "saved", label: "Saved Pipelines", icon: FileClock },
-                { id: "sources", label: "Data Sources", icon: Database },
+                { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
+                { id: "visualization", label: "Visualization", icon: Layers3 },
+                { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
+                { id: "feature-engineering", label: "Feature Engineering", icon: Sparkles },
+                { id: "ml-studio", label: "ML Studio Builder", icon: BrainCircuit },
+                { id: "prediction", label: "Prediction", icon: GitBranch },
+                { id: "pipeline-history", label: "Pipeline History", icon: Clock },
               ].map((item) => {
                 const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
                 return (
                   <button
                     key={item.id}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-xs font-mono text-slate-500 hover:text-slate-355 hover:bg-slate-800/10 rounded-lg"
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/20 border-transparent"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div>
+            <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase block mb-3 pl-2">Workspace Actions</span>
+            <nav className="space-y-1">
+              {[
+                { id: "ai-assistant", label: "AI Assistant", icon: MessageSquareText },
+                { id: "reports", label: "Reports Manager", icon: FileText },
+                { id: "export", label: "Export Workspace", icon: Share2 },
+                { id: "settings", label: "Workspace Settings", icon: Settings },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : "text-slate-500 hover:text-slate-350 hover:bg-slate-800/20 border-transparent"
+                    }`}
                   >
                     <Icon size={16} />
                     <span>{item.label}</span>
@@ -1232,14 +1336,14 @@ setUploading(false);
         </div>
 
         {/* BOTTOM BRAND CARD */}
-        <div className="p-4 border-t border-slate-800/40">
-          <div className="p-4 bg-slate-900/60 border border-slate-800/60 rounded-xl mb-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+        <div className="p-4 border-t border-[#334155]/60">
+          <div className="p-3 bg-[#1E293B] border border-[#334155] rounded-xl mb-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-[#38BDF8]/10 flex items-center justify-center text-[#38BDF8]">
               <Sparkles size={16} className="animate-pulse" />
             </div>
             <div>
               <strong className="block text-[11px] text-white uppercase font-mono">KoreData-EX</strong>
-              <span className="block text-[9px] text-slate-500 font-mono">Enterprise v2.0</span>
+              <span className="block text-[9px] text-[#CBD5E1] font-mono">Enterprise v4.0</span>
             </div>
           </div>
           
@@ -1248,7 +1352,7 @@ setUploading(false);
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               <span>Operational</span>
             </div>
-            <button onClick={logout} className="text-slate-500 hover:text-red-400 flex items-center gap-1 transition-all">
+            <button onClick={logout} className="text-slate-550 hover:text-red-400 flex items-center gap-1 transition-all">
               <LogOut size={12} />
               <span>Logout</span>
             </button>
@@ -1262,86 +1366,136 @@ setUploading(false);
         {/* TOP NAVBAR */}
         <header className={`h-14 border-b ${colors.topbar} flex items-center justify-between px-6 z-10 transition-colors duration-300`}>
           <div className="flex items-center gap-4">
+            <span className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC] font-mono">
+              {activeTab.datasetName}
+            </span>
+            <span className="text-slate-600">|</span>
             <div className={`px-2.5 py-1 text-[10px] font-mono border rounded-md uppercase ${
               apiStatus === "ready"
-                ? "bg-green-500/5 border-green-500/20 text-green-400"
-                : "bg-amber-500/5 border-amber-500/20 text-amber-400"
+                ? "bg-[#22C55E]/5 border-[#22C55E]/20 text-[#22C55E]"
+                : "bg-[#F59E0B]/5 border-[#F59E0B]/20 text-[#F59E0B]"
             }`}>
-              Project: Retail_Analytics
+              Status: {apiStatus.toUpperCase()}
             </div>
-
-            <label className="flex items-center bg-slate-950/20 border border-slate-800/40 rounded-lg px-3 py-1.5 gap-2 cursor-pointer hover:border-slate-800 transition-all text-xs font-mono">
-              <FileUp size={14} className="text-[#00D4FF]" />
-              <span className={theme === "dark" ? "text-slate-300" : "text-slate-800"}>Upload New Data</span>
-              <input type="file" onChange={handleUpload} className="hidden" />
-            </label>
-
-            {/* Emergency Abort Operations Button */}
-            {(simRunning || codeRunning || cleanLoading) && (
-              <button
-                onClick={handleStopAllOperations}
-                className="flex items-center gap-2 border border-red-500/40 hover:border-red-500 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 font-mono text-xs px-3 py-1.5 rounded-lg transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)]"
-              >
-                <AlertOctagon size={14} className="animate-pulse" />
-                <span>Stop Operations</span>
-              </button>
-            )}
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Centered Global Search */}
+          <div className="w-80 relative hidden md:block">
+            <Search className="absolute left-3 top-2 text-slate-500" size={14} />
+            <input
+              type="text"
+              placeholder="Search workspace objects..."
+              className="w-full text-xs font-mono pl-9 pr-3 py-1.5 bg-[#1E293B] border border-[#334155] rounded-lg text-[#F8FAFC] focus:outline-none focus:border-[#38BDF8]"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Share Workspace">
+              <Share2 size={16} />
+            </button>
+            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Workspace Settings">
+              <Settings size={16} />
+            </button>
+            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all relative" title="Notifications">
+              <Bell size={16} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] absolute top-1.5 right-1.5" />
+            </button>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className={`p-2 rounded-lg border transition-all ${
-                theme === "dark" ? "border-slate-800 text-slate-400 hover:text-white" : "border-slate-200 text-slate-600 hover:text-slate-900"
-              }`}
+              className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg border border-[#334155]/60 transition-all"
+              title="Toggle Theme"
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
-            <div className="flex items-center gap-3 pl-3 border-l border-slate-800/40">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-200 font-mono text-xs uppercase border border-slate-700">
+            <div className="flex items-center gap-3 pl-3 border-l border-[#334155]/60">
+              <div className="w-8 h-8 rounded-full bg-[#1E293B] flex items-center justify-center text-[#F8FAFC] font-mono text-xs uppercase border border-[#334155]">
                 NG
               </div>
-              <div className="text-left select-none hidden md:block">
-                <strong className={`block text-xs font-bold ${theme === "dark" ? "text-slate-200" : "text-slate-800"}`}>Nikunj Goel</strong>
-                <span className="block text-[9px] text-slate-500 font-mono">Data Scientist</span>
+              <div className="text-left select-none hidden lg:block">
+                <strong className="block text-xs font-bold text-[#F8FAFC]">Nikunj Goel</strong>
+                <span className="block text-[9px] text-[#CBD5E1] font-mono">Data Scientist</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* WORKSPACE TABS BAR */}
-        <div className={`h-11 border-b ${colors.topbar} flex items-center justify-between px-6 bg-[#000814]/25 select-none z-10`}>
+        <div className="h-11 border-b border-[#334155] flex items-center justify-between px-6 bg-[#111827]/40 select-none z-10">
           <div className="flex items-center gap-1 overflow-x-auto h-full scrollbar-none">
             {tabs.map((tab) => {
               const isActive = tab.id === activeTabId;
+              const isPinned = pinnedTabs.includes(tab.id);
               return (
                 <div
                   key={tab.id}
                   onClick={() => setActiveTabId(tab.id)}
-                  className={`h-full px-4 flex items-center gap-2 text-xs font-mono border-r border-slate-800/40 cursor-pointer transition-all relative ${
+                  className={`h-full px-4 flex items-center gap-2 text-xs font-mono border-r border-[#334155]/60 cursor-pointer transition-all relative ${
                     isActive
-                      ? "text-[#00D4FF] bg-slate-900/40 font-bold border-t-2 border-t-[#00D4FF]"
-                      : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/10 border-t-2 border-t-transparent"
+                      ? "text-[#38BDF8] bg-[#1E293B]/40 font-bold border-t-2 border-t-[#38BDF8]"
+                      : "text-slate-500 hover:text-slate-300 hover:bg-[#1E293B]/10 border-t-2 border-t-transparent"
                   }`}
+                  onDoubleClick={() => {
+                    setRenamingTabId(tab.id);
+                    setRenameText(tab.datasetName);
+                  }}
                 >
-                  <span className="truncate max-w-[120px]">{tab.datasetName}</span>
-                  {tabs.length > 1 && (
+                  {isPinned && <Pin size={10} className="text-[#38BDF8]" />}
+                  {renamingTabId === tab.id ? (
+                    <input
+                      type="text"
+                      value={renameText}
+                      onChange={(e) => setRenameText(e.target.value)}
+                      onBlur={() => handleRenameTab(tab.id, renameText)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRenameTab(tab.id, renameText);
+                      }}
+                      className="bg-[#1E293B] text-white text-xs px-1 rounded outline-none w-20"
+                      autoFocus
+                    />
+                  ) : (
+                    <span className="truncate max-w-[120px]">{tab.datasetName}</span>
+                  )}
+                  
+                  {/* Tab Action Panel Options */}
+                  <div className="flex items-center gap-1 ml-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const index = tabs.findIndex(t => t.id === tab.id);
-                        const nextTabs = tabs.filter(t => t.id !== tab.id);
-                        setTabs(nextTabs);
-                        if (isActive && nextTabs.length > 0) {
-                          setActiveTabId(nextTabs[Math.max(0, index - 1)].id);
-                        }
+                        handleTogglePinTab(tab.id);
                       }}
-                      className="w-4 h-4 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-550 hover:text-red-400 font-bold text-[9px] transition-all ml-1"
+                      className="text-slate-600 hover:text-[#38BDF8] text-[9px]"
+                      title={isPinned ? "Unpin Tab" : "Pin Tab"}
                     >
-                      ×
+                      ⚓
                     </button>
-                  )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateTab(tab);
+                      }}
+                      className="text-slate-600 hover:text-[#38BDF8] text-[9px]"
+                      title="Duplicate Tab"
+                    >
+                      ❐
+                    </button>
+                    {tabs.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const index = tabs.findIndex(t => t.id === tab.id);
+                          const nextTabs = tabs.filter(t => t.id !== tab.id);
+                          setTabs(nextTabs);
+                          if (isActive && nextTabs.length > 0) {
+                            setActiveTabId(nextTabs[Math.max(0, index - 1)].id);
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-550 hover:text-red-400 font-bold text-[9px] transition-all"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1364,7 +1518,7 @@ setUploading(false);
                 setTabs([...tabs, newTab]);
                 setActiveTabId(newId);
               }}
-              className="px-3 h-full flex items-center text-slate-500 hover:text-[#00D4FF] hover:bg-slate-900/10 text-xs transition-all font-mono"
+              className="px-3 h-full flex items-center text-slate-500 hover:text-[#38BDF8] hover:bg-[#1E293B]/10 text-xs transition-all font-mono"
             >
               + New Tab
             </button>
@@ -1372,369 +1526,304 @@ setUploading(false);
         </div>
 
         {/* WORKSPACE AREA */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex min-h-0 relative">
           
           {/* CENTER ACTIVE SPACE */}
           <div className="flex-1 flex flex-col min-w-0 overflow-y-auto p-6 space-y-6">
             
-            {/* TOP STATS CARDS ROW */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Rows</span>
-                  <div className="w-16 h-8 flex items-end">
-                    <svg className="w-full h-full text-green-500" viewBox="0 0 50 15">
-                      <rect x="2" y="10" width="4" height="5" fill="currentColor" />
-                      <rect x="10" y="7" width="4" height="8" fill="currentColor" />
-                      <rect x="18" y="11" width="4" height="4" fill="currentColor" />
-                      <rect x="26" y="5" width="4" height="10" fill="currentColor" />
-                      <rect x="34" y="2" width="4" height="13" fill="currentColor" />
-                      <rect x="42" y="4" width="4" height="11" fill="currentColor" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
-                    {edaResult ? totalRows.toLocaleString() : "NA"}
-                  </strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valPositive : "text-slate-600"}`}>
-                    {edaResult ? "↑ 12.5% vs last upload" : "Upload data to calculate"}
-                  </span>
-                </div>
+            {/* WORKSPACE MAIN HEADER METADATA */}
+            <div className={`p-4 rounded-xl border ${colors.card} flex flex-wrap gap-6 justify-between items-center font-mono text-xs text-[#CBD5E1]`}>
+              <div>
+                <span className="text-slate-500 block uppercase text-[9px] tracking-wider">Active Workspace</span>
+                <strong className="text-[#F8FAFC] text-sm font-semibold">{activeTab.datasetName}</strong>
               </div>
-
-              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Columns</span>
-                  <Database size={16} className="text-cyan-400" />
-                </div>
-                <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
-                    {edaResult ? totalCols : "NA"}
-                  </strong>
-                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">
-                    {edaResult ? "No change" : "Upload data to calculate"}
-                  </span>
-                </div>
+              <div>
+                <span className="text-slate-500 block uppercase text-[9px] tracking-wider">Created Date</span>
+                <span className="text-[#F8FAFC]">14-Jul-2026</span>
               </div>
-
-              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Missing Values</span>
-                  <AlertTriangle size={16} className="text-amber-500" />
-                </div>
-                <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
-                    {edaResult ? missingValues.toLocaleString() : "NA"}
-                  </strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valWarning : "text-slate-600"}`}>
-                    {edaResult ? "↓ 8.3% vs last upload" : "Upload data to calculate"}
-                  </span>
-                </div>
+              <div>
+                <span className="text-slate-500 block uppercase text-[9px] tracking-wider">Owner</span>
+                <span className="text-[#F8FAFC]">Nikunj Goel</span>
               </div>
-
-              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Quality Score</span>
-                  <div className="w-10 h-10 flex items-center justify-center transform -rotate-90">
-                    <svg className="w-10 h-10">
-                      <circle cx="20" cy="20" r="16" stroke="rgba(16, 185, 129, 0.1)" strokeWidth="3" fill="transparent" />
-                      <circle
-                        cx="20" cy="20" r="16" stroke="#10B981" strokeWidth="3" fill="transparent"
-                        strokeDasharray={2 * Math.PI * 16}
-                        strokeDashoffset={2 * Math.PI * 16 - (qualityScore / 100) * (2 * Math.PI * 16)}
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
-                    {edaResult ? `${qualityScore}%` : "NA"}
-                  </strong>
-                  <span className={`text-[9px] font-mono mt-1 block ${edaResult ? colors.valPositive : "text-slate-600"}`}>
-                    {edaResult ? "↑ 6.7% vs last upload" : "Upload data to calculate"}
-                  </span>
-                </div>
+              <div>
+                <span className="text-slate-500 block uppercase text-[9px] tracking-wider">Current Dataset</span>
+                <span className="text-[#38BDF8] font-bold">{edaResult ? "Ingested_Table" : "NA"}</span>
               </div>
-
-              <div className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-28`}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Processing Time</span>
-                  <Clock size={16} className="text-purple-400" />
-                </div>
-                <div>
-                  <strong className={`text-2xl font-mono block mt-1 ${colors.textPrimary}`}>
-                    {edaResult ? "3m 42s" : "NA"}
-                  </strong>
-                  <span className="text-[9px] font-mono text-slate-500 mt-1 block">
-                    {edaResult ? "Total Pipeline Time" : "Upload data to calculate"}
-                  </span>
-                </div>
+              <div>
+                <span className="text-slate-500 block uppercase text-[9px] tracking-wider">Pipeline Engine</span>
+                <span className={`font-bold ${simRunning ? "text-[#38BDF8] animate-pulse" : "text-slate-450"}`}>
+                  {simRunning ? "RUNNING" : "IDLE"}
+                </span>
               </div>
             </div>
 
-            {/* TABBED CENTER PIECE TABS HEADER */}
-            <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
-              <div className="h-10 border-b border-slate-800 bg-[#000814]/40 flex items-center justify-between px-4 select-none">
-                <div className="flex gap-2">
-                  {[
-                    { id: "dashboard", label: "Dashboard", icon: Grid },
-                    { id: "upload", label: "Dataset Ingestion", icon: FileUp },
-                    { id: "eda-analysis", label: "EDA Analysis", icon: Activity },
-                    { id: "data-cleaning", label: "Data Cleaning", icon: WandSparkles },
-                  ].map((panel) => {
-                    const Icon = panel.icon;
-                    const isSelected = selectedPanel === panel.id;
-                    return (
+            {/* PIPELINE NAVIGATOR FLOW BAR */}
+            <div className={`p-4 rounded-xl border ${colors.card} bg-[#111827]/10 overflow-x-auto`}>
+              <div className="flex items-center gap-4 min-w-[900px] justify-between relative pl-4 pr-4">
+                {pipelineStages.map((stage, idx) => {
+                  const isActive = selectedPanel === stage.id;
+                  const isSimCurrent = currentStageKey && stage.id === "simulation";
+                  
+                  // Stage Status color selection
+                  let ringColor = "border-[#334155] text-slate-500";
+                  if (isActive) {
+                    ringColor = "border-[#38BDF8] bg-[#38BDF8]/10 text-[#38BDF8] shadow-[0_0_12px_rgba(56,189,248,0.2)]";
+                  } else if (edaResult && idx < 3) {
+                    ringColor = "border-[#22C55E] bg-[#22C55E]/5 text-[#22C55E]";
+                  } else if (isSimCurrent) {
+                    ringColor = "border-[#38BDF8] bg-[#38BDF8]/10 text-[#38BDF8] animate-pulse";
+                  }
+
+                  return (
+                    <div key={stage.id} className="flex items-center gap-3 relative z-10">
                       <button
-                        key={panel.id}
-                        onClick={() => setSelectedPanel(panel.id)}
-                        className={`h-10 px-3 flex items-center gap-2 text-xs font-mono transition-all border-b-2 ${
-                          isSelected
-                            ? "text-[#00D4FF] border-b-[#00D4FF] bg-slate-900/20"
-                            : "text-slate-550 hover:text-slate-350 border-b-transparent"
-                        }`}
+                        onClick={() => setSelectedPanel(stage.id)}
+                        className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-all ${ringColor}`}
+                        title={stage.label}
                       >
-                        <Icon size={14} />
-                        <span>{panel.label}</span>
+                        {idx + 1}
                       </button>
+                      <span className={`text-[10px] font-mono whitespace-nowrap ${isActive ? "text-[#38BDF8] font-bold" : "text-slate-500"}`}>
+                        {stage.label}
+                      </span>
+                      {idx < pipelineStages.length - 1 && (
+                        <span className="text-slate-700 font-bold ml-2 font-mono">➔</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* DASHBOARD PAGE */}
+            {selectedPanel === "dashboard" && (
+              <div className="space-y-6">
+                
+                {/* 10-GRID KPI CARDS ROW */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {[
+                    { label: "Datasets Ingested", value: edaResult ? "1" : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Database },
+                    { label: "Total Data Rows", value: edaResult ? totalRows.toLocaleString() : "NA", change: "+12%", trend: [2, 4, 3, 5, 8], icon: Grid },
+                    { label: "Variables / Columns", value: edaResult ? totalCols : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Layers3 },
+                    { label: "Quality Score", value: edaResult ? `${qualityScore.toFixed(1)}%` : "NA", change: "+1.2%", trend: [80, 82, 85, 89, 93], icon: ShieldCheck },
+                    { label: "Missing Cell Values", value: edaResult ? missingValues : "NA", change: "-8%", trend: [120, 100, 80, 50, 20], icon: AlertTriangle },
+                    { label: "Duplicate Rows", value: edaResult ? Number((edaResult as any).data_quality?.duplicates || 0) : "NA", change: "-100%", trend: [45, 30, 15, 5, 0], icon: AlertOctagon },
+                    { label: "Pipeline Runs", value: simRunning ? "Active" : "3", change: "+1 today", trend: [1, 2, 2, 3, 3], icon: GitBranch },
+                    { label: "Avg Processing Time", value: edaResult ? "2m 14s" : "NA", change: "-14s", trend: [148, 140, 136, 134, 134], icon: Clock },
+                    { label: "Disk Storage Used", value: edaResult ? "4.2 MB" : "NA", change: "+450 KB", trend: [2, 3, 3, 4, 4], icon: Database },
+                    { label: "Generated Reports", value: "2", change: "+1", trend: [0, 1, 1, 2, 2], icon: FileText },
+                  ].map((card, idx) => {
+                    const CardIcon = card.icon;
+                    return (
+                      <div key={idx} className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-32 hover:border-[#38BDF8]/40 transition-colors`}>
+                        <div className="flex justify-between items-start">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">{card.label}</span>
+                          <CardIcon size={14} className="text-[#38BDF8]" />
+                        </div>
+                        <div className="mt-1 flex items-baseline justify-between">
+                          <strong className="text-xl font-bold font-mono text-[#F8FAFC]">{card.value}</strong>
+                          <span className={`text-[9px] font-mono font-bold text-emerald-400`}>
+                            {card.change}
+                          </span>
+                        </div>
+                        
+                        {/* Sparkline trend SVG */}
+                        <div className="h-6 w-full mt-2">
+                          <svg className="w-full h-full text-[#38BDF8]" viewBox="0 0 100 20">
+                            <polyline
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              points={card.trend.map((val, i) => `${(i * 100) / (card.trend.length - 1)},${20 - ((val - Math.min(...card.trend)) / (Math.max(...card.trend) - Math.min(...card.trend) || 1)) * 16 - 2}`).join(" ")}
+                            />
+                          </svg>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setView3D(!view3D)}
-                    className="px-2 py-1 text-[9px] font-mono border border-slate-800 hover:border-[#00D4FF] rounded text-slate-400 hover:text-white transition-all"
-                  >
-                    {view3D ? "2D View" : "3D View"}
-                  </button>
+                {/* RESPONSIVE GRID FOR CENTER DASHBOARD */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* Left Column: Progress & Timeline */}
+                  <div className="lg:col-span-2 space-y-6">
+                    
+                    {/* Pipeline Progress and Active Step */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Pipeline Flow Status</h3>
+                      <div className="flex flex-wrap gap-6 items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 relative flex items-center justify-center transform -rotate-90">
+                            <svg className="w-20 h-20">
+                              <circle cx="40" cy="40" r="32" stroke="rgba(56, 189, 248, 0.1)" strokeWidth="5" fill="transparent" />
+                              <circle
+                                cx="40" cy="40" r="32" stroke="#38BDF8" strokeWidth="5" fill="transparent"
+                                strokeDasharray={2 * Math.PI * 32}
+                                strokeDashoffset={2 * Math.PI * 32 - (simProgress / 100) * (2 * Math.PI * 32)}
+                                className="transition-all duration-300"
+                              />
+                            </svg>
+                            <span className="absolute text-sm font-mono font-bold text-[#F8FAFC] transform rotate-90">{simProgress}%</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-mono">Current stage active</span>
+                            <strong className="text-sm text-slate-200 mt-1 block font-mono">
+                              {currentStageKey ? SIMULATION_STAGES.find(s => s.key === currentStageKey)?.label : "Pipeline Engines Idle"}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleStartSimulation}
+                            disabled={simRunning || !edaResult}
+                            className="bg-[#38BDF8] text-[#0F172A] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-[#38BDF8]/80 transition-all flex items-center gap-2 font-mono disabled:opacity-40 disabled:pointer-events-none"
+                          >
+                            {simRunning ? <Loader2 className="spin animate-spin" size={14} /> : <Play size={14} />}
+                            Trigger Pipeline
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pipeline Stage Details list */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Active Stages Timeline</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {SIMULATION_STAGES.slice(0, 8).map((stage, idx) => {
+                          const status = stageStatuses[stage.key] || "idle";
+                          const isCurrent = currentStageKey === stage.key;
+                          const isDone = status === "success";
+
+                          let cardBg = "bg-[#1E293B]/45 border-[#334155]/60 text-slate-400";
+                          let titleColor = "text-slate-400";
+                          let badgeClass = "bg-slate-900/60 text-slate-650";
+
+                          if (isCurrent) {
+                            cardBg = "bg-[#38BDF8]/5 border-[#38BDF8]/20 text-[#38BDF8]";
+                            titleColor = "text-slate-200 font-bold";
+                            badgeClass = "bg-[#38BDF8]/10 text-[#38BDF8] animate-pulse";
+                          } else if (isDone) {
+                            cardBg = "bg-[#22C55E]/5 border-[#22C55E]/20 text-[#22C55E]";
+                            titleColor = "text-slate-300";
+                            badgeClass = "bg-[#22C55E]/10 text-[#22C55E] font-bold";
+                          }
+
+                          return (
+                            <div key={stage.key} className={`p-3 border rounded-lg flex flex-col justify-between h-20 ${cardBg} text-[10px] transition-all`}>
+                              <span className="text-[8px] text-slate-500 block uppercase">STAGE {idx + 1}</span>
+                              <span className="truncate block font-bold">{stage.label}</span>
+                              <span className={`text-[7px] px-1 py-0.5 rounded font-bold uppercase w-fit mt-1 ${badgeClass}`}>
+                                {isCurrent ? "Running" : isDone ? "Done" : "Idle"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Recent Uploaded Datasets Table */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Active Datasets Ingested</h3>
+                        <button onClick={() => setSelectedPanel("upload")} className="text-xs font-mono text-[#38BDF8] hover:underline">
+                          Ingest New File ➔
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full font-mono text-[10px]">
+                          <thead>
+                            <tr className="border-b border-[#334155] text-left uppercase text-slate-400 pb-2">
+                              <th className="pb-2">File name</th>
+                              <th className="pb-2 text-right">Data Rows</th>
+                              <th className="pb-2 text-right">Variables</th>
+                              <th className="pb-2 text-right">Quality</th>
+                              <th className="pb-2 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {edaResult ? (
+                              <tr className="border-b border-[#334155]/20 text-[#CBD5E1]">
+                                <td className="py-2.5 font-bold text-[#38BDF8]">Ingested_Table.csv</td>
+                                <td className="py-2.5 text-right">{totalRows}</td>
+                                <td className="py-2.5 text-right">{totalCols}</td>
+                                <td className="py-2.5 text-right text-emerald-400 font-bold">{qualityScore.toFixed(1)}%</td>
+                                <td className="py-2.5 text-right text-[#38BDF8] font-bold">
+                                  <button onClick={() => setSelectedPanel("eda-analysis")} className="hover:underline">Open Workspace</button>
+                                </td>
+                              </tr>
+                            ) : (
+                              <tr>
+                                <td colSpan={5} className="py-4 text-center text-slate-500">No active tables. Please upload a file.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: AI Recommendations & Recent Reports */}
+                  <div className="space-y-6">
+                    
+                    {/* AI Recommendations */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">AI Recommendations</h3>
+                      <div className="space-y-3">
+                        {edaResult && (edaResult as any).insights ? (
+                          (edaResult as any).insights.slice(0, 3).map((ins: string, idx: number) => (
+                            <div key={idx} className="p-3 bg-[#243244] border border-[#334155]/60 rounded-lg text-[10px] text-[#CBD5E1] leading-relaxed">
+                              {ins}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 bg-[#243244] border border-[#334155]/60 rounded-lg text-[10px] text-slate-500 font-mono">
+                            Upload a dataset to run AI Recommendations.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent Activity feed list */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Workspace Activity Logs</h3>
+                      <div className="space-y-3 font-mono text-[9px] max-h-48 overflow-y-auto pr-1">
+                        {logs.slice(-5).map((log, idx) => (
+                          <div key={idx} className="flex gap-2 items-start text-slate-400 pb-1 border-b border-[#334155]/10">
+                            <span className="text-slate-650 shrink-0">[{log.timestamp}]</span>
+                            <span className="font-bold text-[#38BDF8] shrink-0">{log.node.toUpperCase()}</span>
+                            <span className="truncate">{log.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recent Reports Generated */}
+                    <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
+                      <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Exported Reports</h3>
+                      <div className="space-y-3 font-mono text-[10px]">
+                        <div className="p-3 bg-[#243244] border border-[#334155]/60 rounded-lg flex justify-between items-center">
+                          <div>
+                            <span className="text-slate-400 block font-bold">EDA_Summary_Report.pdf</span>
+                            <span className="text-slate-600 text-[8px]">PDF • 14-Jul-2026</span>
+                          </div>
+                          <span className="text-xs text-[#38BDF8] cursor-pointer hover:underline">Download</span>
+                        </div>
+                        <div className="p-3 bg-[#243244] border border-[#334155]/60 rounded-lg flex justify-between items-center">
+                          <div>
+                            <span className="text-slate-400 block font-bold">ML_Model_Evaluation.xlsx</span>
+                            <span className="text-slate-600 text-[8px]">EXCEL • 14-Jul-2026</span>
+                          </div>
+                          <span className="text-xs text-[#38BDF8] cursor-pointer hover:underline">Download</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
-
-              {/* CENTER WORKSPACE TABS */}
-              <div className="p-6">
-                {selectedPanel === "dashboard" && (
-                  <div className="space-y-6">
-                    {/* Visualizer Area */}
-                    <div className="w-full relative rounded-xl border border-slate-800/80 overflow-hidden bg-slate-950/45">
-                      {view3D ? (
-                        <Pipeline3D activeStage={currentStageKey} />
-                      ) : (
-                        <div className={`p-8 flex items-center justify-center min-h-[260px] font-mono text-xs border rounded-xl ${colors.visBg}`}>
-                          <svg className="w-full max-w-xl h-24" viewBox="0 0 600 80">
-                            <defs>
-                              <linearGradient id="cyan-blue" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#0085FF" />
-                                <stop offset="100%" stopColor="#00D4FF" />
-                              </linearGradient>
-                            </defs>
-                            <path d="M 50 40 L 550 40" stroke="url(#cyan-blue)" strokeWidth="3" fill="none" strokeDasharray="10, 5" />
-                            {["Upload", "Cleaning", "EDA", "ML Studio", "Report"].map((label, idx) => {
-                              const x = 50 + idx * 125;
-                              return (
-                                <g key={idx}>
-                                  <circle cx={x} cy="40" r="16" fill="#0b1329" stroke="#00D4FF" strokeWidth="2.5" />
-                                  <text x={x} y="44" fill="#00D4FF" fontSize="9" fontFamily="monospace" textAnchor="middle" fontWeight="bold">{idx + 1}</text>
-                                  <text x={x} y="72" fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">{label}</text>
-                                </g>
-                              );
-                            })}
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom Analytics Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Data Preview Table */}
-                      <div className={`p-5 rounded-xl border ${colors.card} col-span-1 lg:col-span-2`}>
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className={`text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 ${colors.textPrimary}`}>
-                            <FileSpreadsheet size={14} className="text-cyan-400" />
-                            Data Preview
-                          </h3>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <table className="w-full font-mono text-[10px]">
-                            <thead>
-                              <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
-                                <th className="pb-2">Row ID</th>
-                                <th className="pb-2">Column 1</th>
-                                <th className="pb-2">Column 2</th>
-                                <th className="pb-2">Column 3</th>
-                              </tr>
-                            </thead>
-                            <tbody className={`divide-y divide-slate-800/20`}>
-                              {edaResult ? (
-                                (edaResult as any).dataset_slices?.head?.["100"]?.slice(0, 4).map((row: any, rIdx: number) => (
-                                  <tr key={rIdx} className={colors.tableRow}>
-                                    <td className="py-2.5 text-cyan-500 font-bold">#{rIdx + 1}</td>
-                                    {Object.values(row).slice(0, 3).map((val: any, cIdx: number) => (
-                                      <td key={cIdx} className="py-2.5 truncate max-w-[120px]">{String(val)}</td>
-                                    ))}
-                                  </tr>
-                                ))
-                              ) : (
-                                [1, 2, 3, 4].map((i) => (
-                                  <tr key={i} className={colors.tableRow}>
-                                    <td className="py-2.5 text-cyan-500 font-bold">#{i}</td>
-                                    <td className="py-2.5">CA-2016-152156</td>
-                                    <td className="py-2.5">Furniture</td>
-                                    <td className="py-2.5">261.96</td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Radar Quality Score Chart */}
-                      <div className={`p-5 rounded-xl border ${colors.card} flex flex-col justify-between`}>
-                        <h3 className={`text-xs font-bold font-mono uppercase tracking-wider mb-4 ${colors.textPrimary}`}>
-                          Data Quality Dimensions
-                        </h3>
-                        
-                        <div className="flex-1 flex items-center justify-center min-h-[140px]">
-                          <svg className="w-36 h-36" viewBox="0 0 100 100">
-                            <polygon points="50,10 88,38 73,83 27,83 12,38" fill="none" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <polygon points="50,25 78,45 67,73 33,73 22,45" fill="none" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <polygon points="50,40 68,52 61,63 39,63 32,52" fill="none" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            
-                            <line x1="50" y1="50" x2="50" y2="10" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <line x1="50" y1="50" x2="88" y2="38" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <line x1="50" y1="50" x2="73" y2="83" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <line x1="50" y1="50" x2="27" y2="83" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-                            <line x1="50" y1="50" x2="12" y2="38" stroke="rgba(0,212,255,0.08)" strokeWidth="1" />
-
-                            <polygon points="50,18 84,40 69,76 34,79 19,41" fill="rgba(6, 182, 212, 0.25)" stroke="#00D4FF" strokeWidth="1.5" />
-                          </svg>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[9px] font-mono text-slate-500">
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]" />
-                            <span>Validity: 93%</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#00D4FF]" />
-                            <span>Accuracy: 94%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* DATASET INGESTION & DATASET ACTIONS TAB */}
-                {selectedPanel === "upload" && (
-                  <div className="space-y-6">
-                    <div className="h-9 border-b border-slate-800 bg-[#000814]/20 flex items-center gap-4 px-2 select-none mb-4">
-                      <button
-                        onClick={() => setUploadSubTab("ingest")}
-                        className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
-                          uploadSubTab === "ingest" ? "text-[#00D4FF] border-b-[#00D4FF]" : "text-slate-500 hover:text-slate-300 border-b-transparent"
-                        }`}
-                      >
-                        Ingest New Data
-                      </button>
-                      <button
-                        onClick={() => setUploadSubTab("datasets")}
-                        className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
-                          uploadSubTab === "datasets" ? "text-[#00D4FF] border-b-[#00D4FF]" : "text-slate-500 hover:text-slate-300 border-b-transparent"
-                        }`}
-                      >
-                        My Saved Datasets
-                      </button>
-                    </div>
-
-                    {uploadSubTab === "ingest" && (
-                      <div className="p-6 bg-slate-900/40 border border-slate-800/60 rounded-xl">
-                        <h2 className={`text-lg font-bold mb-2 ${colors.textPrimary}`}>Upload & EDA Engine</h2>
-                        <p className={`text-sm mb-4 ${colors.textSecondary}`}>Select or drop tabular files. Python EDA computes schemas, anomalies, and statistics.</p>
-                        
-                        <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/40 bg-slate-950/40 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all">
-                          {uploading ? (
-                            <Loader2 className="spin text-cyan-400 mb-3" size={24} />
-                          ) : (
-                            <FileUp className="text-slate-500 mb-3" size={24} />
-                          )}
-                          <span className="text-sm font-mono text-slate-300 uppercase tracking-wider">
-                            {uploading ? "Parsing File..." : "Choose Dataset"}
-                          </span>
-                          <span className="text-xs text-slate-650 mt-1 font-mono">CSV, EXCEL, JSON, PARQUET</span>
-                          <input type="file" accept=".csv,.xlsx,.xls,.json,.parquet,.xml" onChange={handleUpload} className="hidden" />
-                        </label>
-                      </div>
-                    )}
-
-                    {uploadSubTab === "datasets" && (
-                      <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
-                        <h2 className={`text-lg font-bold ${colors.textPrimary}`}>Dataset Manager</h2>
-                        <div className="overflow-x-auto">
-                          <table className="w-full font-mono text-xs">
-                            <thead>
-                              <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
-                                <th className="pb-3 px-2">File ID</th>
-                                <th className="pb-3 px-2">File Name</th>
-                                <th className="pb-3 px-2">Format</th>
-                                <th className="pb-3 px-2">Size (KB)</th>
-                                <th className="pb-3 px-2">Upload Date</th>
-                                <th className="pb-3 px-2 text-right">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/40">
-                              {files.length === 0 ? (
-                                <tr>
-                                  <td colSpan={6} className="py-8 text-center text-slate-500">No saved datasets found. Ingest one to get started.</td>
-                                </tr>
-                              ) : (
-                                files.map((f) => (
-                                  <tr key={f.id} className={`${colors.tableRow} hover:bg-slate-800/20 transition-colors`}>
-                                    <td className="py-4 px-2 font-bold text-cyan-500">#{f.id}</td>
-                                    <td className="py-4 px-2 font-bold">{f.file_name}</td>
-                                    <td className="py-4 px-2 uppercase text-slate-400">{f.file_type}</td>
-                                    <td className="py-4 px-2">{f.file_size_kb} KB</td>
-                                    <td className="py-4 px-2">{f.uploaded_at}</td>
-                                    <td className="py-4 px-2 text-right space-x-2">
-                                      <button
-                                        onClick={() => handleReuseFile(f.id, f.file_name)}
-                                        title="Reuse Dataset"
-                                        className="p-1.5 rounded hover:bg-emerald-500/10 text-emerald-500 inline-flex items-center gap-1 transition-all"
-                                      >
-                                        <Play size={12} />
-                                        <span>Reuse</span>
-                                      </button>
-                                      <button
-                                        onClick={() => updateInputRef.current?.click()}
-                                        title="Update Dataset"
-                                        className="p-1.5 rounded hover:bg-slate-800 text-[#00D4FF] inline-flex items-center gap-1 transition-all"
-                                      >
-                                        <RefreshCw size={12} />
-                                        <span>Update</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleRemoveFile(f.id)}
-                                        title="Remove Dataset"
-                                        className="p-1.5 rounded hover:bg-red-500/10 text-red-500 hover:text-red-400 inline-flex items-center gap-1 transition-all"
-                                      >
-                                        <Trash2 size={12} />
-                                        <span>Remove</span>
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                          </table>
-                          <input type="file" ref={updateInputRef} onChange={handleUpload} className="hidden" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+            )}
 
 
                 {selectedPanel === "eda-analysis" && (
@@ -2710,5 +2799,6 @@ setUploading(false);
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
