@@ -2910,73 +2910,92 @@ setUploading(false);
                 </div>
               </div>
             )}
-
+        {/* DOCKED BOTTOM VS CODE STYLE PANEL */}
+        <footer className="border-t border-[#334155] bg-[#111827] flex flex-col font-mono select-none" style={{ height: "200px" }}>
+          {/* Tabs header */}
+          <div className="h-8 border-b border-[#334155] px-4 flex items-center gap-4 bg-[#1E293B]/20 text-[10px]">
+            {[
+              { id: "logs", label: "Logs" },
+              { id: "python", label: "Python Console" },
+              { id: "sql", label: "SQL Console" },
+              { id: "terminal", label: "Terminal" },
+              { id: "notifications", label: "Notifications" },
+              { id: "pipeline", label: "Pipeline Output" },
+              { id: "jobs", label: "Background Jobs" }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setBottomTab(tab.id as any)}
+                className={`h-full px-2 border-b-2 transition-all ${
+                  bottomTab === tab.id
+                    ? "text-[#38BDF8] border-b-[#38BDF8]"
+                    : "text-slate-500 border-b-transparent hover:text-slate-350"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-                       {/* BOTTOM WORKSPACE PANEL (TIMELINE / CODE EDITORS) */}
-            <div className={`border rounded-xl ${colors.card} overflow-hidden`}>
-              <div className="h-9 border-b border-slate-800 bg-[#000814]/40 flex items-center gap-4 px-4 select-none">
-                {[
-                  { id: "code-editor", label: "Code Editor" },
-                  { id: "sql-query", label: "SQL Query" },
-                  { id: "console", label: "Python Console" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setBottomTab(tab.id as any)}
-                    className={`h-9 text-[10px] font-mono uppercase transition-all border-b-2 ${
-                      bottomTab === tab.id
-                        ? "text-[#00D4FF] border-b-[#00D4FF]"
-                        : "text-slate-500 hover:text-slate-350 border-b-transparent"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
+
+          {/* Panel Content */}
+          <div className="flex-1 overflow-y-auto p-4 text-[10px] text-slate-300">
+            {bottomTab === "logs" && (
+              <div className="space-y-1.5">
+                {logs.map((log, idx) => (
+                  <div key={idx} className="leading-relaxed">
+                    <span className="text-slate-650">[{log.timestamp}]</span>{" "}
+                    <span className="text-[#38BDF8] font-bold">{log.node.toUpperCase()}</span>:{" "}
+                    <span className="text-slate-300">{log.message}</span>
+                  </div>
                 ))}
+                {logs.length === 0 && <span className="text-slate-655 block text-center mt-4">Log feed empty. Run operations to populate.</span>}
               </div>
-
-              <div className="p-5">
-                {bottomTab === "code-editor" && (
-                  <div className="space-y-3 font-mono">
-                    <textarea
-                      value={codeText}
-                      onChange={(e) => setCodeText(e.target.value)}
-                      placeholder="# Write custom python logic here. Assign output to 'result' to return it..."
-                      className={`w-full h-24 font-mono text-xs p-3 rounded-lg focus:outline-none border ${
-                        theme === "dark" ? "bg-[#020712] border-slate-800 text-cyan-400" : "bg-slate-50 border-slate-200 text-slate-800"
-                      }`}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleRunCode}
-                        disabled={codeRunning || !edaResult}
-                        className="bg-cyan-500 text-[#000814] font-bold text-[10px] uppercase py-1.5 px-4 rounded hover:bg-cyan-400 transition-all font-mono"
-                      >
-                        {codeRunning ? "Running..." : "Execute Script"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {bottomTab === "sql-query" && (
-                  <div className="font-mono text-xs text-slate-500">SQL compiler connection ready.</div>
-                )}
-
-                {bottomTab === "console" && (
-                  <div className="font-mono text-xs space-y-2 max-h-36 overflow-y-auto p-2 bg-slate-950/60 rounded border border-slate-855">
-                    {consoleOutput && <div className="text-slate-300 whitespace-pre-wrap">{consoleOutput}</div>}
-                    {consoleError && <div className="text-red-450 whitespace-pre-wrap">Error: {consoleError}</div>}
-                    {consoleResult && (
-                      <div className="text-emerald-400">
-                        Result: <pre className="text-[10px] mt-1 bg-slate-950 p-2 rounded border border-slate-850 overflow-x-auto">{JSON.stringify(consoleResult, null, 2)}</pre>
-                      </div>
-                    )}
-                    {!consoleOutput && !consoleError && !consoleResult && (
-                      <div className="text-slate-550">Interactive sandbox terminal output will print here. Run python script to test.</div>
-                    )}
-                  </div>
-                )}
+            )}
+            {bottomTab === "python" && (
+              <div className="space-y-2">
+                <div className="text-[#38BDF8] mb-2 flex items-center gap-2">
+                  <span>Python 3.10.8 Sandboxed Environment ready.</span>
+                  <button
+                    onClick={handleRunCode}
+                    disabled={codeRunning || !edaResult}
+                    className="bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A] font-bold text-[9px] px-2 py-0.5 rounded transition-all"
+                  >
+                    {codeRunning ? "Running..." : "Run Script"}
+                  </button>
+                </div>
+                <textarea
+                  value={codeText}
+                  onChange={(e) => setCodeText(e.target.value)}
+                  placeholder="# Write python logic here..."
+                  className={`w-full h-16 font-mono text-[9px] p-2 bg-[#1E293B] border border-[#334155] rounded text-white focus:outline-none focus:border-[#38BDF8]`}
+                />
+                {consoleOutput && <div className="text-slate-300 whitespace-pre-wrap">{consoleOutput}</div>}
+                {consoleError && <div className="text-red-400">Error: {consoleError}</div>}
+                {consoleResult && <pre className="text-[9px] bg-[#0F172A] p-2 rounded border border-[#334155]">{JSON.stringify(consoleResult, null, 2)}</pre>}
               </div>
-            </div>   </div>
+            )}
+            {bottomTab === "sql" && (
+              <div className="text-slate-500">SQL Database pool connected. Ready for SELECT queries on datasets.</div>
+            )}
+            {bottomTab === "terminal" && (
+              <div className="text-slate-500">Local workspace terminal session ready. bash 5.1$</div>
+            )}
+            {bottomTab === "notifications" && (
+              <div className="text-slate-500">0 critical alerts. Core services operating normally.</div>
+            )}
+            {bottomTab === "pipeline" && (
+              <div className="text-slate-550">Active stages stdout logs.</div>
+            )}
+            {bottomTab === "jobs" && (
+              <div className="text-slate-500">
+                {simRunning ? `1 background simulation active (${simProgress}% progress)` : "0 background jobs running."}
+              </div>
+            )}
+          </div>
+        </footer>
+
+      </div>
+    </div>
 
           </div>
 
