@@ -99,7 +99,8 @@ TMPL_DIR   = os.path.join(BASE_DIR, "templates")
 
 for _d, _name in [(STATIC_DIR, "backend/static"), (TMPL_DIR, "backend/templates")]:
     if not os.path.isdir(_d):
-        logger.warning("[Kore] Directory not found: %s", _d)
+        os.makedirs(_d, exist_ok=True)
+        logger.info("[Kore] Created directory: %s", _d)
 
 if os.path.isdir(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
