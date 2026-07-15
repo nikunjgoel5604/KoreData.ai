@@ -52,7 +52,7 @@ export default function TopBar() {
           className="ws-icon-btn" 
           aria-label="Toggle AI Assistant"
           onClick={() => setAssistantOpen(!assistantOpen)}
-          style={{ color: assistantOpen ? "var(--ws-blue)" : "inherit" }}
+          style={{ color: assistantOpen ? "var(--ws-module-accent)" : "inherit" }}
         >
           <Sparkles size={18} />
         </button>

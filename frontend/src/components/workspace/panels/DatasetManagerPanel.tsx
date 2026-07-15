@@ -1,13 +1,13 @@
 "use client";
 
 import { useWorkspace } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 
 export default function DatasetManagerPanel() {
   const { files, handleReuseFile, handleRemoveFile } = useWorkspace();
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Dataset Manager</h1>
+      <ModuleHeader sectionId="dataset-manager" />
       
       <div className="ws-card">
         <h2 className="ws-section-title" style={{ marginBottom: 16 }}>All Registered Workspace Datasets</h2>

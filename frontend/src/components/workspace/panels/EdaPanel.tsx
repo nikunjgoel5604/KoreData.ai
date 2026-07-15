@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWorkspace, simulateCleaning } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 import {
   Activity,
   ShieldCheck,
@@ -67,7 +68,7 @@ export default function EdaPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">Exploratory Data Analysis</h1>
+        <ModuleHeader sectionId="eda" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to analyze statistics.
@@ -98,7 +99,7 @@ export default function EdaPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Exploratory Data Analysis</h1>
+      <ModuleHeader sectionId="eda" />
       
       <div style={{ display: "grid", gridTemplateColumns: "240px minmax(0, 1fr)", gap: 24 }}>
         

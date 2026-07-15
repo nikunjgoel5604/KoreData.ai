@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspace } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 
 export default function VisualizationPanel() {
   const {
@@ -19,7 +20,7 @@ export default function VisualizationPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">Visualizer Canvas</h1>
+        <ModuleHeader sectionId="visualization" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to render charts.
@@ -41,7 +42,7 @@ export default function VisualizationPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Visualizer Canvas</h1>
+      <ModuleHeader sectionId="visualization" />
       
       <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0, 1fr)", gap: 24 }}>
         

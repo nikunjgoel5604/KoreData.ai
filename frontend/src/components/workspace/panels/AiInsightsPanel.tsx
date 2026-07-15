@@ -2,6 +2,7 @@
 
 import { useWorkspace } from "../WorkspaceContext";
 import { Sparkles } from "lucide-react";
+import ModuleHeader from "./ModuleHeader";
 
 export default function AiInsightsPanel() {
   const { edaResult } = useWorkspace();
@@ -9,7 +10,7 @@ export default function AiInsightsPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">AI Insights</h1>
+        <ModuleHeader sectionId="ai-insights" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to view AI recommendations.
@@ -21,12 +22,7 @@ export default function AiInsightsPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="ws-row-between">
-        <h1 className="ws-page-title">AI Insights Hub</h1>
-        <span style={{ fontSize: 11, color: "var(--ws-text-muted)", textTransform: "uppercase" }}>
-          Model interpretation online
-        </span>
-      </div>
+      <ModuleHeader sectionId="ai-insights" />
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr", gap: 24 }}>
         

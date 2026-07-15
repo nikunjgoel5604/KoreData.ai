@@ -1264,6 +1264,225 @@ body.workspace-mode {
   font-family: var(--ws-font-mono);
 }
 
+/* ── Module Accent Color System ──────────────────────────── */
+/* Each module gets a unique --ws-module-accent via data-module
+   on .workspace-shell. All accent-dependent components read
+   this single variable, creating instant visual identity. */
+
+.workspace-shell { --ws-module-accent: #3B82F6; } /* default: blue */
+.workspace-shell[data-module="dashboard"]           { --ws-module-accent: #3B82F6; }
+.workspace-shell[data-module="import-dataset"]      { --ws-module-accent: #06B6D4; }
+.workspace-shell[data-module="eda"]                 { --ws-module-accent: #22C55E; }
+.workspace-shell[data-module="visualization"]       { --ws-module-accent: #A855F7; }
+.workspace-shell[data-module="feature-engineering"] { --ws-module-accent: #F59E0B; }
+.workspace-shell[data-module="machine-learning"]    { --ws-module-accent: #8B5CF6; }
+.workspace-shell[data-module="prediction"]          { --ws-module-accent: #EF4444; }
+.workspace-shell[data-module="ai-insights"]         { --ws-module-accent: #EC4899; }
+.workspace-shell[data-module="reports"]             { --ws-module-accent: #14B8A6; }
+.workspace-shell[data-module="export"]              { --ws-module-accent: #6366F1; }
+.workspace-shell[data-module="dataset-manager"]     { --ws-module-accent: #0EA5E9; }
+.workspace-shell[data-module="pipeline-history"]    { --ws-module-accent: #64748B; }
+.workspace-shell[data-module="notification-center"] { --ws-module-accent: #F97316; }
+.workspace-shell[data-module="workspace-settings"]  { --ws-module-accent: #10B981; }
+.workspace-shell[data-module="account"]             { --ws-module-accent: #3B82F6; }
+
+/* ── Module-aware component overrides ────────────────────── */
+
+/* Active sidebar item uses module accent */
+.ws-nav-item.active {
+  background: color-mix(in srgb, var(--ws-module-accent) 15%, transparent);
+  color: var(--ws-module-accent);
+  border-left: 3px solid var(--ws-module-accent);
+}
+
+/* Active tab uses module accent */
+.ws-tab.active {
+  box-shadow: 0 -2px 0 var(--ws-module-accent) inset;
+}
+.ws-tab.active svg {
+  color: var(--ws-module-accent);
+}
+
+/* Primary buttons use module accent */
+.ws-btn-primary {
+  background: var(--ws-module-accent);
+  border-color: var(--ws-module-accent);
+}
+.ws-btn-primary:hover {
+  background: color-mix(in srgb, var(--ws-module-accent) 85%, #000);
+  border-color: color-mix(in srgb, var(--ws-module-accent) 85%, #000);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ws-module-accent) 30%, transparent);
+}
+
+/* KPI icon backgrounds use module accent */
+.ws-kpi-icon {
+  background: color-mix(in srgb, var(--ws-module-accent) 12%, transparent);
+  color: var(--ws-module-accent);
+}
+
+/* Activity feed icons */
+.ws-activity-icon {
+  background: color-mix(in srgb, var(--ws-module-accent) 12%, transparent);
+  color: var(--ws-module-accent);
+}
+
+/* Quick access icon backgrounds */
+.ws-quick-icon {
+  background: color-mix(in srgb, var(--ws-module-accent) 10%, transparent);
+  color: var(--ws-module-accent);
+}
+
+/* Quick access hover border */
+.ws-quick-item:hover {
+  border-color: var(--ws-module-accent);
+}
+
+/* Links use module accent */
+.ws-link {
+  color: var(--ws-module-accent);
+}
+.ws-link:hover {
+  color: color-mix(in srgb, var(--ws-module-accent) 75%, #fff);
+}
+
+/* Table name links */
+.ws-table-name {
+  color: var(--ws-module-accent);
+}
+
+/* Placeholder icon */
+.ws-placeholder-icon {
+  color: var(--ws-module-accent);
+}
+
+/* AI chip hover */
+.ws-ai-chip:hover {
+  border-color: var(--ws-module-accent);
+}
+
+/* Search focus ring */
+.ws-search-inner:focus-within {
+  border-color: var(--ws-module-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ws-module-accent) 12%, transparent);
+}
+
+/* Select focus ring */
+.ws-project-select select:hover {
+  border-color: var(--ws-module-accent);
+}
+.ws-project-select select:focus {
+  border-color: var(--ws-module-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ws-module-accent) 15%, transparent);
+}
+
+/* Pipeline current step uses module accent */
+.ws-step-circle.current {
+  border-color: var(--ws-module-accent);
+  color: var(--ws-module-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ws-module-accent) 18%, transparent);
+}
+.ws-step-status.current {
+  color: var(--ws-module-accent);
+}
+
+/* Logo mark gradient uses module accent */
+.ws-logo-mark {
+  background: linear-gradient(135deg, var(--ws-module-accent), color-mix(in srgb, var(--ws-module-accent) 60%, #06B6D4));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ws-module-accent) 30%, transparent);
+}
+
+/* AI send button */
+.ws-ai-send {
+  background: var(--ws-module-accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ws-module-accent) 30%, transparent);
+}
+.ws-ai-send:hover {
+  background: color-mix(in srgb, var(--ws-module-accent) 85%, #000);
+}
+
+/* Module page header styling */
+.ws-module-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ws-module-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--ws-module-accent) 12%, transparent);
+  color: var(--ws-module-accent);
+  flex-shrink: 0;
+}
+
+.ws-module-header-text h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-module-header-text h1::after {
+  content: "";
+  display: inline-block;
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ws-module-accent);
+  vertical-align: middle;
+}
+
+.ws-module-header-text p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ws-text-muted);
+  font-weight: 500;
+}
+
+/* KPI card hover border uses module accent */
+.ws-kpi-card:hover {
+  border-color: color-mix(in srgb, var(--ws-module-accent) 40%, transparent);
+}
+
+/* Tab add button hover */
+.ws-tab-add:hover {
+  color: var(--ws-module-accent);
+  border-color: var(--ws-module-accent);
+  background: color-mix(in srgb, var(--ws-module-accent) 8%, transparent);
+}
+
+/* Icon button hover glow */
+.ws-icon-btn:hover {
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ws-module-accent) 12%, transparent);
+}
+
+/* Status pill */
+.ws-status-pill {
+  background: color-mix(in srgb, var(--ws-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--ws-success) 25%, transparent);
+}
+
+/* Quality bar fill gradient */
+.ws-quality-bar-fill {
+  background: linear-gradient(90deg, var(--ws-module-accent), color-mix(in srgb, var(--ws-module-accent) 70%, var(--ws-success)));
+}
+
+/* Workspace card sidebar accent */
+.ws-workspace-card {
+  border-left: 3px solid var(--ws-module-accent);
+}
+
+/* Avatar gradient uses module accent */
+.ws-avatar {
+  background: linear-gradient(135deg, var(--ws-module-accent), color-mix(in srgb, var(--ws-module-accent) 50%, var(--ws-ai)));
+}
+
 /* Responsive */
 @media (max-width: 1400px) {
   .ws-kpi-grid { grid-template-columns: repeat(3, 1fr); }

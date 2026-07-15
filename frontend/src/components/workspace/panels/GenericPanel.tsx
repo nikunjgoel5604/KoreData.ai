@@ -1,13 +1,15 @@
 "use client";
 
 import type { SectionMeta } from "../sections";
+import ModuleHeader from "./ModuleHeader";
+import type { SectionId } from "../workspace.types";
 
 export default function GenericPanel({ section }: { section: SectionMeta }) {
   const Icon = section.icon;
 
   return (
     <>
-      <h1 className="ws-page-title">{section.label}</h1>
+      <ModuleHeader sectionId={section.id as SectionId} />
       <div className="ws-card">
         <div className="ws-placeholder">
           <span className="ws-placeholder-icon">

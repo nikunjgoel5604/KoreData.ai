@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceContext";
 import { Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import ModuleHeader from "./ModuleHeader";
 
 export default function MlStudioPanel() {
   const {
@@ -25,7 +26,7 @@ export default function MlStudioPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">ML Studio</h1>
+        <ModuleHeader sectionId="machine-learning" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to build models.
@@ -44,7 +45,7 @@ export default function MlStudioPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">ML Studio</h1>
+      <ModuleHeader sectionId="machine-learning" />
 
       {/* Horizontal navigation */}
       <div className="ws-card ws-row-between" style={{ padding: 12 }}>

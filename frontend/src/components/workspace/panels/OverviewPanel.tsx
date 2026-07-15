@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useWorkspace } from "../WorkspaceContext";
 import PipelineStepper from "./PipelineStepper";
+import ModuleHeader from "./ModuleHeader";
 
 // ── Placeholder demo data ────────────────────────────────────────────────
 // Phase 2 will replace this with real values from /upload, /activity, and
@@ -123,9 +124,7 @@ export default function OverviewPanel() {
 
   return (
     <>
-      <div className="ws-row-between">
-        <h1 className="ws-page-title">Workspace Hub</h1>
-      </div>
+      <ModuleHeader sectionId="dashboard" />
 
       {/* Pipeline stepper */}
       <div className="ws-card">

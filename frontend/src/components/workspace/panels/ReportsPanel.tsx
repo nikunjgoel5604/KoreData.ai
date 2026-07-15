@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspace } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 
 export default function ReportsPanel() {
   const {
@@ -18,7 +19,7 @@ export default function ReportsPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">Reports Engine</h1>
+        <ModuleHeader sectionId="reports" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to compile reports.
@@ -30,7 +31,7 @@ export default function ReportsPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Reports Engine</h1>
+      <ModuleHeader sectionId="reports" />
 
       <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: 24 }}>
         

@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspace } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 
 export default function ExportPanel() {
   const { edaResult, addLog } = useWorkspace();
@@ -8,7 +9,7 @@ export default function ExportPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">Export Assets</h1>
+        <ModuleHeader sectionId="export" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to export workspace assets.
@@ -29,7 +30,7 @@ export default function ExportPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Export Workspace Assets</h1>
+      <ModuleHeader sectionId="export" />
       
       <div className="ws-quick-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
         {exportAssets.map((asset) => (

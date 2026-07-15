@@ -2,6 +2,7 @@
 
 import { FileUp, Loader2 } from "lucide-react";
 import { useWorkspace } from "../WorkspaceContext";
+import ModuleHeader from "./ModuleHeader";
 
 export default function UploadPanel() {
   const {
@@ -15,7 +16,7 @@ export default function UploadPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Import Dataset</h1>
+      <ModuleHeader sectionId="import-dataset" />
       <div className="ws-card text-center" style={{ padding: "32px auto" }}>
         <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Ingest Workspace Datasets</h2>
         

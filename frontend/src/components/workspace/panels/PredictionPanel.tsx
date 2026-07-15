@@ -2,6 +2,7 @@
 
 import { useWorkspace } from "../WorkspaceContext";
 import { Loader2, ArrowRight, Activity } from "lucide-react";
+import ModuleHeader from "./ModuleHeader";
 
 export default function PredictionPanel() {
   const {
@@ -19,7 +20,7 @@ export default function PredictionPanel() {
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
-        <h1 className="ws-page-title">Prediction Studio</h1>
+        <ModuleHeader sectionId="prediction" />
         <div className="ws-card">
           <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
             No active dataset profile. Please upload a file to run inferences.
@@ -33,7 +34,7 @@ export default function PredictionPanel() {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Prediction Studio</h1>
+      <ModuleHeader sectionId="prediction" />
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24 }}>
         
