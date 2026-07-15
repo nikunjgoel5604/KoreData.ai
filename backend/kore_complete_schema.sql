@@ -865,7 +865,7 @@ ORDER BY TABLE_NAME;
 show databases;
 show tables;
 use kore_data;
-delete from kore_users where id = 1;
+delete from kore_users where id = 0;
 select * from kore_users;
 select * from daily_activity;
 select * from otp_tokens;
