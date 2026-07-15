@@ -1,4 +1,4 @@
-import DashboardClient from "@/components/DashboardClient";
+import WorkspaceShell from "@/components/workspace/WorkspaceShell";
 
 export const metadata = {
   title: "Dashboard | KoreData",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function DashboardPage() {
-  return <DashboardClient />;
+  return <WorkspaceShell />;
 }
