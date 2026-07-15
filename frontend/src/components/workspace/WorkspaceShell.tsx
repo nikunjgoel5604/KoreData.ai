@@ -54,11 +54,11 @@ function ActivePanel() {
 
 /** Reads the active module from context and sets data-module on the shell div */
 function ModuleShell({ children }: { children: React.ReactNode }) {
-  const { activeTab, assistantOpen, setAssistantOpen } = useWorkspace();
+  const { activeTab, assistantOpen, setAssistantOpen, sidebarCollapsed } = useWorkspace();
   const moduleId = activeTab?.sectionId || "dashboard";
 
   return (
-    <div className="workspace-shell" data-module={moduleId}>
+    <div className="workspace-shell" data-module={moduleId} data-sidebar-collapsed={sidebarCollapsed}>
       <Sidebar />
       <div className="ws-main">
         <TopBar />

@@ -1,19 +1,19 @@
 import {
-  LayoutDashboard,
+  LayoutGrid,
   UploadCloud,
   Activity,
   BarChart3,
-  Wand2,
+  Layers,
   Brain,
   TrendingUp,
   Sparkles,
   FileText,
   Download,
   Database,
-  History,
+  Clock,
   Bell,
   Settings,
-  UserCircle2,
+  User,
   type LucideIcon
 } from "lucide-react";
 import type { NavGroupId, SectionId } from "./workspace.types";
@@ -30,7 +30,7 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
   dashboard: {
     id: "dashboard",
     label: "Dashboard",
-    icon: LayoutDashboard,
+    icon: LayoutGrid,
     group: "platform",
     description: "Workspace overview, KPIs, and recent activity."
   },
@@ -58,7 +58,7 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
   "feature-engineering": {
     id: "feature-engineering",
     label: "Feature Engineering",
-    icon: Wand2,
+    icon: Layers,
     group: "pipeline",
     description: "Transform, encode, and engineer model-ready features."
   },
@@ -107,7 +107,7 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
   "pipeline-history": {
     id: "pipeline-history",
     label: "Pipeline History",
-    icon: History,
+    icon: Clock,
     group: "data",
     description: "Past pipeline runs and their outcomes."
   },
@@ -128,7 +128,7 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
   account: {
     id: "account",
     label: "Account",
-    icon: UserCircle2,
+    icon: User,
     group: "admin",
     description: "Your profile, security, and account settings."
   }

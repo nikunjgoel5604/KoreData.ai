@@ -33,7 +33,7 @@ export default function VisualizationPanel() {
   const chartTypes = ["bar", "line", "area", "pie", "histogram", "heatmap", "scatter", "treemap", "boxplot", "sankey"];
 
   const themeColors = {
-    classic: "#38bdf8",
+    classic: "var(--ws-module-accent)",
     warm: "#f97316",
     emerald: "#10b981"
   };

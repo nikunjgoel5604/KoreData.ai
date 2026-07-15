@@ -13,7 +13,8 @@ import {
   FileText,
   UploadCloud,
   Wand2,
-  Activity
+  Activity,
+  MoreHorizontal
 } from "lucide-react";
 import { useWorkspace } from "../WorkspaceContext";
 import PipelineStepper from "./PipelineStepper";
@@ -96,6 +97,38 @@ function qualityClass(score: number) {
   return "low";
 }
 
+function sparklineLinePath(points: number[], width = 120, height = 38) {
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const range = max - min || 1;
+  const step = width / (points.length - 1);
+  
+  let path = "";
+  const coords = points.map((p, i) => ({
+    x: i * step,
+    y: height - ((p - min) / range) * height
+  }));
+
+  coords.forEach((pt, i) => {
+    if (i === 0) {
+      path += `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    } else {
+      const prev = coords[i - 1];
+      const cpX1 = prev.x + step / 2;
+      const cpY1 = prev.y;
+      const cpX2 = pt.x - step / 2;
+      const cpY2 = pt.y;
+      path += ` C ${cpX1.toFixed(1)},${cpY1.toFixed(1)} ${cpX2.toFixed(1)},${cpY2.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    }
+  });
+  return path;
+}
+
+function sparklineFillPath(points: number[], width = 120, height = 38) {
+  const linePath = sparklineLinePath(points, width, height);
+  return `${linePath} L ${width},${height} L 0,${height} Z`;
+}
+
 export default function OverviewPanel() {
   const { openSection, edaResult } = useWorkspace();
 
@@ -114,12 +147,78 @@ export default function OverviewPanel() {
   }
 
   const KPIS_LOCAL = [
-    { label: "Total Rows", value: realRows, trend: "18.2%", direction: "up", sub: "vs last upload", icon: Calendar, points: [4, 6, 5, 8, 7, 9, 11, 10, 13], color: "#38bdf8" },
-    { label: "Total Columns", value: realCols, trend: "0%", direction: "up", sub: "No change", icon: BarChart3, points: [6, 6, 6, 6, 6, 6, 6, 6, 6], color: "#94a3b8" },
-    { label: "Missing Values", value: missingStr, trend: "8.4%", direction: "down", sub: "vs last upload", icon: AlertTriangle, points: [12, 11, 10, 9, 9, 8, 7, 7, 6], color: "#f59e0b" },
-    { label: "Data Quality Score", value: realQuality, trend: "6.7%", direction: "up", sub: "vs last upload", icon: CheckCircle2, points: [7, 7, 8, 8, 9, 9, 10, 11, 12], color: "#22c55e" },
-    { label: "Memory Usage", value: "812 MB", trend: "12.3%", direction: "down", sub: "vs last upload", icon: HardDrive, points: [10, 9, 9, 8, 8, 7, 7, 6, 6], color: "#a855f7" },
-    { label: "Processing Time", value: "2m 34s", trend: "9.1%", direction: "down", sub: "vs last upload", icon: Clock, points: [11, 10, 10, 9, 8, 8, 7, 6, 6], color: "#06b6d4" }
+    { 
+      label: "Total Rows", 
+      value: realRows, 
+      trend: "18.2%", 
+      direction: "up" as const, 
+      sub: "vs last upload", 
+      icon: Calendar, 
+      points: [4, 6, 5, 8, 7, 9, 11, 10, 13], 
+      color: "#38BDF8", 
+      gradient: "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)",
+      status: "LIVE"
+    },
+    { 
+      label: "Total Columns", 
+      value: realCols, 
+      trend: "0%", 
+      direction: "up" as const, 
+      sub: "No change", 
+      icon: BarChart3, 
+      points: [6, 6, 6, 6, 6, 6, 6, 6, 6], 
+      color: "#A855F7", 
+      gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%)",
+      status: "HEALTHY"
+    },
+    { 
+      label: "Missing Values", 
+      value: missingStr, 
+      trend: "8.4%", 
+      direction: "down" as const, 
+      sub: "vs last upload", 
+      icon: AlertTriangle, 
+      points: [12, 11, 10, 9, 9, 8, 7, 7, 6], 
+      color: "#F59E0B", 
+      gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)",
+      status: "WARNING"
+    },
+    { 
+      label: "Data Quality Score", 
+      value: realQuality, 
+      trend: "6.7%", 
+      direction: "up" as const, 
+      sub: "vs last upload", 
+      icon: CheckCircle2, 
+      points: [7, 7, 8, 8, 9, 9, 10, 11, 12], 
+      color: "#22C55E", 
+      gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%)",
+      status: "UPDATED"
+    },
+    { 
+      label: "Memory Usage", 
+      value: "812 MB", 
+      trend: "12.3%", 
+      direction: "down" as const, 
+      sub: "vs last upload", 
+      icon: HardDrive, 
+      points: [10, 9, 9, 8, 8, 7, 7, 6, 6], 
+      color: "#06B6D4", 
+      gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.05) 100%)",
+      status: "HEALTHY"
+    },
+    { 
+      label: "Processing Time", 
+      value: "2m 34s", 
+      trend: "9.1%", 
+      direction: "down" as const, 
+      sub: "vs last upload", 
+      icon: Clock, 
+      points: [11, 10, 10, 9, 8, 8, 7, 6, 6], 
+      color: "#EF4444", 
+      gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)",
+      status: "LIVE"
+    }
   ];
 
   return (
@@ -146,22 +245,49 @@ export default function OverviewPanel() {
           const Icon = kpi.icon;
           return (
             <div className="ws-kpi-card" key={kpi.label}>
-              <div className="ws-kpi-top">
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ws-text-2)" }}>{kpi.label}</span>
-                <span className="ws-kpi-icon">
-                  <Icon size={16} />
-                </span>
+              <div className="ws-kpi-top-row">
+                <div className="ws-kpi-icon-container" style={{ background: kpi.gradient }}>
+                  <Icon size={20} style={{ color: kpi.color }} />
+                </div>
+                <span className="ws-kpi-title">{kpi.label}</span>
+                <button type="button" className="ws-kpi-action-btn" aria-label="Metric Options">
+                  <MoreHorizontal size={16} />
+                </button>
               </div>
-              <div>
-                <div className="ws-kpi-value">{kpi.value}</div>
-                <span className={`ws-kpi-trend ${kpi.direction}`}>
-                  {kpi.direction === "up" ? "↑" : "↓"} {kpi.trend}
-                </span>
+
+              <div className="ws-kpi-middle-row">
+                <div className="ws-kpi-number">{kpi.value}</div>
               </div>
-              <svg className="ws-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
-                <path d={sparklinePath(kpi.points)} fill="none" stroke={kpi.color} strokeWidth={2} />
-              </svg>
-              <div className="ws-kpi-sub">{kpi.sub}</div>
+
+              <div className="ws-kpi-bottom-row">
+                <div className="ws-kpi-trend-container">
+                  <span className={`ws-kpi-trend-pill ${kpi.direction}`}>
+                    {kpi.direction === "up" ? "▲" : "▼"} {kpi.trend}
+                  </span>
+                  <span className="ws-kpi-trend-comparison">{kpi.sub}</span>
+                </div>
+                
+                <div className="ws-kpi-sparkline-wrapper">
+                  <svg className="ws-kpi-sparkline" viewBox="0 0 120 38" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id={`grad-${kpi.label.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={kpi.color} stopOpacity="0.25" />
+                        <stop offset="100%" stopColor={kpi.color} stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="10" x2="120" y2="10" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    <line x1="0" y1="20" x2="120" y2="20" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    <line x1="0" y1="30" x2="120" y2="30" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+                    <path d={sparklineFillPath(kpi.points, 120, 38)} fill={`url(#grad-${kpi.label.replace(/\s+/g, '-')})`} />
+                    <path d={sparklineLinePath(kpi.points, 120, 38)} fill="none" stroke={kpi.color} strokeWidth={1.5} strokeLinecap="round" />
+                  </svg>
+                </div>
+
+                <div className="ws-kpi-footer">
+                  <span className={`ws-kpi-status-chip ${kpi.status.toLowerCase()}`}>{kpi.status}</span>
+                  <span className="ws-kpi-updated-time">Updated 2 min ago</span>
+                </div>
+              </div>
             </div>
           );
         })}

@@ -2,13 +2,14 @@
 
 import { useWorkspace } from "../WorkspaceContext";
 import { Clock } from "lucide-react";
+import ModuleHeader from "./ModuleHeader";
 
 export default function PipelineHistoryPanel() {
   const { logs } = useWorkspace();
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <h1 className="ws-page-title">Pipeline History & Logs</h1>
+      <ModuleHeader sectionId="pipeline-history" />
       
       <div className="ws-card">
         <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Execution Logs Timeline</h2>

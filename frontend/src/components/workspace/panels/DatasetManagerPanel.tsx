@@ -7,6 +7,7 @@ export default function DatasetManagerPanel() {
   const { files, handleReuseFile, handleRemoveFile } = useWorkspace();
 
   return (
+    <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="dataset-manager" />
       
       <div className="ws-card">

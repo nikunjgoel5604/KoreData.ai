@@ -185,6 +185,10 @@ export interface WorkspaceContextValue {
   // Global settings page helper details
   user: any;
   notifications: any[];
+
+  // Sidebar collapsible state
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export const SIMULATION_STAGES = [
@@ -454,6 +458,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Tab core state
   const [state, setState] = useState<StoredState>(() => defaultState());
   const [hydrated, setHydrated] = useState(false);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("koredata-sidebar-collapsed") === "true";
+    }
+    return false;
+  });
+
+  const handleSetSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("koredata-sidebar-collapsed", String(collapsed));
+    }
+  }, []);
 
   const authHeaders = useMemo(() => ({ Authorization: `Bearer ${token || ""}` }), [token]);
   const esRef = useRef<EventSource | null>(null);
@@ -1407,7 +1425,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     // Static variables helper details
     user,
-    notifications
+    notifications,
+    sidebarCollapsed,
+    setSidebarCollapsed: handleSetSidebarCollapsed
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
