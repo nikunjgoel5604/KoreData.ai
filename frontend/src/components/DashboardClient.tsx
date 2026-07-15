@@ -46,7 +46,11 @@ import {
   Trash2,
   RefreshCw,
   AlertOctagon,
-  Check
+  Check,
+  Users,
+  TrendingUp,
+  Target,
+  FileCode
 } from "lucide-react";
 import Pipeline3D from "./Pipeline3D";
 
@@ -420,6 +424,7 @@ export default function DashboardClient() {
     { sender: "ai", text: "Welcome to KoreData-EX AI Assistant. I can explain your dataset, recommend cleaning steps, generate reports, or compile SQL. Ask me anything!" }
   ]);
   const [aiInputText, setAiInputText] = useState("");
+  const [aiTab, setAiTab] = useState<"chat" | "code" | "insights" | "history">("chat");
 
   // Visualizer configurations
   const [vizChartType, setVizChartType] = useState("bar");
@@ -1497,32 +1502,34 @@ setUploading(false);
     const isDark = theme === "dark";
     return {
       bg: isDark ? "bg-[#0F172A] text-[#F8FAFC]" : "bg-[#F8FAFC] text-[#0F172A]",
-      topbar: isDark ? "bg-[#111827] border-[#334155] text-[#F8FAFC]" : "bg-[#F1F5F9] border-[#E2E8F0] text-[#0F172A]",
-      sidebar: isDark ? "bg-[#111827] border-[#334155]" : "bg-[#F1F5F9] border-[#E2E8F0]",
-      card: isDark ? "bg-[#1E293B] border-[#334155] shadow-lg" : "bg-[#FFFFFF] border-[#E2E8F0] shadow-md",
-      secondaryCard: isDark ? "bg-[#243244] border-[#334155]" : "bg-[#F8FAFC] border-[#E2E8F0]",
-      border: isDark ? "border-[#334155]" : "border-[#E2E8F0]",
-      input: isDark ? "bg-[#1E293B] border-[#334155] text-[#F8FAFC] focus:border-[#38BDF8]/40" : "bg-[#FFFFFF] border-[#CBD5E1] text-[#0F172A] focus:border-[#38BDF8]",
+      topbar: isDark ? "bg-[#111827] border-[#475569] text-[#F8FAFC]" : "bg-[#FFFFFF] border-[#E2E8F0] text-[#0F172A]",
+      sidebar: isDark ? "bg-[#111827] border-[#475569]" : "bg-[#FFFFFF] border-[#E2E8F0]",
+      card: isDark ? "bg-[#1E293B] border-[#475569] shadow-lg shadow-black/15 transition-all duration-200 hover:-translate-y-1 hover:border-[#38BDF8]/40" : "bg-[#FFFFFF] border-[#E2E8F0] shadow-sm shadow-slate-100 transition-all duration-200 hover:-translate-y-1 hover:border-[#2563EB]/40",
+      secondaryCard: isDark ? "bg-[#243244] border-[#475569]" : "bg-[#F8FAFC] border-[#E2E8F0]",
+      dialog: isDark ? "bg-[#2B3548] border-[#475569] text-[#F8FAFC]" : "bg-[#FFFFFF] border-[#CBD5E1] text-[#0F172A] shadow-xl",
+      border: isDark ? "border-[#475569]" : "border-[#E2E8F0]",
+      input: isDark ? "bg-[#1E293B] border-[#475569] text-[#F8FAFC] focus:border-[#38BDF8]/60 focus:ring-1 focus:ring-[#38BDF8]/60" : "bg-[#FFFFFF] border-[#CBD5E1] text-[#0F172A] focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]",
       
       // Text contrast levels
       textPrimary: isDark ? "text-[#F8FAFC]" : "text-[#0F172A]",
-      textSecondary: isDark ? "text-[#CBD5E1]" : "text-[#334155]",
-      textMuted: isDark ? "text-slate-400" : "text-slate-500",
+      textSecondary: isDark ? "text-[#CBD5E1]" : "text-[#64748B]",
+      textMuted: isDark ? "text-[#94A3B8]" : "text-slate-400",
       textDim: isDark ? "text-slate-500 font-mono" : "text-slate-400 font-mono",
       
       // Dynamic colors for variance indicators
-      valPositive: isDark ? "text-emerald-400 font-semibold" : "text-emerald-600 font-semibold",
-      valWarning: isDark ? "text-amber-400 font-semibold" : "text-amber-600 font-semibold",
+      valPositive: isDark ? "text-[#22C55E] font-semibold" : "text-emerald-600 font-semibold",
+      valWarning: isDark ? "text-[#F59E0B] font-semibold" : "text-amber-600 font-semibold",
       
       // Table elements contrast
-      tableHeader: isDark ? "text-slate-400 border-[#334155] bg-[#111827]/40" : "text-slate-550 border-[#E2E8F0] bg-[#F1F5F9]",
-      tableRow: isDark ? "border-[#334155]/40 text-[#CBD5E1] hover:bg-[#1E293B]/50 transition-colors" : "border-[#E2E8F0]/80 text-[#334155] hover:bg-[#F1F5F9]/50 transition-colors",
+      tableHeader: isDark ? "text-[#94A3B8] border-[#475569] bg-[#1E293B]" : "text-[#64748B] border-[#E2E8F0] bg-[#F8FAFC]",
+      tableRow: isDark ? "border-[#475569]/60 text-[#CBD5E1] hover:bg-[#243244]/55 transition-all" : "border-[#E2E8F0]/80 text-[#64748B] hover:bg-[#F8FAFC] transition-all",
       
       // Visualizer canvas box theme background
-      visBg: isDark ? "bg-[#1E293B] border-[#334155]" : "bg-[#FFFFFF] border-[#E2E8F0]",
+      visBg: isDark ? "bg-[#1E293B] border-[#475569]" : "bg-[#FFFFFF] border-[#E2E8F0]",
       
-      btnPrimary: "bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A]",
-      tabActive: isDark ? "bg-[#1E293B] text-[#38BDF8] border-b-2 border-b-[#38BDF8]" : "bg-[#FFFFFF] text-[#38BDF8] border-b-2 border-b-[#38BDF8]",
+      btnPrimary: isDark ? "bg-[#38BDF8] hover:bg-[#38BDF8]/90 text-[#0F172A] font-medium transition-all" : "bg-[#2563EB] hover:bg-[#2563EB]/90 text-white font-medium transition-all",
+      btnSecondary: isDark ? "bg-[#243244] hover:bg-[#243244]/80 text-[#F8FAFC] border border-[#475569] transition-all" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all",
+      tabActive: isDark ? "bg-[#1E293B] text-[#38BDF8] border-b-2 border-b-[#38BDF8]" : "bg-[#FFFFFF] text-[#2563EB] border-b-2 border-b-[#2563EB]",
       tabInactive: "text-slate-500 hover:text-slate-350",
     };
   }, [theme]);
@@ -1570,32 +1577,137 @@ setUploading(false);
     <div className={`relative z-30 flex h-screen w-screen overflow-hidden font-sans transition-colors duration-300 ${colors.bg}`}>
       
       {/* LEFT NAVIGATION SIDEBAR */}
-      <aside className={`w-64 flex flex-col border-r ${colors.sidebar} transition-colors duration-300 z-20 select-none`}>
+      <aside className={`w-[250px] flex flex-col border-r ${colors.sidebar} transition-colors duration-300 z-20 select-none`}>
         <div className="p-5 border-b border-[#334155] flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#38BDF8] to-[#06B6D4] flex items-center justify-center text-[#0F172A] font-mono font-extrabold text-sm shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#38BDF8] to-[#06B6D4] flex items-center justify-center text-[#0F172A] font-sans font-extrabold text-sm shadow-[0_0_15px_rgba(56,189,248,0.3)]">
             K
           </div>
           <div>
             <strong className="block text-sm font-bold tracking-widest uppercase text-[#F8FAFC]">KoreData-EX</strong>
-            <small className="block text-[9px] text-[#38BDF8] tracking-wider uppercase font-mono">Enterprise AI Workspace</small>
+            <small className="block text-[9px] text-[#38BDF8] tracking-wider uppercase font-sans font-semibold">Enterprise AI Workspace</small>
           </div>
         </div>
 
         {/* SIDEBAR MAIN MENU */}
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+          {/* Platform Group */}
           <div>
-            <span className="text-[10px] text-slate-505 font-mono tracking-widest uppercase block mb-3 pl-2">Platform Core</span>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">Platform</span>
             <nav className="space-y-1">
               {[
-                { id: "dashboard-landing", label: "Dashboard", icon: Grid },
-                { id: "dashboard", label: "Workspace", icon: Gauge },
+                { id: "dashboard-landing", label: "Dashboard", icon: Grid }
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                    }`}
+                  >
+                    <Icon size={20} className="flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Workspace Group */}
+          <div>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">Workspace</span>
+            <nav className="space-y-1">
+              {[
+                { id: "dashboard", label: "Workspace", icon: Gauge }
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                    }`}
+                  >
+                    <Icon size={20} className="flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Analytics Group */}
+          <div>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">Analytics</span>
+            <nav className="space-y-1">
+              {[
                 { id: "upload", label: "Import Dataset", icon: FileUp },
                 { id: "eda-analysis", label: "EDA", icon: Activity },
-                { id: "visualization", label: "Visualization", icon: Layers3 },
+                { id: "visualization", label: "Visualization", icon: Layers3 }
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                    }`}
+                  >
+                    <Icon size={20} className="flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* AI Group */}
+          <div>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">AI</span>
+            <nav className="space-y-1">
+              {[
                 { id: "feature-engineering", label: "Feature Engineering", icon: Sparkles },
                 { id: "ml-studio", label: "Machine Learning", icon: BrainCircuit },
                 { id: "prediction", label: "Prediction", icon: GitBranch },
-                { id: "ai-insights", label: "AI Insights", icon: WandSparkles },
+                { id: "ai-insights", label: "AI Insights", icon: WandSparkles }
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = selectedPanel === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedPanel(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
+                      isActive
+                        ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                    }`}
+                  >
+                    <Icon size={20} className="flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Reports Group */}
+          <div>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">Reports</span>
+            <nav className="space-y-1">
+              {[
                 { id: "reports", label: "Reports", icon: FileText },
                 { id: "export", label: "Export", icon: Share2 }
               ].map((item) => {
@@ -1605,13 +1717,13 @@ setUploading(false);
                   <button
                     key={item.id}
                     onClick={() => setSelectedPanel(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all border ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
                       isActive
                         ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
-                        : `${theme === "dark" ? "text-slate-500 hover:text-slate-350" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
                     }`}
                   >
-                    <Icon size={16} />
+                    <Icon size={20} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -1619,15 +1731,16 @@ setUploading(false);
             </nav>
           </div>
 
+          {/* Administration Group */}
           <div>
-            <span className="text-[10px] text-slate-505 font-mono tracking-widest uppercase block mb-3 pl-2">System Administration</span>
+            <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase block mb-3 pl-2">Administration</span>
             <nav className="space-y-1">
               {[
                 { id: "dataset-manager", label: "Dataset Manager", icon: Database },
                 { id: "pipeline-history", label: "Pipeline History", icon: Clock },
                 { id: "notifications", label: "Notification Center", icon: Bell },
                 { id: "settings", label: "Workspace Settings", icon: Settings },
-                { id: "account", label: "Account", icon: UserRound },
+                { id: "account", label: "Account", icon: UserRound }
               ].map((item) => {
                 const Icon = item.icon;
                 const isActive = selectedPanel === item.id;
@@ -1635,13 +1748,13 @@ setUploading(false);
                   <button
                     key={item.id}
                     onClick={() => setSelectedPanel(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-mono rounded-lg transition-all border ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-[13px] font-sans font-medium rounded-lg transition-all border ${
                       isActive
                         ? "bg-[#38BDF8]/10 text-[#38BDF8] border-[#38BDF8]/30 shadow-[0_0_12px_rgba(56,189,248,0.2)]"
-                        : `${theme === "dark" ? "text-slate-500 hover:text-slate-350" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
+                        : `${theme === "dark" ? "text-slate-400 hover:text-slate-200" : "text-slate-600 hover:text-slate-800"} hover:bg-slate-800/10 border-transparent`
                     }`}
                   >
-                    <Icon size={16} />
+                    <Icon size={20} className="flex-shrink-0" />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -1657,12 +1770,12 @@ setUploading(false);
               <Sparkles size={16} className="animate-pulse" />
             </div>
             <div>
-              <strong className="block text-[11px] text-white uppercase font-mono">KoreData-EX</strong>
-              <span className="block text-[9px] text-[#CBD5E1] font-mono">Enterprise v4.0</span>
+              <strong className="block text-[11px] text-white uppercase font-sans">KoreData-EX</strong>
+              <span className="block text-[9px] text-[#CBD5E1] font-sans">Enterprise v4.0</span>
             </div>
           </div>
           
-          <div className="flex items-center justify-between text-[10px] font-mono pl-1">
+          <div className="flex items-center justify-between text-[10px] font-sans pl-1">
             <div className="flex items-center gap-2 text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               <span>Operational</span>
@@ -1679,13 +1792,13 @@ setUploading(false);
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* TOP NAVBAR */}
-        <header className={`h-14 border-b ${colors.topbar} flex items-center justify-between px-6 z-10 transition-colors duration-300`}>
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC] font-mono">
+        <header className={`h-[68px] border-b ${colors.topbar} flex items-center justify-between px-8 z-10 transition-colors duration-300`}>
+          <div className="flex items-center gap-4 select-none">
+            <span className="text-[15px] font-bold tracking-wide text-[#F8FAFC] font-sans">
               {activeTab.datasetName}
             </span>
             <span className="text-slate-600">|</span>
-            <div className={`px-2.5 py-1 text-[10px] font-mono border rounded-md uppercase ${
+            <div className={`px-3 py-1 text-[11px] font-sans border rounded-lg uppercase font-semibold ${
               apiStatus === "ready"
                 ? "bg-[#22C55E]/5 border-[#22C55E]/20 text-[#22C55E]"
                 : "bg-[#F59E0B]/5 border-[#F59E0B]/20 text-[#F59E0B]"
@@ -1695,41 +1808,44 @@ setUploading(false);
           </div>
 
           {/* Centered Global Search */}
-          <div className="w-80 relative hidden md:block">
-            <Search className="absolute left-3 top-2 text-slate-500" size={14} />
+          <div className="w-[420px] relative hidden md:block select-none">
+            <Search className="absolute left-3.5 top-2.5 text-slate-400" size={16} />
             <input
               type="text"
-              placeholder="Search workspace objects..."
-              className="w-full text-xs font-mono pl-9 pr-3 py-1.5 bg-[#1E293B] border border-[#334155] rounded-lg text-[#F8FAFC] focus:outline-none focus:border-[#38BDF8]"
+              placeholder="Search datasets, workspaces, reports..."
+              className={`w-full text-[13px] font-sans pl-10 pr-12 py-2 border rounded-lg transition-all focus:outline-none ${colors.input}`}
             />
+            <kbd className="absolute right-3 top-2.5 px-1.5 py-0.5 text-[10px] font-sans font-medium text-slate-500 bg-[#1E293B] border border-slate-700/60 rounded select-none pointer-events-none">
+              ⌘K
+            </kbd>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Share Workspace">
-              <Share2 size={16} />
+            <button className="p-2 text-slate-400 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Share Workspace">
+              <Share2 size={20} />
             </button>
-            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Workspace Settings">
-              <Settings size={16} />
+            <button className="p-2 text-slate-400 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all" title="Workspace Settings">
+              <Settings size={20} />
             </button>
-            <button className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all relative" title="Notifications">
-              <Bell size={16} />
+            <button className="p-2 text-slate-400 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg transition-all relative" title="Notifications">
+              <Bell size={20} />
               <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] absolute top-1.5 right-1.5" />
             </button>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 text-slate-450 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg border border-[#334155]/60 transition-all"
+              className="p-2 text-slate-400 hover:text-[#38BDF8] hover:bg-[#1E293B] rounded-lg border border-[#334155]/60 transition-all"
               title="Toggle Theme"
             >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             <div className="flex items-center gap-3 pl-3 border-l border-[#334155]/60">
-              <div className="w-8 h-8 rounded-full bg-[#1E293B] flex items-center justify-center text-[#F8FAFC] font-mono text-xs uppercase border border-[#334155]">
+              <div className="w-9 h-9 rounded-full bg-[#1E293B] flex items-center justify-center text-[#F8FAFC] font-sans font-bold text-xs uppercase border border-[#334155]">
                 NG
               </div>
               <div className="text-left select-none hidden lg:block">
-                <strong className="block text-xs font-bold text-[#F8FAFC]">Nikunj Goel</strong>
-                <span className="block text-[9px] text-[#CBD5E1] font-mono">Data Scientist</span>
+                <strong className="block text-[13px] font-bold text-[#F8FAFC] font-sans">Nikunj Goel</strong>
+                <span className="block text-[11px] text-slate-400 font-sans">Data Scientist</span>
               </div>
             </div>
           </div>
@@ -1873,8 +1989,8 @@ setUploading(false);
             </div>
 
             {/* PIPELINE NAVIGATOR FLOW BAR */}
-            <div className={`p-4 rounded-xl border ${colors.card} bg-[#111827]/10 overflow-x-auto`}>
-              <div className="flex items-center gap-4 min-w-[900px] justify-between relative pl-4 pr-4">
+            <div className={`p-5 rounded-[14px] border ${colors.card} bg-[#111827]/10 overflow-x-auto select-none`}>
+              <div className="flex items-center gap-6 min-w-[1000px] justify-between relative pl-4 pr-4">
                 {pipelineStages.map((stage, idx) => {
                   const isActive = selectedPanel === stage.id;
                   
@@ -1895,31 +2011,66 @@ setUploading(false);
                     else if (edaResult && idx < activeIndex) stageState = "Completed";
                   }
 
-                  let ringColor = "border-[#334155] text-slate-500";
+                  let ringColor = "border-slate-700 text-slate-500 bg-slate-900/40";
+                  let statusLabel = "Pending";
+                  let statusBadgeColor = "text-slate-550 bg-slate-800/40";
+                  let IconComponent = Grid;
+                  
+                  if (stage.id === "dashboard") IconComponent = Gauge;
+                  else if (stage.id === "upload") IconComponent = FileUp;
+                  else if (stage.id === "eda-analysis") IconComponent = Activity;
+                  else if (stage.id === "visualization") IconComponent = Layers3;
+                  else if (stage.id === "feature-engineering") IconComponent = Sparkles;
+                  else if (stage.id === "ml-studio") IconComponent = BrainCircuit;
+                  else if (stage.id === "prediction") IconComponent = GitBranch;
+                  else if (stage.id === "ai-insights") IconComponent = WandSparkles;
+                  else if (stage.id === "reports") IconComponent = FileText;
+                  else if (stage.id === "export") IconComponent = Share2;
+
                   if (stageState === "Running") {
-                    ringColor = "border-[#38BDF8] bg-[#38BDF8]/10 text-[#38BDF8] shadow-[0_0_15px_rgba(56,189,248,0.4)] animate-pulse font-extrabold";
+                    ringColor = "border-[#38BDF8] bg-[#38BDF8]/10 text-[#38BDF8] shadow-[0_0_15px_rgba(56,189,248,0.45)] animate-pulse";
+                    statusLabel = "Active";
+                    statusBadgeColor = "text-[#38BDF8] bg-[#38BDF8]/10";
                   } else if (stageState === "Completed") {
-                    ringColor = "border-[#22C55E] bg-[#22C55E]/5 text-[#22C55E] font-bold";
+                    ringColor = "border-[#22C55E] bg-[#22C55E]/10 text-[#22C55E]";
+                    statusLabel = "Completed";
+                    statusBadgeColor = "text-[#22C55E] bg-[#22C55E]/10";
                   } else if (stageState === "Failed") {
-                    ringColor = "border-[#EF4444] bg-[#EF4444]/5 text-[#EF4444]";
+                    ringColor = "border-[#EF4444] bg-[#EF4444]/10 text-[#EF4444]";
+                    statusLabel = "Failed";
+                    statusBadgeColor = "text-[#EF4444] bg-[#EF4444]/10";
                   } else if (stageState === "Warning") {
-                    ringColor = "border-[#F59E0B] bg-[#F59E0B]/5 text-[#F59E0B]";
+                    ringColor = "border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]";
+                    statusLabel = "Warning";
+                    statusBadgeColor = "text-[#F59E0B] bg-[#F59E0B]/10";
                   }
 
                   return (
-                    <div key={stage.id} className="flex items-center gap-3 relative z-10">
-                      <button
-                        onClick={() => setSelectedPanel(stage.id)}
-                        className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold transition-all ${ringColor}`}
-                        title={stage.label}
-                      >
-                        {idx + 1}
-                      </button>
-                      <span className={`text-[10px] font-mono whitespace-nowrap ${isActive ? "text-[#38BDF8] font-bold" : "text-slate-500"}`}>
-                        {stage.label}
-                      </span>
+                    <div key={stage.id} className="flex items-center gap-4 relative z-10 flex-1">
+                      <div className="flex flex-col items-center gap-1 group">
+                        <button
+                          onClick={() => setSelectedPanel(stage.id)}
+                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-sans text-xs font-bold transition-all duration-150 hover:scale-105 ${ringColor}`}
+                          title={`${stage.label} - ${statusLabel}`}
+                        >
+                          <IconComponent size={16} />
+                        </button>
+                        <span className="text-[10px] font-sans font-bold text-slate-500">
+                          {idx + 1}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col select-none">
+                        <span className={`text-[12px] font-sans font-semibold whitespace-nowrap leading-tight ${isActive ? "text-[#38BDF8]" : "text-slate-300"}`}>
+                          {stage.label}
+                        </span>
+                        <span className={`text-[9px] font-sans font-bold uppercase tracking-wider mt-0.5 px-1.5 py-0.5 rounded w-fit ${statusBadgeColor}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      
                       {idx < pipelineStages.length - 1 && (
-                        <span className="text-slate-700 font-bold ml-2 font-mono">➔</span>
+                        <div className="flex-1 min-w-[20px] h-[2px] bg-slate-800 self-center mx-2" />
                       )}
                     </div>
                   );
@@ -1929,38 +2080,42 @@ setUploading(false);
 
             {/* DASHBOARD PAGE */}
             {selectedPanel === "dashboard" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 
                 {/* 10-GRID KPI CARDS ROW */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                   {[
-                    { label: "Datasets Ingested", value: edaResult ? "1" : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Database },
-                    { label: "Total Data Rows", value: edaResult ? totalRows.toLocaleString() : "NA", change: "+12%", trend: [2, 4, 3, 5, 8], icon: Grid },
-                    { label: "Variables / Columns", value: edaResult ? totalCols : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Layers3 },
-                    { label: "Quality Score", value: edaResult ? `${qualityScore.toFixed(1)}%` : "NA", change: "+1.2%", trend: [80, 82, 85, 89, 93], icon: ShieldCheck },
-                    { label: "Missing Cell Values", value: edaResult ? missingValues : "NA", change: "-8%", trend: [120, 100, 80, 50, 20], icon: AlertTriangle },
-                    { label: "Duplicate Rows", value: edaResult ? Number((edaResult as any).data_quality?.duplicates || 0) : "NA", change: "-100%", trend: [45, 30, 15, 5, 0], icon: AlertOctagon },
-                    { label: "Pipeline Runs", value: simRunning ? "Active" : "3", change: "+1 today", trend: [1, 2, 2, 3, 3], icon: GitBranch },
-                    { label: "Avg Processing Time", value: edaResult ? "2m 14s" : "NA", change: "-14s", trend: [148, 140, 136, 134, 134], icon: Clock },
-                    { label: "Disk Storage Used", value: edaResult ? "4.2 MB" : "NA", change: "+450 KB", trend: [2, 3, 3, 4, 4], icon: Database },
-                    { label: "Generated Reports", value: "2", change: "+1", trend: [0, 1, 1, 2, 2], icon: FileText },
+                    { label: "Datasets Ingested", value: edaResult ? "1" : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Database, subtitle: "Active catalogs", status: "info" },
+                    { label: "Total Data Rows", value: edaResult ? totalRows.toLocaleString() : "NA", change: "+12%", trend: [2, 4, 3, 5, 8], icon: Grid, subtitle: "Compared to yesterday", status: "success" },
+                    { label: "Variables / Columns", value: edaResult ? totalCols : "NA", change: "+0", trend: [1, 1, 1, 1, 1], icon: Layers3, subtitle: "Feature space dimensions", status: "info" },
+                    { label: "Quality Score", value: edaResult ? `${qualityScore.toFixed(1)}%` : "NA", change: "+1.2%", trend: [80, 82, 85, 89, 93], icon: ShieldCheck, subtitle: "Data validation pass", status: "success" },
+                    { label: "Missing Cell Values", value: edaResult ? missingValues : "NA", change: "-8%", trend: [120, 100, 80, 50, 20], icon: AlertTriangle, subtitle: "Unresolved null counts", status: "warning" },
+                    { label: "Duplicate Rows", value: edaResult ? Number((edaResult as any).data_quality?.duplicates || 0) : "NA", change: "-100%", trend: [45, 30, 15, 5, 0], icon: AlertOctagon, subtitle: "Identical row clones", status: "success" },
+                    { label: "Pipeline Runs", value: simRunning ? "Active" : "3", change: "+1 today", trend: [1, 2, 2, 3, 3], icon: GitBranch, subtitle: "Completed processing loops", status: "info" },
+                    { label: "Avg Processing Time", value: edaResult ? "2m 14s" : "NA", change: "-14s", trend: [148, 140, 136, 134, 134], icon: Clock, subtitle: "Simulation cycle runtime", status: "success" },
+                    { label: "Disk Storage Used", value: edaResult ? "4.2 MB" : "NA", change: "+450 KB", trend: [2, 3, 3, 4, 4], icon: Database, subtitle: "Workspace file sizing", status: "info" },
+                    { label: "Generated Reports", value: "2", change: "+1", trend: [0, 1, 1, 2, 2], icon: FileText, subtitle: "Document exports", status: "success" },
                   ].map((card, idx) => {
                     const CardIcon = card.icon;
+                    let trendColor = "text-[#94A3B8]";
+                    if (card.change.startsWith("+") && card.change !== "+0") trendColor = "text-[#22C55E]";
+                    if (card.change.startsWith("-")) trendColor = card.label.includes("Missing") || card.label.includes("Duplicate") ? "text-[#22C55E]" : "text-[#EF4444]";
+                    
                     return (
-                      <div key={idx} className={`p-4 rounded-xl border ${colors.card} flex flex-col justify-between h-32 hover:border-[#38BDF8]/40 transition-colors`}>
+                      <div key={idx} className={`p-5 rounded-[14px] border ${colors.card} flex flex-col justify-between h-[155px] transition-all hover:border-[#38BDF8]/40 hover:-translate-y-1 hover:shadow-xl`}>
                         <div className="flex justify-between items-start">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">{card.label}</span>
-                          <CardIcon size={14} className="text-[#38BDF8]" />
+                          <span className="text-[11px] font-sans text-[#94A3B8] font-semibold uppercase tracking-wider">{card.label}</span>
+                          <CardIcon size={18} className="text-[#38BDF8]" />
                         </div>
-                        <div className="mt-1 flex items-baseline justify-between">
-                          <strong className="text-xl font-bold font-mono text-[#F8FAFC]">{card.value}</strong>
-                          <span className={`text-[9px] font-mono font-bold text-emerald-400`}>
+                        <div className="mt-2 flex items-baseline justify-between">
+                          <strong className="text-xl font-bold font-sans text-[#F8FAFC] tracking-tight">{card.value}</strong>
+                          <span className={`text-[11px] font-sans font-bold ${trendColor}`}>
                             {card.change}
                           </span>
                         </div>
                         
                         {/* Sparkline trend SVG */}
-                        <div className="h-6 w-full mt-2">
+                        <div className="h-6 w-full my-1">
                           <svg className="w-full h-full text-[#38BDF8]" viewBox="0 0 100 20">
                             <polyline
                               fill="none"
@@ -1969,6 +2124,9 @@ setUploading(false);
                               points={card.trend.map((val, i) => `${(i * 100) / (card.trend.length - 1)},${20 - ((val - Math.min(...card.trend)) / (Math.max(...card.trend) - Math.min(...card.trend) || 1)) * 16 - 2}`).join(" ")}
                             />
                           </svg>
+                        </div>
+                        <div className="text-[10px] font-sans text-slate-500 truncate mt-1">
+                          {card.subtitle}
                         </div>
                       </div>
                     );
@@ -2010,7 +2168,7 @@ setUploading(false);
                           <button
                             onClick={handleStartSimulation}
                             disabled={simRunning || !edaResult}
-                            className="bg-[#38BDF8] text-[#0F172A] font-bold text-xs uppercase tracking-wider py-2 px-4 rounded-lg hover:bg-[#38BDF8]/80 transition-all flex items-center gap-2 font-mono disabled:opacity-40 disabled:pointer-events-none"
+                            className={`text-xs font-sans font-semibold py-2 px-4 rounded-lg flex items-center gap-2 transition-all disabled:opacity-40 disabled:pointer-events-none ${colors.btnPrimary}`}
                           >
                             {simRunning ? <Loader2 className="spin animate-spin" size={14} /> : <Play size={14} />}
                             Trigger Pipeline
@@ -2063,31 +2221,31 @@ setUploading(false);
                           Ingest New File ➔
                         </button>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full font-mono text-[10px]">
+                      <div className="overflow-hidden border border-[#475569]/60 rounded-xl shadow-lg">
+                        <table className="w-full text-left font-sans text-[13px] border-collapse">
                           <thead>
-                            <tr className="border-b border-[#334155] text-left uppercase text-slate-400 pb-2">
-                              <th className="pb-2">File name</th>
-                              <th className="pb-2 text-right">Data Rows</th>
-                              <th className="pb-2 text-right">Variables</th>
-                              <th className="pb-2 text-right">Quality</th>
-                              <th className="pb-2 text-right">Actions</th>
+                            <tr className="sticky top-0 bg-[#1E293B] border-b border-[#475569] text-slate-400 font-semibold select-none">
+                              <th className="p-3">File name</th>
+                              <th className="p-3 text-right">Data Rows</th>
+                              <th className="p-3 text-right">Variables</th>
+                              <th className="p-3 text-right">Quality</th>
+                              <th className="p-3 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-[#475569]/30">
                             {edaResult ? (
-                              <tr className="border-b border-[#334155]/20 text-[#CBD5E1]">
-                                <td className="py-2.5 font-bold text-[#38BDF8]">Ingested_Table.csv</td>
-                                <td className="py-2.5 text-right">{totalRows}</td>
-                                <td className="py-2.5 text-right">{totalCols}</td>
-                                <td className="py-2.5 text-right text-emerald-400 font-bold">{qualityScore.toFixed(1)}%</td>
-                                <td className="py-2.5 text-right text-[#38BDF8] font-bold">
+                              <tr className="hover:bg-[#243244]/55 text-[#CBD5E1] transition-all duration-150 odd:bg-transparent even:bg-[#111827]/10">
+                                <td className="p-3 font-semibold text-[#38BDF8]">Ingested_Table.csv</td>
+                                <td className="p-3 text-right">{totalRows}</td>
+                                <td className="p-3 text-right">{totalCols}</td>
+                                <td className="p-3 text-right text-emerald-450 font-bold">{qualityScore.toFixed(1)}%</td>
+                                <td className="p-3 text-right text-[#38BDF8] font-bold">
                                   <button onClick={() => setSelectedPanel("eda-analysis")} className="hover:underline">Open Workspace</button>
                                 </td>
                               </tr>
                             ) : (
                               <tr>
-                                <td colSpan={5} className="py-4 text-center text-slate-500">No active tables. Please upload a file.</td>
+                                <td colSpan={5} className="p-4 text-center text-slate-500 bg-slate-900/10">No active tables. Please upload a file.</td>
                               </tr>
                             )}
                           </tbody>
@@ -2156,28 +2314,26 @@ setUploading(false);
                 </div>
               </div>
             )}
-
-
-            {/* WORKSPACE HUB (LANDING PAGE) */}
+               {/* WORKSPACE HUB (LANDING PAGE) */}
             {selectedPanel === "dashboard-landing" && (
-              <div className="space-y-6 animate-fadeIn font-mono text-xs">
+              <div className="space-y-8 animate-fadeIn font-sans">
                 {/* Header title */}
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center select-none">
                   <div>
-                    <h2 className={`text-lg font-bold uppercase tracking-wider ${colors.textPrimary}`}>Workspace Hub</h2>
-                    <p className="text-slate-500 mt-1">Manage, search, and continue your analytics projects</p>
+                    <h2 className={`text-3xl font-bold tracking-tight ${colors.textPrimary}`}>Workspace Hub</h2>
+                    <p className="text-slate-400 mt-1.5 text-sm">Manage, search, and continue your analytics projects</p>
                   </div>
                   
                   {/* Search and Action */}
-                  <div className="flex gap-3">
-                    <div className="relative w-64">
-                      <Search className="absolute left-3 top-2 text-slate-550" size={14} />
+                  <div className="flex gap-4">
+                    <div className="relative w-72">
+                      <Search className="absolute left-3.5 top-2.5 text-slate-400" size={16} />
                       <input
                         type="text"
                         placeholder="Search workspaces..."
                         value={workspaceSearch}
                         onChange={(e) => setWorkspaceSearch(e.target.value)}
-                        className={`w-full text-xs font-mono pl-9 pr-3 py-1.5 rounded-lg ${colors.input}`}
+                        className={`w-full text-[13px] font-sans pl-10 pr-4 py-2 rounded-lg ${colors.input}`}
                       />
                     </div>
                     <button
@@ -2200,7 +2356,7 @@ setUploading(false);
                         setSelectedPanel("dashboard");
                         addLog("Workspace", `Initialized workspace: ${newTab.datasetName}`, "success");
                       }}
-                      className="bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A] px-4 py-1.5 rounded-lg font-bold uppercase font-mono"
+                      className={`px-5 py-2 rounded-lg text-sm font-semibold tracking-wide ${colors.btnPrimary}`}
                     >
                       + New Workspace
                     </button>
@@ -2208,61 +2364,88 @@ setUploading(false);
                 </div>
 
                 {/* Templates picker row */}
-                <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
-                  <h3 className="text-xs font-bold uppercase text-white tracking-widest">Select Workspace Template</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className={`p-6 rounded-[14px] border ${colors.card} space-y-6`}>
+                  <h3 className="text-[22px] font-semibold text-[#F8FAFC] tracking-tight">Workspace Templates</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     {[
-                      { id: "churn", name: "Customer Churn Analyzer", desc: "Pipeline optimized for classification models and churn propensity metrics." },
-                      { id: "sales", name: "Sales Forecasting Engine", desc: "Time series model pipeline and revenue growth metrics." },
-                      { id: "segmentation", name: "Customer Segmentation", desc: "Clustering models with descriptive categorical value profiles." },
-                      { id: "generic", name: "Blank Project", desc: "Generic workspace pipeline ready for custom CSV/Excel tabular sources." }
-                    ].map((tpl) => (
-                      <div
-                        key={tpl.id}
-                        onClick={() => {
-                          const newId = `tab_${Date.now()}`;
-                          const newTab: WorkspaceTab = {
-                            id: newId,
-                            datasetName: `${tpl.name} Workspace`,
-                            edaResult: null,
-                            simRunning: false,
-                            simProgress: 0,
-                            currentStageKey: null,
-                            stageStatuses: {},
-                            logs: [],
-                            activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
-                            selectedPanel: "dashboard"
-                          };
-                          setTabs([...tabs, newTab]);
-                          setActiveTabId(newId);
-                          setSelectedPanel("dashboard");
-                          addLog("Workspace", `Initialized workspace from template: ${tpl.name}`, "success");
-                        }}
-                        className={`p-4 rounded-xl border ${colors.secondaryCard} hover:border-[#38BDF8] cursor-pointer transition-all space-y-2`}
-                      >
-                        <strong className="block text-slate-200 uppercase">{tpl.name}</strong>
-                        <p className="text-[10px] text-slate-500 leading-relaxed">{tpl.desc}</p>
-                      </div>
-                    ))}
+                      { id: "churn", name: "Customer Churn Analyzer", desc: "Pipeline optimized for classification models and churn propensity metrics.", icon: Users, flow: "10-step Classification", format: "CSV / Parquet", diff: "Intermediate" },
+                      { id: "sales", name: "Sales Forecasting Engine", desc: "Time series model pipeline and revenue growth metrics.", icon: TrendingUp, flow: "8-step Regression", format: "Excel / CSV", diff: "Advanced" },
+                      { id: "segmentation", name: "Customer Segmentation", desc: "Clustering models with descriptive categorical value profiles.", icon: Target, flow: "6-step Clustering", format: "JSON / CSV", diff: "Intermediate" },
+                      { id: "generic", name: "Blank Project", desc: "Generic workspace pipeline ready for custom CSV/Excel tabular sources.", icon: FileCode, flow: "Custom Workflow", format: "Any Tabular File", diff: "Beginner" }
+                    ].map((tpl) => {
+                      const TplIcon = tpl.icon;
+                      let diffColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                      if (tpl.diff === "Intermediate") diffColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                      if (tpl.diff === "Advanced") diffColor = "bg-red-500/10 text-red-400 border-red-500/20";
+
+                      return (
+                        <div
+                          key={tpl.id}
+                          onClick={() => {
+                            const newId = `tab_${Date.now()}`;
+                            const newTab: WorkspaceTab = {
+                              id: newId,
+                              datasetName: `${tpl.name} Workspace`,
+                              edaResult: null,
+                              simRunning: false,
+                              simProgress: 0,
+                              currentStageKey: null,
+                              stageStatuses: {},
+                              logs: [],
+                              activePanels: ["dashboard", "simulation", "eda-analysis", "data-cleaning"],
+                              selectedPanel: "dashboard"
+                            };
+                            setTabs([...tabs, newTab]);
+                            setActiveTabId(newId);
+                            setSelectedPanel("dashboard");
+                            addLog("Workspace", `Initialized workspace from template: ${tpl.name}`, "success");
+                          }}
+                          className={`p-6 rounded-[14px] border ${colors.secondaryCard} hover:border-[#38BDF8] cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between h-[280px]`}
+                        >
+                          <div className="space-y-3">
+                            <div className="w-10 h-10 rounded-lg bg-[#38BDF8]/10 flex items-center justify-center text-[#38BDF8]">
+                              <TplIcon size={22} />
+                            </div>
+                            <strong className="block text-base font-semibold text-[#F8FAFC] tracking-tight">{tpl.name}</strong>
+                            <p className="text-[13px] text-[#94A3B8] leading-relaxed line-clamp-3">{tpl.desc}</p>
+                          </div>
+                          
+                          <div className="pt-4 border-t border-[#475569]/30 space-y-2 text-[11px] font-sans text-[#94A3B8]">
+                            <div className="flex justify-between">
+                              <span>Pipeline:</span>
+                              <span className="font-semibold text-[#F8FAFC]">{tpl.flow}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Source format:</span>
+                              <span className="font-semibold text-[#F8FAFC]">{tpl.format}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Complexity:</span>
+                              <span className={`px-2 py-0.5 rounded border text-[10px] font-bold ${diffColor}`}>{tpl.diff}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {/* Bottom Hub Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Left list: Recent workspaces */}
-                  <div className={`lg:col-span-2 p-5 rounded-xl border ${colors.card} space-y-4`}>
-                    <h3 className="text-xs font-bold uppercase text-white tracking-widest">Recent Active Workspaces</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left font-mono text-[10px]">
+                  <div className={`lg:col-span-2 p-6 rounded-[14px] border ${colors.card} space-y-6`}>
+                    <h3 className="text-[22px] font-semibold text-[#F8FAFC] tracking-tight">Recent Active Workspaces</h3>
+                    <div className="overflow-hidden border border-[#475569]/60 rounded-xl shadow-lg">
+                      <table className="w-full text-left font-sans text-[13px] border-collapse">
                         <thead>
-                          <tr className="border-b border-[#334155] text-slate-500 uppercase pb-2">
-                            <th className="pb-2">Workspace Name</th>
-                            <th className="pb-2">Active Dataset</th>
-                            <th className="pb-2 text-center">Quality Score</th>
-                            <th className="pb-2 text-right">Last Modified</th>
+                          <tr className="sticky top-0 bg-[#1E293B] border-b border-[#475569] text-slate-400 font-semibold select-none">
+                            <th className="p-3">Workspace Name</th>
+                            <th className="p-3">Active Dataset</th>
+                            <th className="p-3 text-center">Quality Score</th>
+                            <th className="p-3 text-right">Last Modified</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#334155]/20">
+                        <tbody className="divide-y divide-[#475569]/30">
                           {workspacesList
                             .filter((w) => w.name.toLowerCase().includes(workspaceSearch.toLowerCase()))
                             .map((ws) => (
@@ -2289,12 +2472,12 @@ setUploading(false);
                                   setActiveTabId(ws.id);
                                   setSelectedPanel("dashboard");
                                 }}
-                                className="text-slate-300 hover:bg-[#1E293B]/40 cursor-pointer transition-colors"
+                                className="text-slate-300 hover:bg-[#243244]/55 cursor-pointer transition-all duration-150 odd:bg-transparent even:bg-[#111827]/10"
                               >
-                                <td className="py-3 font-bold text-[#38BDF8]">{ws.name}</td>
-                                <td className="py-3 text-slate-400">{ws.datasetName}</td>
-                                <td className="py-3 text-center text-emerald-400 font-bold">{ws.quality > 0 ? `${ws.quality}%` : "NA"}</td>
-                                <td className="py-3 text-right text-slate-500">{ws.modified}</td>
+                                <td className="p-3 font-semibold text-[#38BDF8]">{ws.name}</td>
+                                <td className="p-3 text-slate-400">{ws.datasetName}</td>
+                                <td className="p-3 text-center text-emerald-450 font-bold">{ws.quality > 0 ? `${ws.quality}%` : "NA"}</td>
+                                <td className="p-3 text-right text-slate-500">{ws.modified}</td>
                               </tr>
                             ))}
                         </tbody>
@@ -2303,24 +2486,24 @@ setUploading(false);
                   </div>
 
                   {/* Right side: Backup & version control */}
-                  <div className={`p-5 rounded-xl border ${colors.card} space-y-4`}>
-                    <h3 className="text-xs font-bold uppercase text-white tracking-widest">Workspace Backups</h3>
-                    <p className="text-slate-500 text-[10px] leading-relaxed">
+                  <div className={`p-6 rounded-[14px] border ${colors.card} space-y-6`}>
+                    <h3 className="text-[22px] font-semibold text-[#F8FAFC] tracking-tight">Workspace Backups</h3>
+                    <p className="text-slate-400 text-[13px] leading-relaxed">
                       Restore any workspace version below or download raw workspace state payloads.
                     </p>
                     <div className="space-y-3">
                       {workspaceBackups.map((b, idx) => (
-                        <div key={idx} className="p-3 bg-[#111827]/40 border border-[#334155]/60 rounded-xl flex justify-between items-center">
-                          <div>
-                            <strong className="block text-slate-300 uppercase">Version {b.version}</strong>
-                            <span className="text-slate-550 text-[9px]">{b.name}</span>
+                        <div key={idx} className="p-4 bg-[#111827]/40 border border-[#475569]/60 rounded-xl flex justify-between items-center">
+                          <div className="space-y-1">
+                            <strong className="block text-slate-200 font-semibold text-[13px] uppercase">Version {b.version}</strong>
+                            <span className="text-slate-500 text-[11px]">{b.name}</span>
                           </div>
                           <button
                             onClick={() => {
                               alert(`Workspace restored to Version ${b.version}`);
                               addLog("Workspace", `Restored backup version ${b.version}`, "success");
                             }}
-                            className="bg-slate-900 border border-slate-800 text-[#38BDF8] px-2 py-0.5 rounded text-[9px] font-bold uppercase hover:bg-slate-800 transition-colors"
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase ${colors.btnSecondary}`}
                           >
                             Restore
                           </button>
@@ -2367,33 +2550,33 @@ setUploading(false);
                 {/* Upload history & Datasets Manager */}
                 <div className={`p-6 rounded-xl border ${colors.card} space-y-4`}>
                   <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#F8FAFC]">Saved Ingestion Files</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full font-mono text-xs text-left">
+                  <div className="overflow-hidden border border-[#475569]/60 rounded-xl shadow-lg">
+                    <table className="w-full text-left font-sans text-[13px] border-collapse">
                       <thead>
-                        <tr className="border-b border-[#334155] text-slate-500 uppercase pb-2">
-                          <th className="pb-2.5">File name</th>
-                          <th className="pb-2.5">Rows</th>
-                          <th className="pb-2.5">Columns</th>
-                          <th className="pb-2.5">Date Ingested</th>
-                          <th className="pb-2.5 text-right">Actions</th>
+                        <tr className="sticky top-0 bg-[#1E293B] border-b border-[#475569] text-slate-400 font-semibold select-none">
+                          <th className="p-3">File name</th>
+                          <th className="p-3">Rows</th>
+                          <th className="p-3">Columns</th>
+                          <th className="p-3">Date Ingested</th>
+                          <th className="p-3 text-right">Actions</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-[#475569]/30">
                         {files.map((file) => (
-                          <tr key={file.id} className="border-b border-[#334155]/20 text-[#CBD5E1] hover:bg-[#1E293B]/40">
-                            <td className="py-3 font-bold text-[#38BDF8]">{file.file_name}</td>
-                            <td className="py-3">{file.row_count ?? "NA"}</td>
-                            <td className="py-3">{file.col_count ?? "NA"}</td>
-                            <td className="py-3">{file.uploaded_at ? new Date(file.uploaded_at).toLocaleString() : "NA"}</td>
-                            <td className="py-3 text-right space-x-3">
-                              <button onClick={() => handleReuseFile(file.id, file.file_name)} className="text-emerald-400 font-bold hover:underline">Reuse</button>
+                          <tr key={file.id} className="hover:bg-[#243244]/55 text-[#CBD5E1] transition-all duration-150 odd:bg-transparent even:bg-[#111827]/10">
+                            <td className="p-3 font-semibold text-[#38BDF8]">{file.file_name}</td>
+                            <td className="p-3">{file.row_count ?? "NA"}</td>
+                            <td className="p-3">{file.col_count ?? "NA"}</td>
+                            <td className="p-3">{file.uploaded_at ? new Date(file.uploaded_at).toLocaleString() : "NA"}</td>
+                            <td className="p-3 text-right space-x-3">
+                              <button onClick={() => handleReuseFile(file.id, file.file_name)} className="text-emerald-450 font-bold hover:underline">Reuse</button>
                               <button onClick={() => handleRemoveFile(file.id)} className="text-red-400 font-bold hover:underline">Delete</button>
                             </td>
                           </tr>
                         ))}
                         {files.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="py-4 text-center text-slate-500">No uploads saved.</td>
+                            <td colSpan={5} className="p-4 text-center text-slate-500 bg-slate-900/10">No uploads saved.</td>
                           </tr>
                         )}
                       </tbody>
@@ -2503,52 +2686,51 @@ setUploading(false);
                             </div>
                           )}
 
-                          {/* Step 2: Dataset Preview (Head/Tail) */}
-                          {edaStep === 2 && (
-                            <div className={`p-6 rounded-xl border ${colors.card} animate-fadeIn font-mono text-xs space-y-6`}>
+                          {/* Step 2: Dataset Preview (H                          {edaStep === 2 && (
+                            <div className={`p-6 rounded-xl border ${colors.card} animate-fadeIn font-sans text-[13px] space-y-6`}>
                               <div className="flex justify-between items-center">
-                                <h4 className={`text-sm font-bold uppercase tracking-wider ${colors.textPrimary}`}>Dataset Slices Preview</h4>
-                                <div className="flex bg-[#111827] border border-[#334155] rounded-lg p-0.5">
+                                <h4 className={`text-base font-semibold tracking-tight ${colors.textPrimary}`}>Dataset Slices Preview</h4>
+                                <div className="flex bg-[#111827] border border-[#475569]/60 rounded-lg p-0.5">
                                   <button
                                     onClick={() => setPreviewTab("before")}
-                                    className={`px-3 py-1 rounded text-[10px] uppercase font-bold transition-all ${previewTab === "before" ? "bg-[#38BDF8] text-[#0F172A]" : "text-slate-400 hover:text-white"}`}
+                                    className={`px-3 py-1 rounded text-[11px] uppercase font-bold transition-all ${previewTab === "before" ? "bg-[#38BDF8] text-[#0F172A]" : "text-slate-400 hover:text-white"}`}
                                   >
                                     Head (First 10 Rows)
                                   </button>
                                   <button
                                     onClick={() => setPreviewTab("after")}
-                                    className={`px-3 py-1 rounded text-[10px] uppercase font-bold transition-all ${previewTab === "after" ? "bg-[#38BDF8] text-[#0F172A]" : "text-slate-400 hover:text-white"}`}
+                                    className={`px-3 py-1 rounded text-[11px] uppercase font-bold transition-all ${previewTab === "after" ? "bg-[#38BDF8] text-[#0F172A]" : "text-slate-400 hover:text-white"}`}
                                   >
                                     Tail (Last 10 Rows)
                                   </button>
                                 </div>
                               </div>
 
-                              <div className="overflow-x-auto border border-[#334155] rounded-lg">
-                                <table className="w-full text-left">
+                              <div className="overflow-hidden border border-[#475569]/60 rounded-xl shadow-lg">
+                                <table className="w-full text-left font-sans text-[13px] border-collapse">
                                   <thead>
-                                    <tr className={`border-b text-left uppercase tracking-wider ${colors.tableHeader}`}>
-                                      <th className="py-2.5 px-3">#</th>
+                                    <tr className={`sticky top-0 bg-[#1E293B] border-b border-[#475569] text-slate-400 font-semibold select-none`}>
+                                      <th className="p-3">#</th>
                                       {allColumns.map((col, idx) => (
-                                        <th key={idx} className="py-2.5 px-3">{col}</th>
+                                        <th key={idx} className="p-3">{col}</th>
                                       ))}
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-[#334155]/20 text-[#CBD5E1]">
+                                  <tbody className="divide-y divide-[#475569]/30 text-[#CBD5E1]">
                                     {(previewTab === "before"
                                       ? (edaResult as any).dataset_slices?.head?.["100"]?.slice(0, 10)
                                       : (edaResult as any).dataset_slices?.head?.["100"]?.slice(-10)
                                     )?.map((row: any, idx: number) => (
-                                      <tr key={idx} className="hover:bg-[#1E293B]/40 transition-colors">
-                                        <td className="py-2.5 px-3 text-slate-500 font-bold">{previewTab === "before" ? idx + 1 : ((edaResult as any).dataset_slices?.head?.["100"]?.length ?? 0) - 10 + idx + 1}</td>
+                                      <tr key={idx} className="hover:bg-[#243244]/55 transition-all duration-150 odd:bg-transparent even:bg-[#111827]/10">
+                                        <td className="p-3 text-slate-500 font-bold">{previewTab === "before" ? idx + 1 : ((edaResult as any).dataset_slices?.head?.["100"]?.length ?? 0) - 10 + idx + 1}</td>
                                         {allColumns.map((col, cIdx) => (
-                                          <td key={cIdx} className="py-2.5 px-3 truncate max-w-[150px]">{String(row[col] ?? "NULL")}</td>
+                                          <td key={cIdx} className="p-3 truncate max-w-[150px]">{String(row[col] ?? "NULL")}</td>
                                         ))}
                                       </tr>
                                     ))}
                                     {!(edaResult as any).dataset_slices?.head?.["100"] && (
                                       <tr>
-                                        <td colSpan={allColumns.length + 1} className="py-4 text-center text-slate-550">No slice records resolved.</td>
+                                        <td colSpan={allColumns.length + 1} className="p-4 text-center text-slate-500 bg-slate-900/10">No slice records resolved.</td>
                                       </tr>
                                     )}
                                   </tbody>
@@ -3337,7 +3519,7 @@ setUploading(false);
                       <option value="emerald">Forest (Green)</option>
                     </select>
                   </div>
-                  <button className="w-full bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A] font-bold py-2 rounded-lg uppercase tracking-wider font-mono">
+                  <button className={`w-full font-sans font-semibold py-2.5 rounded-lg transition-all ${colors.btnPrimary}`}>
                     Export SVG Chart
                   </button>
                 </div>
@@ -3538,7 +3720,7 @@ setUploading(false);
                       <div className="space-y-4">
                         <button
                           onClick={handleGetRecommendations}
-                          className="w-full bg-[#38BDF8] text-[#0F172A] font-bold py-2 rounded-lg uppercase tracking-wider font-mono hover:bg-[#38BDF8]/80 transition-all"
+                          className={`w-full font-sans font-semibold py-2.5 rounded-lg transition-all ${colors.btnPrimary}`}
                         >
                           Compile & Train Model
                         </button>
@@ -3643,7 +3825,7 @@ setUploading(false);
                       <option value="xlsx">Microsoft Excel Workbook (.xlsx)</option>
                     </select>
                   </div>
-                  <button className="bg-[#38BDF8] text-[#0F172A] font-bold py-2 px-4 rounded-lg uppercase font-mono hover:bg-[#38BDF8]/80 transition-all">
+                  <button className={`font-sans font-semibold py-2.5 px-5 rounded-lg transition-all ${colors.btnPrimary}`}>
                     Compile & Export Report
                   </button>
                 </div>
@@ -3902,7 +4084,7 @@ setUploading(false);
                   <button
                     onClick={handleRunCode}
                     disabled={codeRunning || !edaResult}
-                    className="bg-[#38BDF8] hover:bg-[#38BDF8]/80 text-[#0F172A] font-bold text-[9px] px-2 py-0.5 rounded transition-all"
+                    className={`font-sans font-semibold text-[10px] px-2.5 py-1 rounded transition-all ${colors.btnPrimary}`}
                   >
                     {codeRunning ? "Running..." : "Run Script"}
                   </button>
@@ -4142,105 +4324,239 @@ setUploading(false);
 
         {/* PERSISTENT COLLAPSIBLE RIGHT AI ASSISTANT PANEL */}
         <div
-          className={`border-l border-[#334155] bg-[#111827] flex flex-col font-mono transition-all duration-300 relative z-20 select-none ${
-            isRightAIPanelOpen ? "w-80" : "w-12"
+          className={`border-l border-[#475569] bg-[#111827] flex flex-col font-sans transition-all duration-300 relative z-20 select-none ${
+            isRightAIPanelOpen ? "w-[340px]" : "w-12"
           }`}
         >
           {isRightAIPanelOpen ? (
-            <div className="h-12 border-b border-[#334155] px-4 flex items-center justify-between bg-[#1E293B]/20 text-[10px]">
+            <div className="h-[68px] border-b border-[#475569] px-4 flex items-center justify-between bg-[#1E293B]/20">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-[#38BDF8] animate-pulse" />
-                <strong className="uppercase text-slate-200 text-[10px]">AI Assistant</strong>
+                <Sparkles size={18} className="text-[#38BDF8] animate-pulse" />
+                <strong className="uppercase text-slate-200 text-sm font-semibold tracking-wide">AI Assistant</strong>
               </div>
               <button
                 onClick={() => setIsRightAIPanelOpen(false)}
-                className="text-slate-500 hover:text-slate-200 font-bold"
+                className="text-slate-500 hover:text-slate-200 font-bold transition-colors text-sm"
               >
                 ✕
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center py-4">
+            <div className="flex flex-col items-center py-5">
               <button
                 onClick={() => setIsRightAIPanelOpen(true)}
-                className="w-8 h-8 rounded-full bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 flex items-center justify-center text-[#38BDF8]"
+                className="w-8 h-8 rounded-full bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 flex items-center justify-center text-[#38BDF8] transition-all"
                 title="Open AI Assistant"
               >
-                <Sparkles size={16} />
+                <Sparkles size={18} />
               </button>
             </div>
           )}
 
           {isRightAIPanelOpen && (
-            <div className="flex-1 flex flex-col min-h-0 p-4 text-[10px] space-y-4">
-              <div className="space-y-1.5">
-                <span className="text-slate-500 uppercase text-[8px] tracking-wider block">Suggested Prompts</span>
-                <div className="grid grid-cols-2 gap-2 text-[9px]">
-                  {[
-                    { text: "Explain Dataset", prompt: "Explain the main statistical findings and shape of this dataset." },
-                    { text: "Suggest Cleaning", prompt: "What data cleaning steps do you recommend for this dataset?" },
-                    { text: "Explain Metrics", prompt: "Explain the machine learning classification metrics in ML Studio." },
-                    { text: "Generate Python", prompt: "Write a Python script to build a random forest model on this dataset." }
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setAiInputText(chip.prompt);
-                      }}
-                      className="p-1.5 bg-[#1E293B]/60 hover:bg-[#38BDF8]/10 border border-[#334155] rounded text-slate-300 hover:text-[#38BDF8] text-left transition-colors"
-                    >
-                      {chip.text}
-                    </button>
-                  ))}
-                </div>
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Category tabs navigation */}
+              <div className="flex border-b border-[#475569]/60 bg-[#1E293B]/10 text-[11px] font-sans">
+                {[
+                  { id: "chat", label: "Chat" },
+                  { id: "code", label: "Code" },
+                  { id: "insights", label: "Insights" },
+                  { id: "history", label: "History" }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setAiTab(t.id as any)}
+                    className={`flex-1 py-2 text-center border-b-2 font-bold transition-all ${
+                      aiTab === t.id
+                        ? "text-[#38BDF8] border-b-[#38BDF8] bg-[#38BDF8]/5"
+                        : "text-slate-500 border-b-transparent hover:text-slate-350"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-0">
-                {aiMessages.map((msg, idx) => {
-                  const isAI = msg.sender === "ai";
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-2.5 rounded-lg border ${
-                        isAI
-                          ? "bg-[#1E293B]/40 border-[#334155] text-slate-300"
-                          : "bg-[#38BDF8]/10 border-[#38BDF8]/20 text-[#38BDF8]"
-                      }`}
-                    >
-                      <span className="font-bold block uppercase text-[8px] text-slate-505 mb-1">
-                        {isAI ? "KoreData AI" : "User"}
-                      </span>
-                      <p className="leading-normal">{msg.text}</p>
+              {/* Category Body Panel */}
+              <div className="flex-1 flex flex-col min-h-0 p-4 space-y-4">
+                
+                {aiTab === "chat" && (
+                  <>
+                    {/* Suggested Prompts */}
+                    <div className="space-y-2">
+                      <span className="text-slate-500 uppercase text-[9px] font-bold tracking-wider block">Suggested Prompts</span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        {[
+                          { text: "Explain Dataset", prompt: "Explain the main statistical findings and shape of this dataset." },
+                          { text: "Suggest Cleaning", prompt: "What data cleaning steps do you recommend for this dataset?" },
+                          { text: "Explain Metrics", prompt: "Explain the machine learning classification metrics in ML Studio." },
+                          { text: "Generate Python", prompt: "Write a Python script to build a random forest model on this dataset." }
+                        ].map((chip, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setAiInputText(chip.prompt)}
+                            className="p-2 bg-[#1E293B]/60 hover:bg-[#38BDF8]/10 border border-[#475569]/60 rounded-lg text-slate-350 hover:text-[#38BDF8] text-left transition-colors font-medium leading-tight"
+                          >
+                            {chip.text}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="pt-2 border-t border-[#334155]/60 flex gap-2">
-                <input
-                  type="text"
-                  value={aiInputText}
-                  onChange={(e) => setAiInputText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (!aiInputText.trim()) return;
-                      const userText = aiInputText;
-                      setAiMessages((prev) => [...prev, { sender: "user", text: userText }]);
-                      setAiInputText("");
-                      setTimeout(() => {
-                        setAiMessages((prev) => [
-                          ...prev,
-                          {
-                            sender: "ai",
-                            text: `I've analyzed the query: "${userText}". Based on the loaded workspace: ${activeTab.datasetName}, this dataset is ready for feature scaling. Please use the Scaling option in step 12 of EDA to standardize your numeric fields.`
+                    {/* Conversational timeline */}
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0 text-[13px] leading-relaxed">
+                      {aiMessages.map((msg, idx) => {
+                        const isAI = msg.sender === "ai";
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-xl border ${
+                              isAI
+                                ? "bg-[#1E293B]/40 border-[#475569]/40 text-slate-300"
+                                : "bg-[#38BDF8]/10 border-[#38BDF8]/20 text-[#38BDF8]"
+                            }`}
+                          >
+                            <span className="font-bold block uppercase text-[9px] text-slate-500 mb-1 select-none">
+                              {isAI ? "KoreData AI" : "User"}
+                            </span>
+                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Chat input form */}
+                    <div className="pt-2 border-t border-[#475569]/40 flex gap-2">
+                      <input
+                        type="text"
+                        value={aiInputText}
+                        onChange={(e) => setAiInputText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            if (!aiInputText.trim()) return;
+                            const userText = aiInputText;
+                            setAiMessages((prev) => [...prev, { sender: "user", text: userText }]);
+                            setAiInputText("");
+                            setTimeout(() => {
+                              setAiMessages((prev) => [
+                                ...prev,
+                                {
+                                  sender: "ai",
+                                  text: `I've analyzed the query: "${userText}". Based on the loaded workspace: ${activeTab.datasetName}, this dataset is ready for feature scaling. Please use the Scaling option in step 12 of EDA to standardize your numeric fields.`
+                                }
+                              ]);
+                            }, 800);
                           }
-                        ]);
-                      }, 800);
-                    }
-                  }}
-                  placeholder="Ask AI assistant..."
-                  className={`flex-1 text-[10px] p-2 rounded ${colors.input}`}
-                />
+                        }}
+                        placeholder="Ask AI assistant..."
+                        className={`flex-1 text-[13px] p-2.5 rounded-lg focus:outline-none ${colors.input}`}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {aiTab === "code" && (
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-[12px] leading-normal font-sans">
+                    <span className="text-slate-500 uppercase text-[9px] font-bold tracking-wider block">Recommended Code Snippets</span>
+                    
+                    {/* Snippet 1 */}
+                    <div className="p-4 bg-[#111827] border border-[#475569]/60 rounded-xl space-y-2 relative">
+                      <span className="text-[10px] text-[#38BDF8] font-semibold block uppercase">SQL Query: Clean Workspace Data</span>
+                      <pre className="font-mono text-[11px] text-slate-350 bg-slate-950/40 p-2.5 rounded-lg overflow-x-auto select-text">
+{`SELECT 
+  id, 
+  COALESCE(age, (SELECT AVG(age) FROM ingested_table)) as age,
+  COALESCE(income, 0) as income
+FROM ingested_table;`}
+                      </pre>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText("SELECT id, COALESCE(age, (SELECT AVG(age) FROM ingested_table)) as age, COALESCE(income, 0) as income FROM ingested_table;");
+                          alert("SQL copied to clipboard!");
+                        }}
+                        className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors text-[10px] uppercase font-bold"
+                      >
+                        Copy
+                      </button>
+                    </div>
+
+                    {/* Snippet 2 */}
+                    <div className="p-4 bg-[#111827] border border-[#475569]/60 rounded-xl space-y-2 relative">
+                      <span className="text-[10px] text-emerald-400 font-semibold block uppercase">Python Script: Fit Model</span>
+                      <pre className="font-mono text-[11px] text-slate-350 bg-slate-950/40 p-2.5 rounded-lg overflow-x-auto select-text">
+{`from sklearn.ensemble import RandomForestClassifier
+# Fit model
+clf = RandomForestClassifier(n_estimators=100)
+clf.fit(X_train, y_train)
+print("Accuracy:", clf.score(X_test, y_test))`}
+                      </pre>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText("from sklearn.ensemble import RandomForestClassifier\nclf = RandomForestClassifier(n_estimators=100)\nclf.fit(X_train, y_train)\nprint(clf.score(X_test, y_test))");
+                          alert("Python script copied!");
+                        }}
+                        className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors text-[10px] uppercase font-bold"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {aiTab === "insights" && (
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-[13px] leading-relaxed">
+                    <span className="text-slate-500 uppercase text-[9px] font-bold tracking-wider block">Pinned Insights & Anomalies</span>
+                    
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <strong className="text-emerald-400 text-xs font-semibold uppercase">High Data Quality</strong>
+                        <ShieldCheck size={16} className="text-emerald-400" />
+                      </div>
+                      <p className="text-[12px] text-slate-350">
+                        Workspace health is computed at 98.4%. Standard deviation vectors contain zero critical NaN loops.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <strong className="text-amber-400 text-xs font-semibold uppercase">Correlations Detected</strong>
+                        <Activity size={16} className="text-amber-400" />
+                      </div>
+                      <p className="text-[12px] text-slate-350">
+                        Strong positive linear linkage (r = 0.89) identified between variables <code className="font-mono text-[11px] text-white">income</code> and <code className="font-mono text-[11px] text-white">savings</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl space-y-1">
+                      <div className="flex justify-between items-center">
+                        <strong className="text-red-400 text-xs font-semibold uppercase">Missing Target Cells</strong>
+                        <AlertTriangle size={16} className="text-red-400" />
+                      </div>
+                      <p className="text-[12px] text-slate-350">
+                        We detected 12.4% missing values on target column. Please use Imputation in Step 12 of EDA.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {aiTab === "history" && (
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-[13px] leading-relaxed">
+                    <span className="text-slate-500 uppercase text-[9px] font-bold tracking-wider block">Workspace Prompt History</span>
+                    <div className="space-y-2">
+                      {[
+                        { time: "10:48 AM", text: "Explain missing cell ratios for age." },
+                        { time: "10:42 AM", text: "Generate Python script to standard scale numeric variables." },
+                        { time: "10:30 AM", text: "What clustering algorithms are available?" }
+                      ].map((item, idx) => (
+                        <div key={idx} className="p-3 bg-[#1E293B]/60 border border-[#475569]/40 rounded-lg flex flex-col gap-1 hover:border-[#38BDF8]/20 transition-colors">
+                          <span className="text-[10px] text-slate-500 font-semibold">{item.time}</span>
+                          <p className="text-slate-300 font-medium text-[12px] leading-snug">{item.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           )}
