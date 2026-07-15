@@ -52,11 +52,13 @@ function ActivePanel() {
   }
 }
 
-function WorkspaceInner() {
-  const { assistantOpen, setAssistantOpen } = useWorkspace();
+/** Reads the active module from context and sets data-module on the shell div */
+function ModuleShell({ children }: { children: React.ReactNode }) {
+  const { activeTab, assistantOpen, setAssistantOpen } = useWorkspace();
+  const moduleId = activeTab?.sectionId || "dashboard";
 
   return (
-    <>
+    <div className="workspace-shell" data-module={moduleId}>
       <Sidebar />
       <div className="ws-main">
         <TopBar />
@@ -66,7 +68,7 @@ function WorkspaceInner() {
         </main>
       </div>
       {assistantOpen && <AiAssistantDrawer onClose={() => setAssistantOpen(false)} />}
-    </>
+    </div>
   );
 }
 
@@ -96,10 +98,10 @@ export default function WorkspaceShell() {
   }
 
   return (
-    <div className="workspace-shell">
-      <WorkspaceProvider>
-        <WorkspaceInner />
-      </WorkspaceProvider>
-    </div>
+    <WorkspaceProvider>
+      <ModuleShell>
+        {null}
+      </ModuleShell>
+    </WorkspaceProvider>
   );
 }
