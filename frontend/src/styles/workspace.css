@@ -3995,16 +3995,10 @@ body.workspace-mode {
   .ws-dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .ws-dashboard-grid .ws-card {
-    grid-column: span 2 !important;
-  }
 }
 @media (max-width: 768px) {
   .ws-dashboard-grid {
     grid-template-columns: 1fr;
-  }
-  .ws-dashboard-grid .ws-card {
-    grid-column: span 1 !important;
   }
 }
 

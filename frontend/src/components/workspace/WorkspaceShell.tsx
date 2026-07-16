@@ -95,7 +95,7 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
     const handleResize = () => {
       const width = window.innerWidth;
       setWindowWidth(width);
-      if (width < 1100) {
+      if (width < 1024) {
         setSidebarCollapsed(true);
       } else {
         setSidebarCollapsed(false);
@@ -106,7 +106,7 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [setSidebarCollapsed]);
 
-  const isOverlayMode = windowWidth < 900;
+  const isOverlayMode = windowWidth < 1200;
   const gridStyle = (assistantOpen && !isOverlayMode)
     ? { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr) ${copilotWidth}px` }
     : { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr)` };
