@@ -78,46 +78,56 @@ export default function TabBar() {
         </button>
 
         {pickerOpen && (
-          <div
-            className="ws-card ws-scroll"
-            style={{
-              position: "absolute",
-              top: 36,
-              left: 0,
-              zIndex: 20,
-              width: 240,
-              maxHeight: 320,
-              padding: 8,
-              display: "grid",
-              gap: 2
-            }}
-          >
-            {allSections
-              .filter((id) => !openSectionIds.has(id))
-              .map((id) => {
-                const meta = SECTION_REGISTRY[id];
-                const Icon = meta.icon;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className="ws-nav-item"
-                    onClick={() => {
-                      openSection(id);
-                      setPickerOpen(false);
-                    }}
-                  >
-                    <Icon size={16} />
-                    <span>{meta.label}</span>
-                  </button>
-                );
-              })}
-            {allSections.every((id) => openSectionIds.has(id)) && (
-              <span style={{ fontSize: 12, color: "var(--ws-text-muted)", padding: 8 }}>
-                All sections are already open.
-              </span>
-            )}
-          </div>
+          <>
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 19
+              }}
+              onClick={() => setPickerOpen(false)}
+            />
+            <div
+              className="ws-menu-popup ws-scroll"
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: "auto",
+                zIndex: 20,
+                width: 240,
+                maxHeight: 320,
+                display: "grid",
+                gap: 2,
+                marginTop: 6
+              }}
+            >
+              {allSections
+                .filter((id) => !openSectionIds.has(id))
+                .map((id) => {
+                  const meta = SECTION_REGISTRY[id];
+                  const Icon = meta.icon;
+                  return (
+                    <div
+                      key={id}
+                      className="ws-menu-popup-item"
+                      onClick={() => {
+                        openSection(id);
+                        setPickerOpen(false);
+                      }}
+                    >
+                      <Icon size={16} />
+                      <span>{meta.label}</span>
+                    </div>
+                  );
+                })}
+              {allSections.every((id) => openSectionIds.has(id)) && (
+                <span style={{ fontSize: 12, color: "var(--ws-text-muted)", padding: 8 }}>
+                  All sections are already open.
+                </span>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

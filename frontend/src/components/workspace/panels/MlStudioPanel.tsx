@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useWorkspace } from "../WorkspaceContext";
-import { Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, BarChart3 } from "lucide-react";
 import ModuleHeader from "./ModuleHeader";
+import ChartCard from "./ChartCard";
+import EmptyState from "./EmptyState";
 
 export default function MlStudioPanel() {
   const {
+    openSection,
     edaResult,
     allColumns,
     targetCol,
@@ -27,10 +30,14 @@ export default function MlStudioPanel() {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="machine-learning" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to build models.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="machine-learning"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
@@ -117,8 +124,8 @@ export default function MlStudioPanel() {
                 type="button"
                 onClick={handleGetRecommendations}
                 disabled={mlRecommendLoading}
-                className="ws-btn"
-                style={{ padding: "10px 14px", justifyContent: "center" }}
+                className="ws-btn ws-btn-ai"
+                style={{ width: "100%" }}
               >
                 {mlRecommendLoading ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} />} Get AI Suggestions
               </button>
@@ -128,7 +135,7 @@ export default function MlStudioPanel() {
                 onClick={handleTrainModel}
                 disabled={!!trainingLoading}
                 className="ws-btn ws-btn-primary"
-                style={{ padding: "10px 14px", justifyContent: "center" }}
+                style={{ width: "100%" }}
               >
                 {trainingLoading ? (
                   <>
@@ -180,9 +187,12 @@ export default function MlStudioPanel() {
               </div>
 
               {/* ROC/AUC & Feature Importance Mockups */}
-              <div className="ws-card-2" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 12, fontWeight: 700, margin: "0 0 12px" }}>Feature Importance Weights</h3>
-                <div style={{ display: "grid", gap: 10 }}>
+              <ChartCard
+                title="Feature Importance Weights"
+                description="Visualizing feature scores from the trained model parameters"
+                icon={BarChart3}
+              >
+                <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
                   {[
                     { name: "Var_A", score: 85 },
                     { name: "Var_B", score: 62 },
@@ -197,7 +207,7 @@ export default function MlStudioPanel() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </ChartCard>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--ws-success)" }}>
                 <CheckCircle2 size={16} />

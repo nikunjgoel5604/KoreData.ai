@@ -1,20 +1,23 @@
-"use client";
-
 import { useWorkspace } from "../WorkspaceContext";
 import { Sparkles } from "lucide-react";
 import ModuleHeader from "./ModuleHeader";
+import EmptyState from "./EmptyState";
 
 export default function AiInsightsPanel() {
-  const { edaResult } = useWorkspace();
+  const { openSection, edaResult } = useWorkspace();
 
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="ai-insights" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to view AI recommendations.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="ai-insights"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );

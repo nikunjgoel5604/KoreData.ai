@@ -1,8 +1,9 @@
 "use client";
 
-import { FileUp, Loader2 } from "lucide-react";
-import { useWorkspace } from "../WorkspaceContext";
+import { FileUp, Loader2, FolderOpen, Trash2 } from "lucide-react";
+import { useWorkspace, type UploadedFile } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
+import DataTable, { type ColumnConfig } from "./DataTable";
 
 export default function UploadPanel() {
   const {
@@ -13,6 +14,52 @@ export default function UploadPanel() {
     handleRemoveFile,
     statusMessage
   } = useWorkspace();
+
+  const columns: ColumnConfig<UploadedFile>[] = [
+    {
+      key: "file_name",
+      header: "File name",
+      sortable: true,
+      type: "text",
+      render: (row) => <span className="ws-table-name">{row.file_name}</span>
+    },
+    {
+      key: "row_count",
+      header: "Rows",
+      sortable: true,
+      type: "number"
+    },
+    {
+      key: "col_count",
+      header: "Columns",
+      sortable: true,
+      type: "number"
+    },
+    {
+      key: "uploaded_at",
+      header: "Date Ingested",
+      sortable: true,
+      type: "date"
+    }
+  ];
+
+  const actions = [
+    {
+      label: "Reuse",
+      icon: FolderOpen,
+      onClick: (row: UploadedFile) => handleReuseFile(row.id, row.file_name)
+    },
+    {
+      label: "Delete",
+      icon: Trash2,
+      danger: true,
+      onClick: (row: UploadedFile) => {
+        if (confirm(`Are you sure you want to delete the dataset "${row.file_name}"? This action cannot be undone.`)) {
+          handleRemoveFile(row.id);
+        }
+      }
+    }
+  ];
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -87,56 +134,18 @@ export default function UploadPanel() {
       {/* Upload history & Datasets Manager */}
       <div className="ws-card">
         <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Saved Ingestion Files</h2>
-        <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
-          <table className="ws-table">
-            <thead>
-              <tr>
-                <th>File name</th>
-                <th>Rows</th>
-                <th>Columns</th>
-                <th>Date Ingested</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((file) => (
-                <tr key={file.id}>
-                  <td>
-                    <span className="ws-table-name">{file.file_name}</span>
-                  </td>
-                  <td>{file.row_count ?? "NA"}</td>
-                  <td>{file.col_count ?? "NA"}</td>
-                  <td>{file.uploaded_at ? new Date(file.uploaded_at).toLocaleString() : "NA"}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <button 
-                      type="button" 
-                      onClick={() => handleReuseFile(file.id, file.file_name)} 
-                      className="ws-link" 
-                      style={{ marginRight: 16, border: "none", background: "transparent", cursor: "pointer" }}
-                    >
-                      Reuse
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveFile(file.id)} 
-                      className="ws-link" 
-                      style={{ color: "var(--ws-danger)", border: "none", background: "transparent", cursor: "pointer" }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {files.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--ws-text-muted)", padding: 24 }}>
-                    No uploads saved.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        
+        <DataTable
+          data={files}
+          columns={columns}
+          actions={actions}
+          searchPlaceholder="Search files..."
+          searchFields={["file_name"]}
+          showPagination={true}
+          defaultRowsPerPage={5}
+          emptyTitle="No uploads saved."
+          emptyDesc="Ingest datasets to build the profile history."
+        />
       </div>
     </div>
   );

@@ -1,19 +1,22 @@
-"use client";
-
 import { useWorkspace } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
+import EmptyState from "./EmptyState";
 
 export default function ExportPanel() {
-  const { edaResult, addLog } = useWorkspace();
+  const { openSection, edaResult, addLog } = useWorkspace();
 
   if (!edaResult) {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="export" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to export workspace assets.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="export"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
@@ -58,8 +61,8 @@ export default function ExportPanel() {
                 alert(`Exporting ${asset.title} in progress...`);
                 addLog("Exporter", `Triggered export for asset: ${asset.title}`, "success");
               }}
-              className="ws-btn"
-              style={{ width: "100%", padding: 6, justifyContent: "center", fontSize: 11 }}
+              className="ws-btn ws-btn-sm"
+              style={{ width: "100%" }}
             >
               Download Asset
             </button>

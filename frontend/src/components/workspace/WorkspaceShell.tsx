@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import TabBar from "./TabBar";
 import AiAssistantDrawer from "./AiAssistantDrawer";
+import NotificationCenterDrawer from "./NotificationCenterDrawer";
 import OverviewPanel from "./panels/OverviewPanel";
 import GenericPanel from "./panels/GenericPanel";
 import UploadPanel from "./panels/UploadPanel";
@@ -54,11 +55,48 @@ function ActivePanel() {
 
 /** Reads the active module from context and sets data-module on the shell div */
 function ModuleShell({ children }: { children: React.ReactNode }) {
-  const { activeTab, assistantOpen, setAssistantOpen, sidebarCollapsed } = useWorkspace();
+  const { activeTab, assistantOpen, setAssistantOpen, sidebarCollapsed, notificationsOpen, setNotificationsOpen } = useWorkspace();
   const moduleId = activeTab?.sectionId || "dashboard";
 
+  // AI Copilot drag resizing state
+  const [copilotWidth, setCopilotWidth] = useState(385);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = (mouseDownEvent: React.MouseEvent) => {
+    mouseDownEvent.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 380 && newWidth <= 520) {
+        setCopilotWidth(newWidth);
+      }
+    };
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const gridStyle = assistantOpen
+    ? { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr) ${copilotWidth}px` }
+    : { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr)` };
+
   return (
-    <div className="workspace-shell" data-module={moduleId} data-sidebar-collapsed={sidebarCollapsed}>
+    <div
+      className="workspace-shell"
+      data-module={moduleId}
+      data-sidebar-collapsed={sidebarCollapsed}
+      style={gridStyle}
+    >
       <Sidebar />
       <div className="ws-main">
         <TopBar />
@@ -67,7 +105,17 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
           <ActivePanel />
         </main>
       </div>
-      {assistantOpen && <AiAssistantDrawer onClose={() => setAssistantOpen(false)} />}
+      {assistantOpen && (
+        <AiAssistantDrawer
+          onClose={() => setAssistantOpen(false)}
+          width={copilotWidth}
+          startResizing={startResizing}
+          isResizing={isResizing}
+        />
+      )}
+      {notificationsOpen && (
+        <NotificationCenterDrawer onClose={() => setNotificationsOpen(false)} />
+      )}
     </div>
   );
 }

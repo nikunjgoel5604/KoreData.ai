@@ -8,7 +8,7 @@ type Theme = "dark" | "light";
 
 export default function TopBar() {
   const [theme, setTheme] = useState<Theme>("dark");
-  const { assistantOpen, setAssistantOpen, simRunning } = useWorkspace();
+  const { assistantOpen, setAssistantOpen, simRunning, notificationsOpen, setNotificationsOpen } = useWorkspace();
 
   useEffect(() => {
     const saved = window.localStorage.getItem("koredata-theme") as Theme | null;
@@ -71,9 +71,14 @@ export default function TopBar() {
           <Sparkles size={18} />
         </button>
         
-        <button type="button" className="ws-icon-btn" aria-label="Notifications">
+        <button
+          type="button"
+          className={`ws-icon-btn ${notificationsOpen ? "active" : ""}`}
+          aria-label="Notifications"
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+        >
           <Bell size={18} />
-          <span className="ws-badge">12</span>
+          <span className="ws-badge">5</span>
         </button>
         
         <button type="button" className="ws-icon-btn" aria-label="Recent Activity">

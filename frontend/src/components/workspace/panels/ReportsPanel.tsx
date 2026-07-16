@@ -1,10 +1,12 @@
-"use client";
-
 import { useWorkspace } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
+import DataTable, { type ColumnConfig } from "./DataTable";
+import EmptyState from "./EmptyState";
+import { Download } from "lucide-react";
 
 export default function ReportsPanel() {
   const {
+    openSection,
     edaResult,
     reportType,
     setReportType,
@@ -20,14 +22,56 @@ export default function ReportsPanel() {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="reports" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to compile reports.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="reports"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
   }
+
+  const columns: ColumnConfig<any>[] = [
+    {
+      key: "file_name",
+      header: "Report Name",
+      sortable: true,
+      type: "text"
+    },
+    {
+      key: "file_type",
+      header: "Format",
+      sortable: true,
+      type: "fileType"
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      type: "status"
+    }
+  ];
+
+  const actions = [
+    {
+      label: "Download",
+      icon: Download,
+      onClick: (row: any) => {
+        alert(`Downloading ${row.file_name}...`);
+      }
+    }
+  ];
+
+  // Map status property to rows for the DataTable component
+  const tableData = generatedReportsList.map(rep => ({
+    ...rep,
+    file_type: rep.file_type || "PDF",
+    status: "Compiled"
+  }));
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -71,7 +115,7 @@ export default function ReportsPanel() {
             type="button" 
             onClick={handleGenerateReport}
             className="ws-btn ws-btn-primary" 
-            style={{ padding: "10px 16px", marginTop: 10 }}
+            style={{ marginTop: 10 }}
           >
             Compile & Export Report
           </button>
@@ -102,7 +146,7 @@ export default function ReportsPanel() {
             type="button" 
             onClick={() => alert("Schedule saved successfully.")}
             className="ws-btn" 
-            style={{ width: "100%", padding: 10, justifyContent: "center" }}
+            style={{ width: "100%" }}
           >
             Save Cron Schedule
           </button>
@@ -113,30 +157,18 @@ export default function ReportsPanel() {
       {generatedReportsList.length > 0 && (
         <div className="ws-card">
           <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Compiled Reports History</h2>
-          <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
-            <table className="ws-table">
-              <thead>
-                <tr>
-                  <th>Report Name</th>
-                  <th>Format</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {generatedReportsList.map((rep, idx) => (
-                  <tr key={idx}>
-                    <td>{rep.file_name}</td>
-                    <td><span className="ws-badge" style={{ background: "var(--ws-blue)", color: "#000" }}>{rep.file_type || "PDF"}</span></td>
-                    <td style={{ color: "var(--ws-success)", fontWeight: 700 }}>Compiled</td>
-                    <td>
-                      <a href="#" onClick={(e) => { e.preventDefault(); alert("Downloading report..."); }} className="ws-link">Download</a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          
+          <DataTable
+            data={tableData}
+            columns={columns}
+            actions={actions}
+            searchPlaceholder="Search reports..."
+            searchFields={["file_name", "file_type"]}
+            showPagination={true}
+            defaultRowsPerPage={5}
+            emptyTitle="No reports compiled."
+            emptyDesc="Click 'Compile & Export Report' above to start generating files."
+          />
         </div>
       )}
     </div>

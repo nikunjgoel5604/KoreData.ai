@@ -1108,44 +1108,248 @@ body.workspace-mode {
 .ws-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: var(--ws-radius-sm);
-  padding: 8px 14px;
-  font-size: 13px;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 12px 22px;
+  height: 44px;
+  min-width: 120px;
+  box-sizing: border-box;
+  font-size: 14px;
   font-weight: 600;
-  border: 1px solid var(--ws-border);
-  background: transparent;
-  color: var(--ws-text);
+  font-family: 'Inter', sans-serif;
+  border: 1px solid #334155;
+  background: #1F2937;
+  color: #F8FAFC;
   cursor: pointer;
-  transition: var(--ws-transition);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
 }
 
 .ws-btn:hover {
-  background: var(--ws-hover);
-  border-color: var(--ws-hover);
-  box-shadow: var(--ws-shadow-hover);
+  background: #2D3748;
+  border-color: #475569;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
 }
 
+.ws-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ws-btn:focus-visible {
+  outline: 2px solid #38BDF8;
+  outline-offset: 2px;
+}
+
+.ws-btn:disabled {
+  background: #475569 !important;
+  border-color: #475569 !important;
+  color: #94A3B8 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  opacity: 0.65;
+}
+
+/* Primary Button */
 .ws-btn-primary {
-  background: var(--ws-blue);
-  border-color: var(--ws-blue);
+  background: #2563EB;
+  border: none;
   color: #fff;
 }
 
 .ws-btn-primary:hover {
-  background: #2563EB;
-  border-color: #2563EB;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25);
+  background: #1D4ED8;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  transform: translateY(-2px);
 }
 
+.ws-btn-primary:active {
+  background: #1740B3;
+  transform: translateY(0) scale(0.98);
+}
+
+/* Secondary Button */
+.ws-btn-secondary {
+  background: transparent;
+  border: 1px solid #334155;
+  color: #CBD5E1;
+}
+
+.ws-btn-secondary:hover {
+  background: #1F2937;
+  border-color: #38BDF8;
+  box-shadow: 0 8px 20px rgba(56, 189, 248, 0.1);
+  color: #F8FAFC;
+}
+
+/* Success Button */
+.ws-btn-success {
+  background: #22C55E;
+  border: none;
+  color: #fff;
+}
+
+.ws-btn-success:hover {
+  background: #16A34A;
+  box-shadow: 0 10px 24px rgba(34, 197, 94, 0.25);
+  transform: translateY(-2px);
+}
+
+.ws-btn-success:active {
+  background: #14803C;
+}
+
+/* Warning Button */
+.ws-btn-warning {
+  background: #F59E0B;
+  border: none;
+  color: #fff;
+}
+
+.ws-btn-warning:hover {
+  background: #D97706;
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.25);
+  transform: translateY(-2px);
+}
+
+.ws-btn-warning:active {
+  background: #B35C02;
+}
+
+/* Danger Button */
 .ws-btn-danger {
-  border-color: rgba(239, 68, 68, 0.35);
-  color: var(--ws-danger);
+  background: #EF4444;
+  border: none;
+  color: #fff;
 }
 
 .ws-btn-danger:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.5);
+  background: #DC2626;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
+  transform: translateY(-2px);
+}
+
+.ws-btn-danger:active {
+  background: #B31D1D;
+}
+
+/* AI Button */
+.ws-btn-ai {
+  background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
+}
+
+.ws-btn-ai:hover {
+  background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.35);
+  transform: translateY(-2px);
+}
+
+.ws-btn-ai:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Icon Buttons */
+.ws-btn-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: #CBD5E1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.ws-btn-icon:hover {
+  background: #223149;
+  color: #F8FAFC;
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.ws-btn-icon:active {
+  transform: scale(0.95);
+}
+
+.ws-btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Floating Action Button (FAB) */
+.ws-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2563EB;
+  color: #fff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+}
+
+.ws-fab:hover {
+  background: #1D4ED8;
+  transform: translateY(-3px);
+  box-shadow: 0 24px 48px rgba(37, 99, 235, 0.45);
+}
+
+.ws-fab:active {
+  transform: translateY(-1px) scale(0.98);
+}
+
+/* Button groups container */
+.ws-btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Toolbar compact button */
+.ws-btn-toolbar {
+  height: 38px;
+  padding: 8px 16px;
+  min-width: auto;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* Loading button spinner */
+.ws-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ws-btn-spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes ws-btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 .ws-stepper {
@@ -1424,45 +1628,131 @@ body.workspace-mode {
   align-items: start;
 }
 
+.ws-table-container {
+  background: #1B2638;
+  border: 1px solid #2E3B52;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  margin-bottom: 24px;
+}
+
+.ws-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #2E3B52;
+  background: #162133;
+}
+
 .ws-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
 }
 
 .ws-table th {
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #64748B;
-  padding: 12px 14px;
-  border-bottom: 1px solid #2E3B52;
+  letter-spacing: 0.02em;
+  color: #CBD5E1;
+  padding: 0 16px;
+  height: 52px;
+  border-bottom: 1px solid #334155;
+  border-right: 1px solid rgba(255, 255, 255, 0.02);
   position: sticky;
   top: 0;
-  background: #1B2638;
+  background: #202D42;
+  z-index: 10;
+  user-select: none;
+}
+
+.ws-table th.sortable {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.ws-table th.sortable:hover {
+  background: #283954;
 }
 
 .ws-table td {
-  padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 0 16px;
+  height: 52px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.02);
   vertical-align: middle;
-  color: #CBD5E1;
+  color: #F8FAFC;
+  font-size: 14px;
 }
 
 .ws-table tbody tr {
   transition: all 0.2s ease;
+  background: transparent;
 }
 
 .ws-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: #223149;
+  cursor: pointer;
 }
 
+.ws-table tbody tr.selected {
+  background: #1E3A5F !important;
+}
+
+/* Row Action Buttons styling */
+.ws-row-actions {
+  display: inline-flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.ws-table tr:hover .ws-row-actions {
+  opacity: 1;
+}
+
+.ws-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1F2937;
+  color: #F8FAFC;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ws-action-btn:hover {
+  background: #2D3748;
+  border-color: #38BDF8;
+  color: #38BDF8;
+  transform: translateY(-1px);
+}
+
+.ws-action-btn.danger:hover {
+  border-color: #EF4444;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.ws-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Table name styles */
 .ws-table-name {
   color: #60A5FA;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .ws-table-sub {
@@ -1472,17 +1762,355 @@ body.workspace-mode {
   margin-top: 3px;
 }
 
-.ws-quality-chip {
+/* Alignment utilities */
+.ws-col-left { text-align: left !important; }
+.ws-col-right { text-align: right !important; }
+.ws-col-center { text-align: center !important; }
+
+/* Status Badges */
+.ws-badge-completed,
+.ws-badge-success {
   display: inline-flex;
-  padding: 4px 10px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(34, 197, 94, 0.12);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.ws-badge-running,
+.ws-badge-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.12);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.ws-badge-pending,
+.ws-badge-warning,
+.ws-badge-orange {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.ws-badge-failed,
+.ws-badge-danger,
+.ws-badge-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.ws-badge-draft,
+.ws-badge-gray {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(100, 116, 139, 0.12);
+  color: #94A3B8;
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+/* File Type Badges */
+.ws-tag-csv {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+  background: rgba(34, 197, 94, 0.12);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  text-transform: uppercase;
 }
 
-.ws-quality-chip.high { background: rgba(34, 197, 94, 0.12);  color: #22C55E; }
-.ws-quality-chip.mid  { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
-.ws-quality-chip.low  { background: rgba(239, 68, 68, 0.12);  color: #EF4444; }
+.ws-tag-xlsx,
+.ws-tag-excel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  text-transform: uppercase;
+}
+
+.ws-tag-json {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.12);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  text-transform: uppercase;
+}
+
+.ws-tag-parquet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(168, 85, 247, 0.12);
+  color: #A855F7;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  text-transform: uppercase;
+}
+
+.ws-tag-sql {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  text-transform: uppercase;
+}
+
+.ws-tag-xml {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(236, 72, 153, 0.12);
+  color: #EC4899;
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  text-transform: uppercase;
+}
+
+/* Quality indicators in tables */
+.ws-table-quality {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-table-quality-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.ws-table-quality-badge.high { background: rgba(34, 197, 94, 0.12); color: #22C55E; }
+.ws-table-quality-badge.mid { background: rgba(245, 158, 11, 0.12); color: #F59E0B; }
+.ws-table-quality-badge.low { background: rgba(239, 68, 68, 0.12); color: #EF4444; }
+
+.ws-table-quality-track {
+  flex: 1;
+  max-width: 80px;
+  height: 6px;
+  background: #162133;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ws-table-quality-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.ws-table-quality-fill.high { background: #22C55E; }
+.ws-table-quality-fill.mid { background: #F59E0B; }
+.ws-table-quality-fill.low { background: #EF4444; }
+
+/* Table Toolbar UI */
+.ws-table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.ws-table-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.ws-table-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-toolbar-search {
+  position: relative;
+  max-width: 320px;
+  width: 100%;
+}
+
+.ws-toolbar-search input {
+  height: 38px !important;
+  padding-left: 36px !important;
+}
+
+.ws-toolbar-search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748B;
+  pointer-events: none;
+}
+
+/* Pagination Control Bar */
+.ws-table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  color: #CBD5E1;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ws-table-pagination-info {
+  font-weight: 500;
+}
+
+.ws-table-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-pagination-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1F2937;
+  color: #F8FAFC;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  gap: 4px;
+}
+
+.ws-pagination-btn:hover:not(:disabled) {
+  background: #2D3748;
+  border-color: #38BDF8;
+  color: #38BDF8;
+}
+
+.ws-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Column Visibility / Filter Dropdown Popup styles */
+.ws-menu-popup {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  background: #1B2638;
+  border: 1px solid #2E3B52;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  min-width: 180px;
+  margin-top: 6px;
+}
+
+.ws-menu-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  color: #CBD5E1;
+}
+
+.ws-menu-popup-item:hover {
+  background: #223149;
+  color: #F8FAFC;
+}
+
+/* Table Shimmer Loading skeleton */
+@keyframes ws-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.ws-skeleton-row td div {
+  height: 18px;
+  background: linear-gradient(90deg, #1F2937 25%, #2D3748 50%, #1F2937 75%);
+  background-size: 200% 100%;
+  animation: ws-shimmer 1.5s infinite;
+  border-radius: 4px;
+  width: 80%;
+}
+
+.ws-skeleton-row td:nth-child(even) div {
+  width: 60%;
+}
 
 .ws-mini-steps {
   display: flex;
@@ -1730,6 +2358,26 @@ body.workspace-mode {
   letter-spacing: 0.6px;
   text-transform: uppercase;
   margin-bottom: 4px;
+}
+
+/* AI Streaming indicator animation */
+.ws-dot-stream {
+  animation: ws-dot-blink 1.4s infinite both;
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1;
+}
+
+@keyframes ws-dot-blink {
+  0% {
+    opacity: .2;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: .2;
+  }
 }
 
 .ws-ai-chip {
@@ -2072,6 +2720,1095 @@ body.workspace-mode {
 .ws-avatar {
   background: linear-gradient(135deg, var(--ws-module-accent), color-mix(in srgb, var(--ws-module-accent) 50%, var(--ws-ai)));
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENTERPRISE FORM DESIGN SYSTEM
+   Premium form controls inspired by Microsoft Fabric, Azure AI Studio,
+   Databricks, GitHub Enterprise, Linear, and Notion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Global Input Reset ─────────────────────────────────────────────────── */
+/* Targets all native form elements inside workspace panels */
+
+.workspace-shell input[type="text"],
+.workspace-shell input[type="number"],
+.workspace-shell input[type="email"],
+.workspace-shell input[type="password"],
+.workspace-shell input[type="url"],
+.workspace-shell input[type="tel"],
+.workspace-shell input[type="date"],
+.workspace-shell input[type="datetime-local"],
+.workspace-shell input[type="month"],
+.workspace-shell input[type="week"],
+.workspace-shell input[type="time"],
+.workspace-shell input[type="search"] {
+  background: #1F2937;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  height: 46px;
+  padding: 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #F8FAFC;
+  transition: all 0.25s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.workspace-shell input[type="text"]::placeholder,
+.workspace-shell input[type="number"]::placeholder,
+.workspace-shell input[type="email"]::placeholder,
+.workspace-shell input[type="password"]::placeholder,
+.workspace-shell input[type="url"]::placeholder,
+.workspace-shell input[type="tel"]::placeholder,
+.workspace-shell input[type="search"]::placeholder {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+/* Focus state for text inputs */
+.workspace-shell input[type="text"]:focus,
+.workspace-shell input[type="number"]:focus,
+.workspace-shell input[type="email"]:focus,
+.workspace-shell input[type="password"]:focus,
+.workspace-shell input[type="url"]:focus,
+.workspace-shell input[type="tel"]:focus,
+.workspace-shell input[type="date"]:focus,
+.workspace-shell input[type="datetime-local"]:focus,
+.workspace-shell input[type="search"]:focus {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  background: #243247;
+}
+
+/* Disabled input */
+.workspace-shell input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #162133;
+}
+
+/* ── Select / Dropdown ──────────────────────────────────────────────────── */
+
+.workspace-shell select {
+  background: #1F2937;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  height: 46px;
+  padding: 0 42px 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #F8FAFC;
+  transition: all 0.25s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 14px;
+}
+
+.workspace-shell select:hover {
+  border-color: #475569;
+  background-color: #243247;
+}
+
+.workspace-shell select:focus {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  background-color: #243247;
+}
+
+.workspace-shell select option {
+  background: #1F2937;
+  color: #F8FAFC;
+  padding: 12px 16px;
+}
+
+.workspace-shell select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Textarea ───────────────────────────────────────────────────────────── */
+
+.workspace-shell textarea {
+  background: #1F2937;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  min-height: 140px;
+  padding: 14px 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #F8FAFC;
+  transition: all 0.25s ease;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.workspace-shell textarea::placeholder {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+.workspace-shell textarea:focus {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+  background: #243247;
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+/* Targets labels inside panels — NOT sidebar or topbar labels */
+
+.workspace-shell .ws-card label,
+.workspace-shell .ws-form-group label,
+.ws-form-label {
+  display: block;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #CBD5E1 !important;
+  margin-bottom: 8px !important;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.005em;
+}
+
+/* Required field indicator */
+.ws-form-required::after {
+  content: " *";
+  color: #EF4444;
+  font-weight: 700;
+}
+
+/* Optional badge */
+.ws-form-optional::after {
+  content: "Optional";
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #64748B;
+  background: rgba(100, 116, 139, 0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* ── Form Group / Field Wrapper ─────────────────────────────────────────── */
+
+.ws-form-group {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.ws-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Input with Prefix/Suffix Icons ─────────────────────────────────────── */
+
+.ws-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ws-input-wrapper input {
+  padding-left: 44px;
+}
+
+.ws-input-prefix {
+  position: absolute;
+  left: 14px;
+  color: #64748B;
+  pointer-events: none;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.ws-input-wrapper:focus-within .ws-input-prefix {
+  color: #38BDF8;
+}
+
+.ws-input-suffix {
+  position: absolute;
+  right: 14px;
+  color: #64748B;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ws-input-clear {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  z-index: 1;
+  transition: all 0.15s ease;
+}
+.ws-input-clear:hover {
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Checkbox ───────────────────────────────────────────────────────────── */
+
+.workspace-shell input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #334155;
+  border-radius: 6px;
+  background: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.workspace-shell input[type="checkbox"]:hover {
+  border-color: #475569;
+  background: #243247;
+}
+
+.workspace-shell input[type="checkbox"]:checked {
+  background: #3B82F6;
+  border-color: #3B82F6;
+}
+
+.workspace-shell input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.workspace-shell input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* Checkbox label row */
+.ws-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #F8FAFC;
+  padding: 4px 0;
+}
+
+/* ── Radio Button ───────────────────────────────────────────────────────── */
+
+.workspace-shell input[type="radio"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #334155;
+  border-radius: 50%;
+  background: #1F2937;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.workspace-shell input[type="radio"]:hover {
+  border-color: #475569;
+  background: #243247;
+}
+
+.workspace-shell input[type="radio"]:checked {
+  border-color: #3B82F6;
+  background: #1F2937;
+}
+
+.workspace-shell input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3B82F6;
+}
+
+.workspace-shell input[type="radio"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.ws-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #F8FAFC;
+  padding: 4px 0;
+}
+
+/* ── Toggle Switch ──────────────────────────────────────────────────────── */
+
+.ws-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.ws-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.ws-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #334155;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ws-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ws-toggle input:checked + .ws-toggle-track {
+  background: #3B82F6;
+}
+
+.ws-toggle input:checked + .ws-toggle-track::after {
+  transform: translateX(22px);
+}
+
+.ws-toggle input:focus-visible + .ws-toggle-track {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.ws-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.ws-toggle-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #F8FAFC;
+}
+.ws-toggle-text span {
+  display: block;
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ── Range / Slider ─────────────────────────────────────────────────────── */
+
+.workspace-shell input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #334155;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  margin: 8px 0;
+}
+
+.workspace-shell input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3B82F6;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  transition: all 0.15s ease;
+  border: 3px solid #fff;
+}
+
+.workspace-shell input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(59, 130, 246, 0.5);
+}
+
+.workspace-shell input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3B82F6;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.ws-slider-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.ws-slider-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #38BDF8;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Upload Zone ────────────────────────────────────────────────────────── */
+
+.ws-upload-zone {
+  border: 2px dashed #334155;
+  border-radius: 16px;
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: rgba(31, 41, 55, 0.4);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.ws-upload-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ws-upload-zone:hover {
+  border-color: #38BDF8;
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.ws-upload-zone:hover::before {
+  opacity: 1;
+}
+
+.ws-upload-zone.dragging {
+  border-color: #38BDF8;
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
+}
+
+.ws-upload-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38BDF8;
+  margin-bottom: 18px;
+  transition: transform 0.3s ease;
+}
+
+.ws-upload-zone:hover .ws-upload-icon {
+  transform: translateY(-4px);
+}
+
+.ws-upload-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin-bottom: 6px;
+}
+
+.ws-upload-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  margin-bottom: 20px;
+}
+
+.ws-upload-actions {
+  display: flex;
+  gap: 12px;
+  z-index: 1;
+}
+
+/* Upload progress bar */
+.ws-upload-progress {
+  width: 100%;
+  max-width: 380px;
+  margin-top: 20px;
+}
+
+.ws-upload-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #162133;
+  overflow: hidden;
+}
+
+.ws-upload-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3B82F6, #38BDF8);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ws-upload-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 6px;
+}
+
+/* File preview card */
+.ws-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #2E3B52;
+  border-radius: 12px;
+  background: #162133;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+}
+
+.ws-file-preview:hover {
+  border-color: #3A4D66;
+  background: #1B2638;
+}
+
+.ws-file-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60A5FA;
+  flex-shrink: 0;
+}
+
+.ws-file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-file-meta {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+/* ── Form Card (Section Container) ──────────────────────────────────────── */
+
+.ws-form-card {
+  background: #1B2638;
+  border: 1px solid #2E3B52;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.ws-form-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #F8FAFC;
+  margin: 0 0 20px;
+  letter-spacing: -0.01em;
+}
+
+.ws-form-card-divider {
+  height: 1px;
+  background: #2E3B52;
+  margin: 20px 0;
+}
+
+/* ── Validation States ──────────────────────────────────────────────────── */
+
+/* Success */
+.ws-input-success,
+.workspace-shell input.ws-input-success,
+.workspace-shell select.ws-input-success {
+  border-color: #22C55E !important;
+}
+.ws-input-success:focus {
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15) !important;
+}
+
+/* Error */
+.ws-input-error,
+.workspace-shell input.ws-input-error,
+.workspace-shell select.ws-input-error {
+  border-color: #EF4444 !important;
+}
+.ws-input-error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Warning */
+.ws-input-warning,
+.workspace-shell input.ws-input-warning,
+.workspace-shell select.ws-input-warning {
+  border-color: #F59E0B !important;
+}
+.ws-input-warning:focus {
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Validation text */
+.ws-validation-text {
+  font-size: 12px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ws-validation-text.success { color: #22C55E; }
+.ws-validation-text.error { color: #EF4444; }
+.ws-validation-text.warning { color: #F59E0B; }
+
+/* ── Empty States ───────────────────────────────────────────────────────── */
+
+.ws-empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  border: 1px dashed #2E3B52;
+  border-radius: 16px;
+  background: rgba(27, 38, 56, 0.5);
+}
+
+.ws-empty-state-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748B;
+  margin: 0 auto 16px;
+}
+
+.ws-empty-state-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #CBD5E1;
+  margin-bottom: 6px;
+}
+
+.ws-empty-state-desc {
+  font-size: 13px;
+  color: #64748B;
+  max-width: 380px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ── Form Field Help Text ───────────────────────────────────────────────── */
+
+.ws-help-text {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* ── Tags / Multi Select Chips ──────────────────────────────────────────── */
+
+.ws-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #60A5FA;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  transition: all 0.15s ease;
+}
+
+.ws-tag:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.ws-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  color: #60A5FA;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.ws-tag-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+
+.ws-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #1F2937;
+  min-height: 46px;
+  transition: all 0.25s ease;
+}
+
+.ws-tags-container:focus-within {
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
+}
+
+.ws-tags-input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  height: 24px !important;
+  padding: 0 !important;
+  min-width: 120px;
+  flex: 1;
+}
+
+/* ── Code Block / Mono Text ─────────────────────────────────────────────── */
+
+.ws-code-block {
+  padding: 14px 16px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  background: #0D1117;
+  border: 1px solid #2E3B52;
+  border-radius: 12px;
+  color: #22C55E;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+/* ── Connector Tiles (Import Sources) ───────────────────────────────────── */
+
+.ws-connector-tile {
+  padding: 14px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #2E3B52;
+  text-align: center;
+  background: #162133;
+  color: #CBD5E1;
+  transition: all 0.25s ease;
+}
+
+.ws-connector-tile:hover {
+  border-color: #38BDF8;
+  color: #F8FAFC;
+  background: #1B2638;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.1);
+}
+
+/* ── Badge ──────────────────────────────────────────────────────────────── */
+
+.ws-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ws-badge-blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60A5FA;
+}
+
+.ws-badge-green {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22C55E;
+}
+
+.ws-badge-red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+}
+
+.ws-badge-orange {
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+}
+
+/* ── Inline Panel Selects (override ws-card-2 selects used in panels) ──── */
+/* This catches all existing panel selects that use ws-card-2 as className */
+
+.workspace-shell .ws-card select.ws-card-2,
+.workspace-shell select.ws-card-2 {
+  background: #1F2937 !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  height: 46px !important;
+  padding: 0 42px 0 16px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #F8FAFC !important;
+  transition: all 0.25s ease !important;
+  outline: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 16px center !important;
+  background-size: 14px !important;
+}
+
+.workspace-shell .ws-card select.ws-card-2:hover,
+.workspace-shell select.ws-card-2:hover {
+  border-color: #475569 !important;
+  background-color: #243247 !important;
+}
+
+.workspace-shell .ws-card select.ws-card-2:focus,
+.workspace-shell select.ws-card-2:focus {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+  background-color: #243247 !important;
+}
+
+/* ── Inline Panel Inputs (override ws-card-2 inputs used in panels) ────── */
+
+.workspace-shell .ws-card input.ws-card-2,
+.workspace-shell input.ws-card-2 {
+  background: #1F2937 !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  height: 46px !important;
+  padding: 0 16px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #F8FAFC !important;
+  transition: all 0.25s ease !important;
+  outline: none !important;
+}
+
+.workspace-shell .ws-card input.ws-card-2:hover,
+.workspace-shell input.ws-card-2:hover {
+  border-color: #475569 !important;
+}
+
+.workspace-shell .ws-card input.ws-card-2:focus,
+.workspace-shell input.ws-card-2:focus {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+  background: #243247 !important;
+}
+
+.workspace-shell .ws-card input.ws-card-2::placeholder,
+.workspace-shell input.ws-card-2::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* ── ws-card-2 base override for form containers ────────────────────────── */
+/* Preserve ws-card-2 when used as background panels, but upgrade visual */
+
+.ws-card-2 {
+  background: #162133;
+  border-radius: 12px;
+}
+
+/* ── Keyboard Focus Styles (Accessibility) ──────────────────────────────── */
+
+.workspace-shell *:focus-visible {
+  outline: 2px solid #38BDF8;
+  outline-offset: 2px;
+}
+
+/* Don't double-ring on inputs that already have focus shadow */
+.workspace-shell input:focus-visible,
+.workspace-shell select:focus-visible,
+.workspace-shell textarea:focus-visible {
+  outline: none;
+}
+
+/* ── Form Animations ────────────────────────────────────────────────────── */
+
+@keyframes ws-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ws-form-animate {
+  animation: ws-fadeInUp 0.3s ease forwards;
+}
+
+/* Staggered field animations */
+.ws-form-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.ws-form-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.ws-form-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.ws-form-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.ws-form-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.ws-form-stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ── Inline Panel Label Override ────────────────────────────────────────── */
+/* Catches all inline-styled labels used across panels */
+
+.workspace-shell .ws-card > div > label,
+.workspace-shell .ws-card .space-y-4 > div > label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #CBD5E1 !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+  letter-spacing: -0.005em !important;
+}
+
+/* ── File Input Hidden ──────────────────────────────────────────────────── */
+
+.workspace-shell input[type="file"].hidden,
+.workspace-shell input.hidden {
+  display: none;
+}
+
+/* ── Specificity Shield ─────────────────────────────────────────────────── */
+/* Prevents the global form system from overriding search and AI inputs */
+
+.ws-search-inner input {
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.ws-ai-input-box input {
+  height: auto !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* ── Upload Label Container Polish ──────────────────────────────────────── */
+/* The UploadPanel uses a <label> with className ws-card-2 as drop zone */
+
+.workspace-shell label.ws-card-2 {
+  border: 2px dashed #334155 !important;
+  border-radius: 16px !important;
+  background: rgba(31, 41, 55, 0.4) !important;
+  transition: all 0.25s ease !important;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-shell label.ws-card-2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.04) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.workspace-shell label.ws-card-2:hover {
+  border-color: #38BDF8 !important;
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+
+.workspace-shell label.ws-card-2:hover::before {
+  opacity: 1;
+}
+
 /* Responsive Topbar */
 @media (max-width: 1024px) {
   .ws-search {
@@ -2098,6 +3835,44 @@ body.workspace-mode {
   }
   .ws-status-badge-header {
     display: none;
+  }
+}
+
+/* ── Empty State Floating & Animations ────────────────────── */
+@keyframes ws-empty-float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+.ws-empty-illustration {
+  animation: ws-empty-float 5s ease-in-out infinite;
+  filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.35));
+}
+
+@keyframes ws-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ws-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 

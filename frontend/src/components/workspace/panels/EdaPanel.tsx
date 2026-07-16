@@ -10,11 +10,17 @@ import {
   Play,
   RotateCcw,
   RotateCw,
-  Sparkles
+  Sparkles,
+  BarChart3,
+  Grid,
+  Wand2
 } from "lucide-react";
+import ChartCard from "./ChartCard";
+import EmptyState from "./EmptyState";
 
 export default function EdaPanel() {
   const {
+    openSection,
     edaResult,
     allColumns,
     cleanStrategy,
@@ -69,10 +75,14 @@ export default function EdaPanel() {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="eda" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to analyze statistics.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="eda"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
@@ -181,26 +191,26 @@ export default function EdaPanel() {
             <div className="ws-card animate-fadeIn">
               <div className="ws-row-between" style={{ marginBottom: 16 }}>
                 <h2 className="ws-section-title">Dataset Slices Preview</h2>
-                <div className="ws-card-2" style={{ display: "flex", gap: 2, padding: 2, borderRadius: "var(--ws-radius-sm)" }}>
+                <div className="ws-card-2" style={{ display: "flex", gap: 4, padding: 4, borderRadius: "12px" }}>
                   <button 
                     type="button" 
-                    className="ws-btn" 
-                    style={{ fontSize: 11, padding: "4px 10px", background: previewTab === "before" ? "var(--ws-blue)" : "transparent", color: previewTab === "before" ? "#000" : "inherit" }}
+                    className={`ws-btn ws-btn-toolbar ${previewTab === "before" ? "ws-btn-primary" : "ws-btn-secondary"}`}
+                    style={{ fontSize: 11, minWidth: "auto", height: 32 }}
                     onClick={() => setPreviewTab("before")}
                   >
                     Head (First 10 Rows)
                   </button>
                   <button 
                     type="button" 
-                    className="ws-btn" 
-                    style={{ fontSize: 11, padding: "4px 10px", background: previewTab === "after" ? "var(--ws-blue)" : "transparent", color: previewTab === "after" ? "#000" : "inherit" }}
+                    className={`ws-btn ws-btn-toolbar ${previewTab === "after" ? "ws-btn-primary" : "ws-btn-secondary"}`}
+                    style={{ fontSize: 11, minWidth: "auto", height: 32 }}
                     onClick={() => setPreviewTab("after")}
                   >
                     Tail (Last 10 Rows)
                   </button>
                 </div>
               </div>
-              <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
+              <div className="ws-table-wrapper">
                 <table className="ws-table">
                   <thead>
                     <tr>
@@ -214,7 +224,7 @@ export default function EdaPanel() {
                       : edaResult.dataset_slices?.head?.["100"]?.slice(-10)
                     )?.map((row: any, idx: number) => (
                       <tr key={idx}>
-                        <td style={{ fontWeight: 700, color: "var(--ws-text-muted)" }}>
+                        <td style={{ fontWeight: 700, color: "#64748B" }}>
                           {previewTab === "before" ? idx + 1 : (edaResult.dataset_slices?.head?.["100"]?.length || 0) - 10 + idx + 1}
                         </td>
                         {allColumns.map((col) => (
@@ -234,7 +244,7 @@ export default function EdaPanel() {
           {edaStep === 3 && (
             <div className="ws-card animate-fadeIn">
               <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Dataset Variables Profile</h2>
-              <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
+              <div className="ws-table-wrapper">
                 <table className="ws-table">
                   <thead>
                     <tr>
@@ -247,12 +257,20 @@ export default function EdaPanel() {
                   <tbody>
                     {allColumns.map((col) => {
                       const type = edaResult.overview?.numeric_columns?.includes(col) ? "Numeric" : edaResult.overview?.categorical_columns?.includes(col) ? "Categorical" : "Datetime";
+                      const fillRate = (edaResult.overview?.columns_summary?.[col]?.fill_rate ?? 1) * 100;
                       return (
                         <tr key={col}>
-                          <td style={{ color: "var(--ws-blue)", fontWeight: 700 }}>{col}</td>
+                          <td className="ws-table-name">{col}</td>
                           <td>{type}</td>
                           <td>{(edaResult.overview?.columns_summary?.[col]?.unique_count) || "NA"}</td>
-                          <td>{(edaResult.overview?.columns_summary?.[col]?.fill_rate * 100)?.toFixed(1) || "100"}%</td>
+                          <td>
+                            <div className="ws-table-quality">
+                              <span className={`ws-table-quality-badge ${fillRate >= 90 ? "high" : fillRate >= 70 ? "mid" : "low"}`}>{fillRate.toFixed(1)}%</span>
+                              <div className="ws-table-quality-track">
+                                <div className={`ws-table-quality-fill ${fillRate >= 90 ? "high" : fillRate >= 70 ? "mid" : "low"}`} style={{ width: `${fillRate}%` }} />
+                              </div>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
@@ -305,7 +323,7 @@ export default function EdaPanel() {
           {edaStep === 5 && (
             <div className="ws-card animate-fadeIn">
               <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Missing Variable Cells</h2>
-              <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
+              <div className="ws-table-wrapper">
                 <table className="ws-table">
                   <thead>
                     <tr>
@@ -321,14 +339,14 @@ export default function EdaPanel() {
                       const fillRate = (summary.fill_rate ?? 1) * 100;
                       return (
                         <tr key={col}>
-                          <td style={{ fontWeight: 600 }}>{col}</td>
-                          <td style={{ color: nullCount > 0 ? "var(--ws-warning)" : "var(--ws-success)" }}>{nullCount}</td>
+                          <td className="ws-table-name">{col}</td>
+                          <td style={{ color: nullCount > 0 ? "#F59E0B" : "#22C55E", fontWeight: 700 }}>{nullCount}</td>
                           <td>
-                            <div className="ws-row-between" style={{ marginBottom: 4 }}>
-                              <span style={{ fontSize: 11 }}>{fillRate.toFixed(1)}% complete</span>
-                            </div>
-                            <div className="ws-quality-bar-track">
-                              <div className="ws-quality-bar-fill" style={{ width: `${fillRate}%` }} />
+                            <div className="ws-table-quality">
+                              <span className={`ws-table-quality-badge ${fillRate >= 90 ? "high" : fillRate >= 70 ? "mid" : "low"}`}>{fillRate.toFixed(1)}%</span>
+                              <div className="ws-table-quality-track">
+                                <div className={`ws-table-quality-fill ${fillRate >= 90 ? "high" : fillRate >= 70 ? "mid" : "low"}`} style={{ width: `${fillRate}%` }} />
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -361,7 +379,7 @@ export default function EdaPanel() {
           {edaStep === 7 && (
             <div className="ws-card animate-fadeIn">
               <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Variable Core Statistics</h2>
-              <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)" }}>
+              <div className="ws-table-wrapper">
                 <table className="ws-table">
                   <thead>
                     <tr>
@@ -379,7 +397,7 @@ export default function EdaPanel() {
                       const isNum = edaResult.overview?.numeric_columns?.includes(col);
                       return (
                         <tr key={col}>
-                          <td style={{ color: "var(--ws-blue)", fontWeight: 700 }}>{col}</td>
+                          <td className="ws-table-name">{col}</td>
                           <td>{isNum && summary.mean ? Number(summary.mean).toFixed(2) : "NA"}</td>
                           <td>{isNum && summary.std ? Number(summary.std).toFixed(2) : "NA"}</td>
                           <td>{isNum && summary.min ? Number(summary.min).toFixed(2) : "NA"}</td>
@@ -396,9 +414,12 @@ export default function EdaPanel() {
 
           {/* Step 8: Distribution Analysis */}
           {edaStep === 8 && (
-            <div className="ws-card animate-fadeIn">
-              <div className="ws-row-between" style={{ marginBottom: 16 }}>
-                <h2 className="ws-section-title">Attribute Value Distributions</h2>
+            <ChartCard
+              title={`Distribution Profile: ${edaHistCol}`}
+              description="Exploring frequency metrics and percentages for attribute categories"
+              icon={BarChart3}
+            >
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "var(--ws-text-muted)", display: "block", marginBottom: 4 }}>Select Distribution Column</label>
                   <select
@@ -441,14 +462,17 @@ export default function EdaPanel() {
                   </div>
                 );
               })()}
-            </div>
+            </ChartCard>
           )}
 
           {/* Step 9: Correlation Analysis */}
           {edaStep === 9 && (
-            <div className="ws-card animate-fadeIn">
-              <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Linear Correlation Grid (r)</h2>
-              <div style={{ overflowX: "auto" }}>
+            <ChartCard
+              title="Linear Correlation Grid (r)"
+              description="Exploring linear relationships and coefficient matrix between numerical variables"
+              icon={Grid}
+            >
+              <div style={{ overflowX: "auto", marginTop: 12 }}>
                 {(() => {
                   const numCols = edaResult.overview?.numeric_columns || [];
                   if (numCols.length < 2) {
@@ -488,14 +512,17 @@ export default function EdaPanel() {
                   );
                 })()}
               </div>
-            </div>
+            </ChartCard>
           )}
 
           {/* Step 10: Outliers Boxplot */}
           {edaStep === 10 && (
-            <div className="ws-card animate-fadeIn">
-              <div className="ws-row-between" style={{ marginBottom: 16 }}>
-                <h2 className="ws-section-title">IQR Outliers Boxplot</h2>
+            <ChartCard
+              title={`IQR Outliers Boxplot: ${edaBoxCol}`}
+              description="Exploring data distribution quartiles, medians, ranges, and statistical outliers"
+              icon={Wand2}
+            >
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
                 <div>
                   <label style={{ fontSize: 11, color: "var(--ws-text-muted)", display: "block", marginBottom: 4 }}>Outlier Target</label>
                   <select
@@ -561,7 +588,7 @@ export default function EdaPanel() {
                   </div>
                 );
               })()}
-            </div>
+            </ChartCard>
           )}
 
           {/* Step 11: Data Quality Check */}
@@ -761,33 +788,31 @@ export default function EdaPanel() {
                     </div>
                   )}
 
-                  <div style={{ display: "flex", gap: 10, paddingTop: 10 }}>
+                  <div style={{ display: "flex", gap: 8, paddingTop: 10 }}>
                     <button
                       type="button"
                       disabled={cleanLoading || !cleanCol}
                       onClick={() => handleExecuteCleaningSimulation(cleanCol, cleanOp, paramsObj)}
                       className="ws-btn ws-btn-primary"
-                      style={{ flex: 1, padding: "10px 14px", justifyContent: "center" }}
+                      style={{ flex: 1 }}
                     >
                       <Play size={14} /> Run Simulation
                     </button>
                     <button
                       type="button"
                       onClick={handleUndoCleaning}
-                      className="ws-btn"
-                      style={{ padding: 10 }}
+                      className="ws-btn-icon"
                       title="Undo"
                     >
-                      <RotateCcw size={14} />
+                      <RotateCcw size={18} />
                     </button>
                     <button
                       type="button"
                       onClick={handleRedoCleaning}
-                      className="ws-btn"
-                      style={{ padding: 10 }}
+                      className="ws-btn-icon"
                       title="Redo"
                     >
-                      <RotateCw size={14} />
+                      <RotateCw size={18} />
                     </button>
                   </div>
 
@@ -811,19 +836,19 @@ export default function EdaPanel() {
                 <div className="ws-card space-y-4">
                   <div className="ws-row-between">
                     <h2 className="ws-section-title">Execution Sandbox Preview</h2>
-                    <div className="ws-card-2" style={{ display: "flex", gap: 2, padding: 2, borderRadius: "var(--ws-radius-sm)" }}>
+                    <div className="ws-card-2" style={{ display: "flex", gap: 4, padding: 4, borderRadius: "12px" }}>
                       <button 
                         type="button" 
-                        className="ws-btn" 
-                        style={{ fontSize: 11, padding: "4px 8px", background: previewTabCleaning === "before" ? "var(--ws-blue)" : "transparent", color: previewTabCleaning === "before" ? "#000" : "inherit" }}
+                        className={`ws-btn ws-btn-toolbar ${previewTabCleaning === "before" ? "ws-btn-primary" : "ws-btn-secondary"}`}
+                        style={{ fontSize: 11, minWidth: "auto", height: 32 }}
                         onClick={() => setPreviewTabCleaning("before")}
                       >
                         Before
                       </button>
                       <button 
                         type="button" 
-                        className="ws-btn" 
-                        style={{ fontSize: 11, padding: "4px 8px", background: previewTabCleaning === "after" ? "var(--ws-blue)" : "transparent", color: previewTabCleaning === "after" ? "#000" : "inherit" }}
+                        className={`ws-btn ws-btn-toolbar ${previewTabCleaning === "after" ? "ws-btn-primary" : "ws-btn-secondary"}`}
+                        style={{ fontSize: 11, minWidth: "auto", height: 32 }}
                         onClick={() => setPreviewTabCleaning("after")}
                       >
                         Simulated After
@@ -831,7 +856,7 @@ export default function EdaPanel() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden" style={{ border: "1px solid var(--ws-border-soft)", borderRadius: "var(--ws-radius-sm)", maxHeight: 380, overflowY: "auto" }}>
+                  <div className="ws-table-wrapper" style={{ maxHeight: 380, overflowY: "auto" }}>
                     <table className="ws-table">
                       <thead>
                         <tr>

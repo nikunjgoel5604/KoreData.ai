@@ -1,11 +1,11 @@
-"use client";
-
 import { useWorkspace } from "../WorkspaceContext";
 import { Loader2, ArrowRight, Activity } from "lucide-react";
 import ModuleHeader from "./ModuleHeader";
+import EmptyState from "./EmptyState";
 
 export default function PredictionPanel() {
   const {
+    openSection,
     edaResult,
     trainedModelCard,
     predictInputs,
@@ -21,10 +21,16 @@ export default function PredictionPanel() {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="prediction" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to run inferences.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="prediction"
+            title="No Dataset Available"
+            description="Upload a dataset first before performing model prediction inferences."
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
@@ -53,23 +59,22 @@ export default function PredictionPanel() {
               }}
               style={{ display: "grid", gap: 14 }}
             >
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                {numericFeatures.slice(0, 8).map((feat: string) => {
-                  const val = predictInputs[feat] || "";
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+                {numericFeatures.map((feat: string) => {
+                  const val = predictInputs[feat] !== undefined ? predictInputs[feat] : "";
                   return (
                     <div key={feat}>
                       <label style={{ fontSize: 11, color: "var(--ws-text-muted)", display: "block", marginBottom: 4 }}>
-                        {feat} (mean: {(edaResult.overview?.columns_summary?.[feat]?.mean ?? 0).toFixed(2)})
+                        {feat} (Float Value)
                       </label>
                       <input
                         type="number"
                         step="any"
-                        placeholder="0.0"
                         value={val}
-                        onChange={(e) => setPredictInputs(prev => ({ ...prev, [feat]: e.target.value }))}
+                        onChange={(e) => setPredictInputs({ ...predictInputs, [feat]: e.target.value })}
+                        placeholder="0.0"
                         className="ws-card-2"
-                        style={{ width: "100%", padding: 8, borderRadius: "var(--ws-radius-sm)", color: "inherit" }}
-                        required
+                        style={{ width: "100%", padding: "8px 12px", borderRadius: "var(--ws-radius-sm)", color: "inherit" }}
                       />
                     </div>
                   );
@@ -80,7 +85,7 @@ export default function PredictionPanel() {
                 type="submit"
                 disabled={predictLoading}
                 className="ws-btn ws-btn-primary"
-                style={{ width: "100%", padding: "10px 14px", justifyContent: "center", marginTop: 10 }}
+                style={{ width: "100%", marginTop: 10 }}
               >
                 {predictLoading ? (
                   <>
@@ -95,9 +100,15 @@ export default function PredictionPanel() {
               </button>
             </form>
           ) : (
-            <div style={{ padding: 20, background: "rgba(0,0,0,0.15)", border: "1px dashed var(--ws-border)", borderRadius: "var(--ws-radius-sm)", color: "var(--ws-text-muted)" }}>
-              No active trained model registry found. Please complete training in ML Studio to initialize inference fields.
-            </div>
+            <EmptyState
+              type="prediction"
+              title="No Model Trained"
+              description="Please train a model in ML Studio before running predictions."
+              primaryAction={{
+                label: "Go to ML Studio",
+                onClick: () => openSection("machine-learning")
+              }}
+            />
           )}
         </div>
 

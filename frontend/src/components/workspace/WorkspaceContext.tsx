@@ -48,6 +48,8 @@ export interface WorkspaceContextValue {
   // AI assistant drawer state
   assistantOpen: boolean;
   setAssistantOpen: (open: boolean) => void;
+  notificationsOpen: boolean;
+  setNotificationsOpen: (open: boolean) => void;
 
   // Ingested data analytics core state
   edaResult: any;
@@ -371,6 +373,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // System states
   const [apiStatus, setApiStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -1426,6 +1429,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // Static variables helper details
     user,
     notifications,
+    notificationsOpen,
+    setNotificationsOpen,
     sidebarCollapsed,
     setSidebarCollapsed: handleSetSidebarCollapsed
   };

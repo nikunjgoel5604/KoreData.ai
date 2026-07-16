@@ -1,10 +1,12 @@
-"use client";
-
 import { useWorkspace } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
+import ChartCard from "./ChartCard";
+import EmptyState from "./EmptyState";
+import { BarChart3 } from "lucide-react";
 
 export default function VisualizationPanel() {
   const {
+    openSection,
     edaResult,
     allColumns,
     vizChartType,
@@ -21,10 +23,14 @@ export default function VisualizationPanel() {
     return (
       <div className="space-y-6 animate-fadeIn">
         <ModuleHeader sectionId="visualization" />
-        <div className="ws-card">
-          <p style={{ color: "var(--ws-text-muted)", fontSize: 14 }}>
-            No active dataset profile. Please upload a file to render charts.
-          </p>
+        <div className="ws-card" style={{ display: "flex", justifyContent: "center" }}>
+          <EmptyState
+            type="visualization"
+            primaryAction={{
+              label: "Upload Dataset",
+              onClick: () => openSection("import-dataset")
+            }}
+          />
         </div>
       </div>
     );
@@ -105,7 +111,7 @@ export default function VisualizationPanel() {
           <button 
             type="button" 
             className="ws-btn ws-btn-primary" 
-            style={{ width: "100%", padding: "10px 14px", justifyContent: "center", marginTop: 10 }}
+            style={{ width: "100%", marginTop: 10 }}
             onClick={() => alert("SVG exported successfully.")}
           >
             Export SVG Chart
@@ -113,13 +119,12 @@ export default function VisualizationPanel() {
         </div>
 
         {/* Main Visualizer Canvas */}
-        <div className="ws-card" style={{ display: "flex", flexDirection: "column", minHeight: 450 }}>
-          <div className="ws-row-between" style={{ borderBottom: "1px solid var(--ws-border-soft)", paddingBottom: 12, marginBottom: 16 }}>
-            <h2 className="ws-section-title">Visualizer Canvas Output</h2>
-            <span style={{ fontSize: 11, color: "var(--ws-text-muted)" }}>Interactive rendering active</span>
-          </div>
-
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)", borderRadius: "var(--ws-radius-sm)", border: "1px solid var(--ws-border-soft)", padding: 24 }}>
+        <ChartCard
+          title={`${vizChartType.toUpperCase()} Visualizer Canvas Output`}
+          description={`Exploring relationship of variables X: "${vizXAxis}" and Y: "${vizYAxis}"`}
+          icon={BarChart3}
+        >
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.15)", borderRadius: "var(--ws-radius-sm)", border: "1px solid var(--ws-border-soft)", padding: 48, minHeight: 350 }}>
             {/* SVG visualization render graphics mockup */}
             <svg className="w-64 h-64" style={{ color: activeColor }} viewBox="0 0 200 200">
               {vizChartType === "bar" && (
@@ -145,7 +150,7 @@ export default function VisualizationPanel() {
               )}
             </svg>
           </div>
-        </div>
+        </ChartCard>
 
       </div>
     </div>

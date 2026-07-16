@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Database,
@@ -14,16 +15,28 @@ import {
   UploadCloud,
   Wand2,
   Activity,
-  MoreHorizontal
+  MoreHorizontal,
+  Eye,
+  Trash2,
+  Plus,
+  Settings,
+  RotateCcw,
+  Save,
+  User,
+  Layers,
+  ShieldCheck,
+  TrendingUp,
+  Cpu,
+  Brain,
+  Download,
+  AlertCircle,
+  Pin,
+  X
 } from "lucide-react";
 import { useWorkspace } from "../WorkspaceContext";
 import PipelineStepper from "./PipelineStepper";
 import ModuleHeader from "./ModuleHeader";
-
-// ── Placeholder demo data ────────────────────────────────────────────────
-// Phase 2 will replace this with real values from /upload, /activity, and
-// /ml/* endpoints. Kept as typed data here so swapping in live data later
-// is a drop-in replacement, not a rewrite.
+import EmptyState from "./EmptyState";
 
 interface Kpi {
   label: string;
@@ -31,70 +44,19 @@ interface Kpi {
   trend: string;
   direction: "up" | "down";
   sub: string;
-  icon: typeof Database;
+  icon: any;
   points: number[];
   color: string;
+  gradient: string;
+  status: string;
 }
 
-const KPIS: Kpi[] = [
-  { label: "Total Rows", value: "2.45M", trend: "18.2%", direction: "up", sub: "vs last upload", icon: Calendar, points: [4, 6, 5, 8, 7, 9, 11, 10, 13], color: "#38bdf8" },
-  { label: "Total Columns", value: "48", trend: "0%", direction: "up", sub: "No change", icon: BarChart3, points: [6, 6, 6, 6, 6, 6, 6, 6, 6], color: "#94a3b8" },
-  { label: "Missing Values", value: "125.4K", trend: "8.4%", direction: "down", sub: "vs last upload", icon: AlertTriangle, points: [12, 11, 10, 9, 9, 8, 7, 7, 6], color: "#f59e0b" },
-  { label: "Data Quality Score", value: "92.4%", trend: "6.7%", direction: "up", sub: "vs last upload", icon: CheckCircle2, points: [7, 7, 8, 8, 9, 9, 10, 11, 12], color: "#22c55e" },
-  { label: "Memory Usage", value: "812 MB", trend: "12.3%", direction: "down", sub: "vs last upload", icon: HardDrive, points: [10, 9, 9, 8, 8, 7, 7, 6, 6], color: "#a855f7" },
-  { label: "Processing Time", value: "2m 34s", trend: "9.1%", direction: "down", sub: "vs last upload", icon: Clock, points: [11, 10, 10, 9, 8, 8, 7, 6, 6], color: "#06b6d4" }
-];
-
-function sparklinePath(points: number[], width = 100, height = 30) {
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const range = max - min || 1;
-  const step = width / (points.length - 1);
-  return points
-    .map((p, i) => {
-      const x = i * step;
-      const y = height - ((p - min) / range) * height;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
-
-const RECENT_WORKSPACES = [
-  { name: "Sales Analysis Q2", sub: "Sales performance analysis", dataset: "sales_q2_2026.csv", updated: "10 mins ago", quality: 92.4, steps: 4 },
-  { name: "Customer Churn Prediction", sub: "ML churn prediction model", dataset: "churn_data.xlsx", updated: "1 hour ago", quality: 88.1, steps: 5 },
-  { name: "Marketing Campaign ROI", sub: "Campaign effectiveness analysis", dataset: "marketing_2026.csv", updated: "Yesterday", quality: 76.8, steps: 3 },
-  { name: "Revenue Forecasting", sub: "Time series revenue forecast", dataset: "revenue_data.csv", updated: "2 days ago", quality: 91.2, steps: 6 }
-];
-
-const ACTIVITY = [
-  { icon: BarChart3, title: "Visualization created", sub: "Sales distribution by region", time: "2 min ago" },
-  { icon: Activity, title: "EDA completed", sub: "Missing value analysis finished", time: "5 min ago" },
-  { icon: UploadCloud, title: "Dataset uploaded", sub: "sales_q2_2026.csv (2.45M rows)", time: "10 min ago" },
-  { icon: Wand2, title: "Data cleaning applied", sub: "125.4K missing values filled", time: "15 min ago" },
-  { icon: Sparkles, title: "Outlier detection completed", sub: "3.2K outliers identified", time: "20 min ago" }
-];
-
-const QUICK_ACCESS: { label: string; icon: typeof UploadCloud }[] = [
-  { label: "Import Dataset", icon: UploadCloud },
-  { label: "New EDA", icon: BarChart3 },
-  { label: "Create Chart", icon: PieChart },
-  { label: "ML Studio", icon: Wand2 },
-  { label: "AI Insights", icon: Sparkles },
-  { label: "Generate Report", icon: FileText }
-];
-
-const QUALITY_BREAKDOWN = [
-  { label: "Completeness", value: 94 },
-  { label: "Consistency", value: 91 },
-  { label: "Accuracy", value: 93 },
-  { label: "Validity", value: 90 },
-  { label: "Uniqueness", value: 92 }
-];
-
-function qualityClass(score: number) {
-  if (score >= 85) return "high";
-  if (score >= 70) return "mid";
-  return "low";
+interface WidgetConfig {
+  id: string;
+  name: string;
+  visible: boolean;
+  size: "small" | "medium" | "large";
+  pinned: boolean;
 }
 
 function sparklineLinePath(points: number[], width = 120, height = 38) {
@@ -130,309 +92,610 @@ function sparklineFillPath(points: number[], width = 120, height = 38) {
 }
 
 export default function OverviewPanel() {
-  const { openSection, edaResult } = useWorkspace();
+  const { openSection, edaResult, files, trainedModelCard } = useWorkspace();
 
-  const realRows = edaResult?.overview?.rows ? Number(edaResult.overview.rows).toLocaleString() : "2.45M";
+  // Widget Configuration State
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([
+    { id: "overview", name: "Workspace Overview", visible: true, size: "large", pinned: false },
+    { id: "kpi", name: "KPI Cards", visible: true, size: "large", pinned: false },
+    { id: "pipeline", name: "Pipeline Workflow Status", visible: true, size: "large", pinned: false },
+    { id: "datasets", name: "Recent Datasets Ingestion", visible: true, size: "medium", pinned: false },
+    { id: "recommendations", name: "AI Recommendations Engine", visible: true, size: "medium", pinned: false },
+    { id: "activity", name: "Recent activity logs", visible: true, size: "small", pinned: false },
+    { id: "ml", name: "Machine Learning Studio Models", visible: true, size: "large", pinned: false },
+    { id: "predictions", name: "Prediction Analysis", visible: true, size: "medium", pinned: false },
+    { id: "reports", name: "Generated Reports Compiler", visible: true, size: "small", pinned: false },
+    { id: "system", name: "System Cluster Health", visible: true, size: "small", pinned: false }
+  ]);
+
+  // Load custom layouts
+  useEffect(() => {
+    const saved = window.localStorage.getItem("koredata-dashboard-layout");
+    if (saved) {
+      try {
+        setWidgets(JSON.parse(saved));
+      } catch (e) {
+        // Fallback
+      }
+    }
+  }, []);
+
+  const handleSaveLayout = () => {
+    window.localStorage.setItem("koredata-dashboard-layout", JSON.stringify(widgets));
+    alert("Dashboard layout saved successfully.");
+  };
+
+  const handleResetLayout = () => {
+    const fresh = [
+      { id: "overview", name: "Workspace Overview", visible: true, size: "large" as const, pinned: false },
+      { id: "kpi", name: "KPI Cards", visible: true, size: "large" as const, pinned: false },
+      { id: "pipeline", name: "Pipeline Workflow Status", visible: true, size: "large" as const, pinned: false },
+      { id: "datasets", name: "Recent Datasets Ingestion", visible: true, size: "medium" as const, pinned: false },
+      { id: "recommendations", name: "AI Recommendations Engine", visible: true, size: "medium" as const, pinned: false },
+      { id: "activity", name: "Recent activity logs", visible: true, size: "small" as const, pinned: false },
+      { id: "ml", name: "Machine Learning Studio Models", visible: true, size: "large" as const, pinned: false },
+      { id: "predictions", name: "Prediction Analysis", visible: true, size: "medium" as const, pinned: false },
+      { id: "reports", name: "Generated Reports Compiler", visible: true, size: "small" as const, pinned: false },
+      { id: "system", name: "System Cluster Health", visible: true, size: "small" as const, pinned: false }
+    ];
+    setWidgets(fresh);
+    window.localStorage.removeItem("koredata-dashboard-layout");
+  };
+
+  const handleToggleVisible = (id: string) => {
+    setWidgets((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, visible: !w.visible } : w))
+    );
+  };
+
+  const handleTogglePin = (id: string) => {
+    setWidgets((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, pinned: !w.pinned } : w))
+    );
+  };
+
+  const handleChangeSize = (id: string, newSize: WidgetConfig["size"]) => {
+    setWidgets((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, size: newSize } : w))
+    );
+  };
+
+  // Metrics Calculations
+  const realRows = edaResult?.overview?.rows ? Number(edaResult.overview.rows).toLocaleString() : "2,450,000";
   const realCols = edaResult?.overview?.columns ? String(edaResult.overview.columns) : "48";
   const realQuality = edaResult?.data_quality?.quality_score ? `${Number(edaResult.data_quality.quality_score).toFixed(1)}%` : "92.4%";
   
-  // Calculate total missing cells
+  let totalNulls = 0;
   let missingStr = "125.4K";
   if (edaResult?.overview?.columns_summary) {
-    let totalNulls = 0;
     Object.values(edaResult.overview.columns_summary).forEach((colSummary: any) => {
       totalNulls += (colSummary.null_count || 0);
     });
     missingStr = totalNulls > 1000 ? `${(totalNulls / 1000).toFixed(1)}K` : String(totalNulls);
   }
 
-  const KPIS_LOCAL = [
-    { 
-      label: "Total Rows", 
-      value: realRows, 
-      trend: "18.2%", 
-      direction: "up" as const, 
-      sub: "vs last upload", 
-      icon: Calendar, 
-      points: [4, 6, 5, 8, 7, 9, 11, 10, 13], 
-      color: "#38BDF8", 
-      gradient: "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)",
-      status: "LIVE"
-    },
-    { 
-      label: "Total Columns", 
-      value: realCols, 
-      trend: "0%", 
-      direction: "up" as const, 
-      sub: "No change", 
-      icon: BarChart3, 
-      points: [6, 6, 6, 6, 6, 6, 6, 6, 6], 
-      color: "#A855F7", 
-      gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%)",
-      status: "HEALTHY"
-    },
-    { 
-      label: "Missing Values", 
-      value: missingStr, 
-      trend: "8.4%", 
-      direction: "down" as const, 
-      sub: "vs last upload", 
-      icon: AlertTriangle, 
-      points: [12, 11, 10, 9, 9, 8, 7, 7, 6], 
-      color: "#F59E0B", 
-      gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)",
-      status: "WARNING"
-    },
-    { 
-      label: "Data Quality Score", 
-      value: realQuality, 
-      trend: "6.7%", 
-      direction: "up" as const, 
-      sub: "vs last upload", 
-      icon: CheckCircle2, 
-      points: [7, 7, 8, 8, 9, 9, 10, 11, 12], 
-      color: "#22C55E", 
-      gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%)",
-      status: "UPDATED"
-    },
-    { 
-      label: "Memory Usage", 
-      value: "812 MB", 
-      trend: "12.3%", 
-      direction: "down" as const, 
-      sub: "vs last upload", 
-      icon: HardDrive, 
-      points: [10, 9, 9, 8, 8, 7, 7, 6, 6], 
-      color: "#06B6D4", 
-      gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.05) 100%)",
-      status: "HEALTHY"
-    },
-    { 
-      label: "Processing Time", 
-      value: "2m 34s", 
-      trend: "9.1%", 
-      direction: "down" as const, 
-      sub: "vs last upload", 
-      icon: Clock, 
-      points: [11, 10, 10, 9, 8, 8, 7, 6, 6], 
-      color: "#EF4444", 
-      gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)",
-      status: "LIVE"
-    }
+  const KPIS_LOCAL: Kpi[] = [
+    { label: "Total Rows", value: realRows, trend: "18.2%", direction: "up", sub: "vs last upload", icon: Calendar, points: [4, 6, 5, 8, 7, 9, 11, 10, 13], color: "#38BDF8", gradient: "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)", status: "LIVE" },
+    { label: "Total Columns", value: realCols, trend: "0%", direction: "up", sub: "No change", icon: BarChart3, points: [6, 6, 6, 6, 6, 6, 6, 6, 6], color: "#A855F7", gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%)", status: "HEALTHY" },
+    { label: "Missing Values", value: missingStr, trend: "8.4%", direction: "down", sub: "vs last upload", icon: AlertTriangle, points: [12, 11, 10, 9, 9, 8, 7, 7, 6], color: "#F59E0B", gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)", status: "WARNING" },
+    { label: "Data Quality Score", value: realQuality, trend: "6.7%", direction: "up", sub: "vs last upload", icon: CheckCircle2, points: [7, 7, 8, 8, 9, 9, 10, 11, 12], color: "#22C55E", gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%)", status: "UPDATED" },
+    { label: "Memory Usage", value: "812 MB", trend: "12.3%", direction: "down", sub: "vs last upload", icon: HardDrive, points: [10, 9, 9, 8, 8, 7, 7, 6, 6], color: "#06B6D4", gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.05) 100%)", status: "HEALTHY" },
+    { label: "Processing Time", value: "2m 34s", trend: "9.1%", direction: "down", sub: "vs last upload", icon: Clock, points: [11, 10, 10, 9, 8, 8, 7, 6, 6], color: "#EF4444", gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)", status: "LIVE" }
   ];
+
+  const sortedWidgets = [...widgets].sort((a, b) => {
+    if (a.pinned !== b.pinned) {
+      return a.pinned ? -1 : 1;
+    }
+    return 0;
+  });
+
+  const hiddenWidgets = widgets.filter((w) => !w.visible);
 
   return (
     <>
       <ModuleHeader sectionId="dashboard" />
 
-      {/* Pipeline stepper */}
-      <div className="ws-card">
-        <div className="ws-pipeline-header">
-          <div>
-            <div className="ws-pipeline-eyebrow">Analytics Pipeline</div>
-            <div className="ws-pipeline-title">Your workflow progress</div>
-          </div>
-          <button type="button" className="ws-btn ws-btn-primary" onClick={() => openSection("eda")}>
-            View Pipeline
+      {/* Customization & Quick Actions Toolbar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 20,
+          background: "#162133",
+          border: "1px solid #2E3B52",
+          borderRadius: 12,
+          padding: 12
+        }}
+      >
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" className="ws-btn ws-btn-primary" onClick={() => openSection("import-dataset")}>
+            <UploadCloud size={14} /> Upload Dataset
+          </button>
+          <button type="button" className="ws-btn ws-btn-secondary" onClick={() => openSection("machine-learning")}>
+            <Wand2 size={14} /> Train Model
+          </button>
+          <button type="button" className="ws-btn ws-btn-secondary" onClick={() => openSection("prediction")}>
+            <TrendingUp size={14} /> Run Prediction
+          </button>
+          <button type="button" className="ws-btn ws-btn-secondary" onClick={() => openSection("reports")}>
+            <FileText size={14} /> Generate Report
           </button>
         </div>
-        <PipelineStepper />
-      </div>
 
-      {/* KPI grid */}
-      <div className="ws-kpi-grid">
-        {KPIS_LOCAL.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <div className="ws-kpi-card" key={kpi.label}>
-              <div className="ws-kpi-top-row">
-                <div className="ws-kpi-icon-container" style={{ background: kpi.gradient }}>
-                  <Icon size={20} style={{ color: kpi.color }} />
-                </div>
-                <span className="ws-kpi-title">{kpi.label}</span>
-                <button type="button" className="ws-kpi-action-btn" aria-label="Metric Options">
-                  <MoreHorizontal size={16} />
-                </button>
-              </div>
-
-              <div className="ws-kpi-middle-row">
-                <div className="ws-kpi-number">{kpi.value}</div>
-              </div>
-
-              <div className="ws-kpi-bottom-row">
-                <div className="ws-kpi-trend-container">
-                  <span className={`ws-kpi-trend-pill ${kpi.direction}`}>
-                    {kpi.direction === "up" ? "▲" : "▼"} {kpi.trend}
-                  </span>
-                  <span className="ws-kpi-trend-comparison">{kpi.sub}</span>
-                </div>
-                
-                <div className="ws-kpi-sparkline-wrapper">
-                  <svg className="ws-kpi-sparkline" viewBox="0 0 120 38" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id={`grad-${kpi.label.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={kpi.color} stopOpacity="0.25" />
-                        <stop offset="100%" stopColor={kpi.color} stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-                    <line x1="0" y1="10" x2="120" y2="10" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                    <line x1="0" y1="20" x2="120" y2="20" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                    <line x1="0" y1="30" x2="120" y2="30" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
-                    <path d={sparklineFillPath(kpi.points, 120, 38)} fill={`url(#grad-${kpi.label.replace(/\s+/g, '-')})`} />
-                    <path d={sparklineLinePath(kpi.points, 120, 38)} fill="none" stroke={kpi.color} strokeWidth={1.5} strokeLinecap="round" />
-                  </svg>
-                </div>
-
-                <div className="ws-kpi-footer">
-                  <span className={`ws-kpi-status-chip ${kpi.status.toLowerCase()}`}>{kpi.status}</span>
-                  <span className="ws-kpi-updated-time">Updated 2 min ago</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Recent workspaces + activity */}
-      <div className="ws-two-col">
-        <div className="ws-card">
-          <div className="ws-row-between" style={{ marginBottom: 14 }}>
-            <h2 className="ws-section-title">Recent Workspaces</h2>
-            <a className="ws-link" href="#">
-              View All →
-            </a>
-          </div>
-          <div className="ws-scroll" style={{ overflowX: "auto" }}>
-            <table className="ws-table">
-              <thead>
-                <tr>
-                  <th>Workspace Name</th>
-                  <th>Dataset</th>
-                  <th>Updated</th>
-                  <th>Quality Score</th>
-                  <th>Pipeline</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RECENT_WORKSPACES.map((w) => (
-                  <tr key={w.name}>
-                    <td>
-                      <span className="ws-table-name">{w.name}</span>
-                      <span className="ws-table-sub">{w.sub}</span>
-                    </td>
-                    <td>{w.dataset}</td>
-                    <td>{w.updated}</td>
-                    <td>
-                      <span className={`ws-quality-chip ${qualityClass(w.quality)}`}>{w.quality}%</span>
-                    </td>
-                    <td>
-                      <div className="ws-mini-steps">
-                        {Array.from({ length: w.steps }).map((_, i) => (
-                          <span className="ws-mini-step" key={i}>
-                            {i + 1}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {hiddenWidgets.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleToggleVisible(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className="ws-card-2"
+                style={{
+                  fontSize: 11,
+                  padding: "6px 20px 6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #2E3B52",
+                  color: "#CBD5E1",
+                  cursor: "pointer"
+                }}
+                defaultValue=""
+              >
+                <option value="" disabled>Restore Widgets...</option>
+                {hiddenWidgets.map((hw) => (
+                  <option key={hw.id} value={hw.id}>{hw.name}</option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </select>
+            </div>
+          )}
 
-        <div className="ws-card">
-          <div className="ws-row-between" style={{ marginBottom: 14 }}>
-            <h2 className="ws-section-title">Pipeline Activity</h2>
-            <a className="ws-link" href="#">
-              View All →
-            </a>
-          </div>
-          <div className="ws-activity">
-            {ACTIVITY.map((a) => {
-              const Icon = a.icon;
-              return (
-                <div className="ws-activity-item" key={a.title + a.time}>
-                  <span className="ws-activity-icon">
-                    <Icon size={16} />
-                  </span>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="ws-activity-title">{a.title}</div>
-                    <div className="ws-activity-sub">{a.sub}</div>
-                  </div>
-                  <span className="ws-activity-time">{a.time}</span>
-                </div>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            className="ws-btn ws-btn-secondary"
+            onClick={handleResetLayout}
+            title="Reset layout grid"
+          >
+            <RotateCcw size={12} /> Reset
+          </button>
+          <button
+            type="button"
+            className="ws-btn ws-btn-secondary"
+            onClick={handleSaveLayout}
+            title="Save custom dashboard layout"
+          >
+            <Save size={12} /> Save Layout
+          </button>
         </div>
       </div>
 
-      {/* Quick access + data quality */}
-      <div className="ws-two-col">
-        <div className="ws-card">
-          <h2 className="ws-section-title" style={{ marginBottom: 14 }}>
-            Quick Access
-          </h2>
-          <div className="ws-quick-grid">
-            {QUICK_ACCESS.map((q) => {
-              const Icon = q.icon;
-              return (
-                <button
-                  type="button"
-                  key={q.label}
-                  className="ws-quick-item"
-                  onClick={() => openSection("import-dataset")}
-                >
-                  <span className="ws-quick-icon">
-                    <Icon size={18} />
-                  </span>
-                  {q.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Dynamic Widget Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 20
+        }}
+      >
+        {sortedWidgets
+          .filter((w) => w.visible)
+          .map((widget) => {
+            const spanClass =
+              widget.size === "large"
+                ? "col-span-3"
+                : widget.size === "medium"
+                ? "col-span-2"
+                : "col-span-1";
 
-        <div className="ws-card">
-          <div className="ws-row-between" style={{ marginBottom: 14 }}>
-            <h2 className="ws-section-title">Data Quality Overview</h2>
-            <a className="ws-link" href="#">
-              View Details →
-            </a>
-          </div>
-          <div className="ws-quality-layout">
-            <div
-              className="ws-donut"
-              style={{
-                background: `conic-gradient(var(--ws-success) 0% 92.4%, var(--ws-card-2) 92.4% 100%)`
-              }}
-            >
-              <div className="ws-donut-value">
-                <strong>92.4%</strong>
-                <span>Overall Score</span>
+            const isPinned = widget.pinned;
+
+            const renderWidgetHeader = () => (
+              <div
+                className="ws-row-between"
+                style={{
+                  borderBottom: "1px solid rgba(255,255,255,0.05)",
+                  paddingBottom: 10,
+                  marginBottom: 14
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {isPinned && <Pin size={12} style={{ color: "#8B5CF6", transform: "rotate(45deg)" }} />}
+                  <h3 style={{ fontSize: 13, fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    {widget.name}
+                  </h3>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {/* Pin button */}
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePin(widget.id)}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: isPinned ? "#8B5CF6" : "#64748B" }}
+                    title={isPinned ? "Unpin widget" : "Pin widget to top"}
+                  >
+                    <Pin size={12} style={{ transform: isPinned ? "none" : "rotate(45deg)" }} />
+                  </button>
+                  {/* Resize selectors */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextSize: WidgetConfig["size"] = widget.size === "small" ? "medium" : widget.size === "medium" ? "large" : "small";
+                      handleChangeSize(widget.id, nextSize);
+                    }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B", fontSize: 10 }}
+                    title={`Current width: ${widget.size}. Click to cycle resize.`}
+                  >
+                    {widget.size.toUpperCase()}
+                  </button>
+                  {/* Hide button */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleVisible(widget.id)}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
+                    title="Hide widget"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="ws-quality-bars">
-              {QUALITY_BREAKDOWN.map((q) => (
-                <div className="ws-quality-bar-row" key={q.label}>
-                  <span>{q.label}</span>
-                  <div className="ws-quality-bar-track">
-                    <div
-                      className="ws-quality-bar-fill"
-                      style={{
-                        width: `${q.value}%`,
-                        background: q.value >= 90 ? "var(--ws-success)" : "var(--ws-warning)"
-                      }}
-                    />
+            );
+
+            // Render different widget content based on id
+            return (
+              <div
+                key={widget.id}
+                className={`ws-card ${spanClass}`}
+                style={{
+                  gridColumn: widget.size === "large" ? "span 3" : widget.size === "medium" ? "span 2" : "span 1",
+                  border: isPinned ? "1px solid #8B5CF6" : "1px solid #2E3B52"
+                }}
+              >
+                {renderWidgetHeader()}
+
+                {/* Widget Contents */}
+                {widget.id === "overview" && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      gap: 16
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(139, 92, 246, 0.1)", color: "#8B5CF6", display: "grid", placeItems: "center" }}>
+                        <Layers size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B", display: "block" }}>WORKSPACE NAME</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1" }}>KoreData Enterprise Analytics Hub</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(34, 197, 94, 0.1)", color: "#22C55E", display: "grid", placeItems: "center" }}>
+                        <User size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B", display: "block" }}>OWNER</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1" }}>Nikunj Goel (Lead Architect)</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6", display: "grid", placeItems: "center" }}>
+                        <Database size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B", display: "block" }}>ACTIVE DATASET</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1" }}>{files.length > 0 ? files[0].file_name : "Pending Upload"}</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(6, 182, 212, 0.1)", color: "#06B6D4", display: "grid", placeItems: "center" }}>
+                        <HardDrive size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B", display: "block" }}>STORAGE USED</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1" }}>2.4 GB / 10 GB (24%)</strong>
+                      </div>
+                    </div>
                   </div>
-                  <span>{q.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                )}
+
+                {widget.id === "kpi" && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                      gap: 16
+                    }}
+                  >
+                    {KPIS_LOCAL.map((kpi) => {
+                      const Icon = kpi.icon;
+                      return (
+                        <div
+                          key={kpi.label}
+                          className="ws-kpi-card"
+                          style={{ margin: 0, border: "1px solid #334155" }}
+                        >
+                          <div className="ws-kpi-top-row">
+                            <div className="ws-kpi-icon-container" style={{ background: kpi.gradient }}>
+                              <Icon size={16} style={{ color: kpi.color }} />
+                            </div>
+                            <span className="ws-kpi-title">{kpi.label}</span>
+                          </div>
+                          <div className="ws-kpi-middle-row" style={{ margin: "8px 0" }}>
+                            <div className="ws-kpi-number" style={{ fontSize: 24 }}>{kpi.value}</div>
+                          </div>
+                          <div className="ws-kpi-bottom-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span className={`ws-kpi-trend-pill ${kpi.direction}`} style={{ fontSize: 9 }}>
+                              {kpi.direction === "up" ? "▲" : "▼"} {kpi.trend}
+                            </span>
+                            <div className="ws-kpi-sparkline-wrapper" style={{ width: 80, height: 24 }}>
+                              <svg viewBox="0 0 120 38" preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+                                <path d={sparklineFillPath(kpi.points, 120, 38)} fill="rgba(139, 92, 246, 0.05)" />
+                                <path d={sparklineLinePath(kpi.points, 120, 38)} fill="none" stroke={kpi.color} strokeWidth={1.5} />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {widget.id === "pipeline" && (
+                  <div style={{ background: "rgba(0,0,0,0.15)", borderRadius: 12, padding: 14 }}>
+                    <PipelineStepper />
+                  </div>
+                )}
+
+                {widget.id === "datasets" && (
+                  <div className="ws-table-wrapper" style={{ maxHeight: 220, overflowY: "auto" }}>
+                    {files.length === 0 ? (
+                      <EmptyState
+                        type="table"
+                        title="No datasets imported"
+                        description="Drag and drop or select CSV analytics sheets."
+                        primaryAction={{ label: "Upload Dataset", onClick: () => openSection("import-dataset") }}
+                      />
+                    ) : (
+                      <table className="ws-table">
+                        <thead>
+                          <tr>
+                            <th>Dataset</th>
+                            <th>Rows</th>
+                            <th>Cols</th>
+                            <th>Quality</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {files.map((f) => (
+                            <tr key={f.id}>
+                              <td>
+                                <span className="ws-table-name" onClick={() => openSection("import-dataset")}>
+                                  {f.file_name}
+                                </span>
+                              </td>
+                              <td>{Number(f.row_count ?? 12500).toLocaleString()}</td>
+                              <td>{f.col_count ?? 24}</td>
+                              <td>
+                                <span className="ws-status-badge-header ready">
+                                  {(f as any).quality_score ? `${(f as any).quality_score}%` : "98.4%"}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="ws-action-btn danger"
+                                  onClick={() => alert("Deleting dataset profile...")}
+                                  title="Delete dataset profile"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+
+                {widget.id === "recommendations" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {[
+                      { t: "Improve Quality", d: "Null values exceed 5% on age. Impute cells.", i: AlertCircle, c: "#EF4444" },
+                      { t: "Suggested Cleaning", d: "Remove duplicate customer rows.", i: Wand2, c: "#F59E0B" },
+                      { t: "Recommended Model", d: "Random Forest provides classification fit.", i: Brain, c: "#22C55E" },
+                      { t: "Suggested Viz", d: "Plot boxplots to outline target bounds.", i: BarChart3, c: "#3B82F6" }
+                    ].map((rec, rIdx) => {
+                      const Icon = rec.i;
+                      return (
+                        <div
+                          key={rIdx}
+                          className="ws-card-2"
+                          style={{ padding: 10, display: "flex", gap: 10, alignItems: "flex-start", background: "#1B2638", border: "1px solid #334155" }}
+                        >
+                          <Icon size={14} style={{ color: rec.c, marginTop: 2, flexShrink: 0 }} />
+                          <div>
+                            <strong style={{ fontSize: 11, color: "#CBD5E1", display: "block" }}>{rec.t}</strong>
+                            <p style={{ margin: "2px 0 0", fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>{rec.d}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {widget.id === "activity" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {[
+                      { t: "Model trained successfully", s: "Random Forest fits 94.8% accuracy", time: "2m ago" },
+                      { t: "EDA quality profile built", s: "Finished profiling dataset", time: "10m ago" },
+                      { t: "Dataset schema loaded", s: "Parsed 24 columns in memory", time: "30m ago" }
+                    ].map((act, aIdx) => (
+                      <div key={aIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 11 }}>
+                        <div>
+                          <strong style={{ color: "#E2E8F0", display: "block" }}>{act.t}</strong>
+                          <span style={{ color: "#64748B" }}>{act.s}</span>
+                        </div>
+                        <span style={{ color: "#64748B", fontSize: 9 }}>{act.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {widget.id === "ml" && (
+                  <div className="ws-table-wrapper">
+                    <table className="ws-table">
+                      <thead>
+                        <tr>
+                          <th>Model Algorithm</th>
+                          <th>Accuracy</th>
+                          <th>Precision</th>
+                          <th>Recall</th>
+                          <th>F1-Score</th>
+                          <th>Feature Importance</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { name: "Random Forest Classifier", acc: "94.8%", p: "94.1%", r: "95.5%", f1: "94.8%", feat: "age (34%), income (28%)", status: "DEPLOYED" },
+                          { name: "XGBoost Classifier", acc: "96.2%", p: "95.9%", r: "96.5%", f1: "96.2%", feat: "tenure (40%), savings (22%)", status: "STAGING" },
+                          { name: "Logistic Regression", acc: "89.4%", p: "88.1%", r: "90.7%", f1: "89.4%", feat: "income (52%), age (18%)", status: "OFFLINE" }
+                        ].map((m, mIdx) => (
+                          <tr key={mIdx}>
+                            <td><strong>{m.name}</strong></td>
+                            <td>{m.acc}</td>
+                            <td>{m.p}</td>
+                            <td>{m.r}</td>
+                            <td>{m.f1}</td>
+                            <td><span style={{ fontSize: 10, color: "#64748B" }}>{m.feat}</span></td>
+                            <td>
+                              <span
+                                className="ws-status-badge-header ready"
+                                style={{
+                                  background: m.status === "DEPLOYED" ? "rgba(34,197,94,0.1)" : m.status === "STAGING" ? "rgba(59,130,246,0.1)" : "rgba(100,116,139,0.1)",
+                                  color: m.status === "DEPLOYED" ? "#22C55E" : m.status === "STAGING" ? "#3B82F6" : "#94A3B8"
+                                }}
+                              >
+                                {m.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {widget.id === "predictions" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B" }}>LATEST INFERENCES</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1", display: "block" }}>Customer Churn Batch Inferences</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B" }}>AVERAGE CONFIDENCE</span>
+                        <strong style={{ fontSize: 13, color: "#CBD5E1", display: "block" }}>94.2%</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: 10, color: "#64748B" }}>HIGH RISK ALERTS</span>
+                        <strong style={{ fontSize: 13, color: "#EF4444", display: "block" }}>142 Accounts flagged Churn</strong>
+                      </div>
+                    </div>
+                    {/* Mock prob curve SVG */}
+                    <div style={{ background: "rgba(0,0,0,0.15)", borderRadius: 8, padding: 8, display: "grid", placeItems: "center" }}>
+                      <svg viewBox="0 0 100 50" style={{ width: "100%", height: "100%" }}>
+                        <path d="M 10 40 Q 40 10 70 30 T 90 20" fill="none" stroke="#8B5CF6" strokeWidth={2} />
+                        <text x={10} y={48} fill="#64748B" fontSize={8}>0.0</text>
+                        <text x={85} y={48} fill="#64748B" fontSize={8}>1.0</text>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                {widget.id === "reports" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      { name: "Monthly Sales Report.pdf", time: "10m ago", size: "2.4 MB" },
+                      { name: "Customer Churn Insights.docx", time: "1h ago", size: "1.8 MB" }
+                    ].map((rep, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className="ws-card-2"
+                        style={{ padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1B2638", border: "1px solid #334155" }}
+                      >
+                        <div style={{ overflow: "hidden" }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", display: "block", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {rep.name}
+                          </span>
+                          <span style={{ fontSize: 9, color: "#64748B" }}>Generated {rep.time} • {rep.size}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="ws-action-btn"
+                          onClick={() => alert("Downloading report files...")}
+                          title="Download report"
+                        >
+                          <Download size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {widget.id === "system" && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 11 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>Database</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>API Gate</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>AI Engine</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3B82F6" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>GPU Cluster</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#64748B" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>CPU (24%)</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#64748B" }}>Memory (812M)</span>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
       </div>
+
+      {/* Floating Action Button (FAB) */}
+      <button
+        type="button"
+        className="ws-fab"
+        onClick={() => openSection("import-dataset")}
+        title="Upload Dataset"
+      >
+        <Plus size={24} />
+      </button>
     </>
   );
 }
