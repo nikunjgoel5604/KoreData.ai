@@ -13,6 +13,7 @@ import {
 } from "react";
 import { SECTION_REGISTRY, NAV_GROUPS } from "./sections";
 import type { SectionId, WorkspaceTab } from "./workspace.types";
+import { getMockWorkspaceData } from "./mockData";
 
 const STORAGE_KEY = "koredata-workspace-tabs-v1";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -35,6 +36,10 @@ export interface UploadedFile {
 }
 
 export interface WorkspaceContextValue {
+  // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
+  activeWorkspace: string;
+  changeWorkspace: (workspaceId: "sales" | "churn" | "marketing" | "revenue") => void;
+
   // Tabs core
   tabs: WorkspaceTab[];
   activeTabId: string | null;
@@ -372,6 +377,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Authentication & Profile helpers
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const defaultWs = getMockWorkspaceData("sales");
+  const [activeWorkspace, setActiveWorkspace] = useState<string>("sales");
+
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -380,16 +388,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [statusMessage, setStatusMessage] = useState("Loading Python cloud packages...");
 
   // Ingested data analytics core state
-  const [edaResult, setEdaResult] = useState<any>(null);
+  const [edaResult, setEdaResult] = useState<any>(defaultWs.edaResult);
   const [uploading, setUploading] = useState(false);
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [files, setFiles] = useState<UploadedFile[]>(defaultWs.files);
   
   // Pipeline simulation running states
   const [simRunning, setSimRunning] = useState(false);
   const [simProgress, setSimProgress] = useState(0);
   const [currentStageKey, setCurrentStageKey] = useState<string | null>(null);
   const [stageStatuses, setStageStatuses] = useState<Record<string, string>>({});
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(defaultWs.logs);
 
   // AI assistant states
   const [assistantOpen, setAssistantOpen] = useState(true);
@@ -400,10 +408,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   ]);
 
   // Model & AutoML States
-  const [models, setModels] = useState<any[]>([]);
-  const [savedModels, setSavedModels] = useState<any[]>([]);
+  const [models, setModels] = useState<any[]>(defaultWs.models);
+  const [savedModels, setSavedModels] = useState<any[]>(defaultWs.savedModels);
   const [mlHistory, setMlHistory] = useState<any[]>([]);
-  const [trainedModelCard, setTrainedModelCard] = useState<any>(null);
+  const [trainedModelCard, setTrainedModelCard] = useState<any>(defaultWs.savedModels[0]);
   
   // Visualizer configs
   const [vizChartType, setVizChartType] = useState("bar");
@@ -607,31 +615,35 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           fetch(`${API_BASE}/workspace/state`, { headers: authHeaders }).catch(() => null)
         ]);
 
-        if (filesRes?.ok) {
-          const data = await filesRes.json();
-          setFiles(data.files || []);
-        }
         if (notifRes?.ok) {
           const data = await notifRes.json();
           setNotifications(data.notifications || []);
         }
-        if (modelsRes?.ok) {
-          const data = await modelsRes.json();
-          setModels(data.models || data.available_models || data.registry || []);
-        }
-        if (savedRes?.ok) {
-          const data = await savedRes.json();
-          setSavedModels(data.models || data.saved || data.saved_models || []);
-        }
-        if (historyRes?.ok) {
-          const data = await historyRes.json();
-          setMlHistory(data.history || data.items || []);
-        }
 
-        if (wsRes?.ok) {
-          const ws = await wsRes.json();
-          if (ws.eda_result) {
-            setEdaResult(JSON.parse(ws.eda_result));
+        // Only load backend files/models/workspace if user is in a custom workspace,
+        // otherwise preserve the selected sample dashboard data.
+        if (activeWorkspace === "custom") {
+          if (filesRes?.ok) {
+            const data = await filesRes.json();
+            setFiles(data.files || []);
+          }
+          if (modelsRes?.ok) {
+            const data = await modelsRes.json();
+            setModels(data.models || data.available_models || data.registry || []);
+          }
+          if (savedRes?.ok) {
+            const data = await savedRes.json();
+            setSavedModels(data.models || data.saved || data.saved_models || []);
+          }
+          if (historyRes?.ok) {
+            const data = await historyRes.json();
+            setMlHistory(data.history || data.items || []);
+          }
+          if (wsRes?.ok) {
+            const ws = await wsRes.json();
+            if (ws.eda_result) {
+              setEdaResult(JSON.parse(ws.eda_result));
+            }
           }
         }
 
@@ -639,9 +651,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setStatusMessage("AI cloud runtime initialized");
         addLog("Runtime", "All endpoints bound successfully.", "success");
       } catch (err) {
-        setApiStatus("error");
-        setStatusMessage("Cloud backend disconnected.");
-        addLog("Runtime", "Failed to connect to backend api.", "error");
+        // Safe fallback in offline mode: load current active sample dashboard data
+        const ws = getMockWorkspaceData(activeWorkspace);
+        if (ws.edaResult) {
+          setEdaResult(ws.edaResult);
+          setModels(ws.models);
+          setSavedModels(ws.savedModels);
+          setFiles(ws.files);
+          setGeneratedReportsList(ws.reports);
+          setLogs(ws.logs);
+        }
+        setApiStatus("ready");
+        setStatusMessage("Offline demo mode active");
+        addLog("Runtime", "Connected in Offline Demo mode.", "success");
       }
     };
 
@@ -671,6 +693,31 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [edaResult]);
+
+  const changeWorkspace = useCallback((wsId: "sales" | "churn" | "marketing" | "revenue") => {
+    setActiveWorkspace(wsId);
+    const ws = getMockWorkspaceData(wsId);
+    setEdaResult(ws.edaResult);
+    setModels(ws.models);
+    setSavedModels(ws.savedModels);
+    setFiles(ws.files);
+    setGeneratedReportsList(ws.reports);
+    setTrainedModelCard(ws.savedModels[0] || null);
+    setPredictResult(null);
+    setPredictInputs({});
+    setLogs(ws.logs);
+
+    const cols = ws.edaResult?.dataset_slices?.col_names || [];
+    if (cols.length > 0) {
+      setTargetCol(cols[cols.length - 1]);
+      setSelectedColumn(cols[0]);
+      setCleanCol(cols[0]);
+      setVizXAxis(cols[0]);
+      setVizYAxis(cols[1] || cols[0]);
+    }
+    
+    addLog("Workspace", `Swapped to sample project: ${wsId.toUpperCase()}`, "success");
+  }, [addLog]);
 
   // --- Handlers & API functions ---
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -702,6 +749,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      setActiveWorkspace("custom");
       setEdaResult(data);
       setStatusMessage("Dataset EDA indexing complete");
       addLog("Ingestion", `Dataset analysis complete. Rows: ${data.overview?.rows}, Cols: ${data.overview?.columns}`, "success");
@@ -728,6 +776,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to retrieve cached EDA results");
       }
       const cachedEda = await res.json();
+      setActiveWorkspace("custom");
       setEdaResult(cachedEda);
       addLog("Runtime", `Restored workspace dataset: ${fileName}`, "success");
       openSection("eda");
@@ -1067,6 +1116,22 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setRecommendationData(null);
     addLog("ML Studio", "Retrieving algorithm recommendations...", "info");
 
+    if (activeWorkspace !== "custom") {
+      setMlRecommendLoading(true);
+      addLog("ML Studio", "Retrieving algorithm recommendations...", "info");
+      setTimeout(() => {
+        let rec = "Gradient Boosting Regressor";
+        if (activeWorkspace === "churn") rec = "XGBoost Classifier";
+        else if (activeWorkspace === "marketing") rec = "Ridge Regression";
+        else if (activeWorkspace === "revenue") rec = "LSTM Regressor";
+
+        setRecommendationData({ recommended_model: rec, suggested_model: rec });
+        addLog("ML Studio", `Model recommendation compiled successfully: ${rec}`, "success");
+        setMlRecommendLoading(false);
+      }, 1000);
+      return;
+    }
+
     try {
       let endpoint = `${API_BASE}/ml/recommend`;
       const paramsObj = {
@@ -1110,6 +1175,40 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleTrainModel = async () => {
     if (!edaResult || trainingLoading) return;
+    
+    if (activeWorkspace !== "custom") {
+      setTrainingLoading(true);
+      setTrainedModelCard(null);
+      addLog("ML Studio", `Training model: ${mlAlgo.toUpperCase()} on target: ${targetCol}...`, "info");
+      setTimeout(() => {
+        let metrics = { accuracy: 0.941, f1: 0.935 };
+        let name = "Gradient Boosting Regressor";
+        if (activeWorkspace === "churn") {
+          metrics = { accuracy: 0.948, f1: 0.932 };
+          name = "XGBoost Classifier";
+        } else if (activeWorkspace === "marketing") {
+          metrics = { accuracy: 0.884, f1: 0.865 };
+          name = "Ridge Regression";
+        } else if (activeWorkspace === "revenue") {
+          metrics = { accuracy: 0.965, f1: 0.958 };
+          name = "LSTM Regressor";
+        }
+
+        const newModel = {
+          model_key: `${activeWorkspace}-model-${Date.now()}`,
+          name,
+          metrics,
+          registered_at: new Date().toISOString().slice(0, 16).replace("T", " ")
+        };
+
+        setTrainedModelCard(newModel);
+        setSavedModels((prev) => [newModel, ...prev]);
+        addLog("ML Studio", `Trained model metrics compiled. F1 Score: ${metrics.f1.toFixed(3)}`, "success");
+        setTrainingLoading(false);
+      }, 1500);
+      return;
+    }
+
     setTrainingLoading(true);
     setTrainedModelCard(null);
     addLog("ML Studio", `Training model: ${mlAlgo.toUpperCase()} on target: ${targetCol}...`, "info");
@@ -1169,6 +1268,30 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleRunPrediction = async () => {
     if (!trainedModelCard || predictLoading) return;
+    
+    if (activeWorkspace !== "custom") {
+      setPredictLoading(true);
+      setPredictResult(null);
+      addLog("Predictor", "Submitting inference inputs...", "info");
+      setTimeout(() => {
+        let prediction = "No";
+        if (activeWorkspace === "sales") {
+          prediction = `$ ${(150 + Math.random() * 800).toFixed(2)}`;
+        } else if (activeWorkspace === "churn") {
+          prediction = Math.random() > 0.45 ? "No (Low Risk)" : "Yes (High Risk)";
+        } else if (activeWorkspace === "marketing") {
+          prediction = `${(1.5 + Math.random() * 4.5).toFixed(2)}x ROI`;
+        } else if (activeWorkspace === "revenue") {
+          prediction = `$ ${(450000 + Math.random() * 350000).toLocaleString(undefined, { maximumFractionDigits: 0 })} MRR`;
+        }
+
+        setPredictResult({ prediction });
+        addLog("Predictor", `Inference complete. Value: ${prediction}`, "success");
+        setPredictLoading(false);
+      }, 1000);
+      return;
+    }
+
     setPredictLoading(true);
     setPredictResult(null);
     addLog("Predictor", "Submitting inference inputs...", "info");
@@ -1205,7 +1328,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const handleGenerateReport = async () => {
     addLog("Reports", `Compiling PDF summary report...`, "info");
-    try {
+    
+    if (activeWorkspace !== "custom") {
+      setTimeout(() => {
+        const newReport = {
+          file_name: `${activeWorkspace.toUpperCase()}_Report_${Date.now().toString().slice(-4)}.pdf`,
+          file_type: "PDF",
+          generated_at: new Date().toISOString().slice(0, 16).replace("T", " ")
+        };
+        setGeneratedReportsList((prev) => [...prev, newReport]);
+        addLog("Reports", `Report compiled successfully: ${newReport.file_name}`, "success");
+        alert(`Report generated: ${newReport.file_name}`);
+      }, 1000);
+      return;
+    }
       const reportRes = await fetch(`${API_BASE}/ml/report`, {
         method: "POST",
         headers: {
@@ -1283,6 +1419,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   }, [edaResult, vizXAxis]);
 
   const value: WorkspaceContextValue = {
+    // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
+    activeWorkspace,
+    changeWorkspace,
+
     // Tabs state
     tabs: state.tabs,
     activeTabId: state.activeTabId,

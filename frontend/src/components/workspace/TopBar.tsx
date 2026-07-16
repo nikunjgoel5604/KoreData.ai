@@ -8,7 +8,15 @@ type Theme = "dark" | "light";
 
 export default function TopBar() {
   const [theme, setTheme] = useState<Theme>("dark");
-  const { assistantOpen, setAssistantOpen, simRunning, notificationsOpen, setNotificationsOpen } = useWorkspace();
+  const { 
+    assistantOpen, 
+    setAssistantOpen, 
+    simRunning, 
+    notificationsOpen, 
+    setNotificationsOpen,
+    activeWorkspace,
+    changeWorkspace
+  } = useWorkspace();
 
   useEffect(() => {
     const saved = window.localStorage.getItem("koredata-theme") as Theme | null;
@@ -35,11 +43,16 @@ export default function TopBar() {
         <div className="ws-workspace-selector-container">
           <div className="ws-workspace-selector">
             <Database size={16} className="ws-workspace-selector-icon" />
-            <select defaultValue="Sales Analysis Q2" className="ws-workspace-select-input">
-              <option>Sales Analysis Q2</option>
-              <option>Customer Churn Prediction</option>
-              <option>Marketing Campaign ROI</option>
-              <option>Revenue Forecasting</option>
+            <select 
+              value={activeWorkspace} 
+              onChange={(e) => changeWorkspace(e.target.value as any)} 
+              className="ws-workspace-select-input"
+            >
+              <option value="sales">Sales Analysis Q2</option>
+              <option value="churn">Customer Churn Prediction</option>
+              <option value="marketing">Marketing Campaign ROI</option>
+              <option value="revenue">Revenue Forecasting</option>
+              {activeWorkspace === "custom" && <option value="custom">Custom Dataset</option>}
             </select>
             <ChevronDown size={14} className="ws-workspace-selector-arrow" />
           </div>

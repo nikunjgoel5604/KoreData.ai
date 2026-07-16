@@ -20,8 +20,19 @@ export default function Sidebar() {
     setSidebarCollapsed,
     edaResult,
     simRunning,
-    simProgress
+    simProgress,
+    activeWorkspace,
+    changeWorkspace
   } = useWorkspace();
+
+  const workspaceLabels = {
+    sales: "Sales Analysis Q2",
+    churn: "Customer Churn Prediction",
+    marketing: "Marketing Campaign ROI",
+    revenue: "Revenue Forecasting",
+    custom: "Custom Dataset"
+  };
+  const activeWorkspaceLabel = workspaceLabels[activeWorkspace as keyof typeof workspaceLabels] || "Sales Analysis Q2";
 
   const datasetName = edaResult?.overview?.dataset_name || "sales_q2.csv";
   const workspaceStatus = simRunning ? "Running" : (edaResult ? "Active" : "Idle");
@@ -133,6 +144,37 @@ export default function Sidebar() {
             {sidebarCollapsed && <div className="ws-nav-group-divider" />}
           </div>
         ))}
+
+        {/* Sample Dashboards Nav Section */}
+        <div className="ws-nav-group-container" style={{ marginTop: 12 }}>
+          {!sidebarCollapsed && <div className="ws-nav-group-label">Sample Dashboards</div>}
+          <div className="ws-nav-group">
+            {[
+              { id: "sales", label: "Sales Analysis Q2" },
+              { id: "churn", label: "Customer Churn" },
+              { id: "marketing", label: "Marketing ROI" },
+              { id: "revenue", label: "Revenue Forecast" }
+            ].map((dash) => {
+              const isActive = activeWorkspace === dash.id;
+              return (
+                <button
+                  key={dash.id}
+                  type="button"
+                  className={`ws-nav-item${isActive ? " active" : ""}`}
+                  onClick={() => {
+                    changeWorkspace(dash.id as any);
+                    openSection("dashboard");
+                  }}
+                  data-tooltip={dash.label}
+                >
+                  <Database size={16} style={{ color: isActive ? "var(--ws-module-accent)" : "inherit" }} />
+                  {!sidebarCollapsed && <span>{dash.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+          {sidebarCollapsed && <div className="ws-nav-group-divider" />}
+        </div>
       </nav>
 
       {/* Footer Area with current workspace and profile */}
@@ -147,7 +189,7 @@ export default function Sidebar() {
                 {workspaceStatus}
               </span>
             </div>
-            <strong>Sales Analysis Q2</strong>
+            <strong>{activeWorkspaceLabel}</strong>
             <div className="ws-workspace-meta">
               <span className="ws-meta-label">Dataset:</span>
               <span className="ws-meta-val">{datasetName}</span>
@@ -160,7 +202,7 @@ export default function Sidebar() {
             </div>
           </div>
         ) : (
-          <div className="ws-workspace-card-collapsed" data-tooltip="Sales Analysis Q2 (Active)">
+          <div className="ws-workspace-card-collapsed" data-tooltip={`${activeWorkspaceLabel} (Active)`}>
             <Database size={18} className="ws-workspace-icon-collapsed" />
             <span className="ws-status-bullet-collapsed" />
           </div>
