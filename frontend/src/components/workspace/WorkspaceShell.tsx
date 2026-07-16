@@ -58,43 +58,11 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
   const { activeTab, assistantOpen, setAssistantOpen, sidebarCollapsed, setSidebarCollapsed, notificationsOpen, setNotificationsOpen } = useWorkspace();
   const moduleId = activeTab?.sectionId || "dashboard";
 
-  // Window resize state for responsive layouts
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
-
-  // AI Copilot drag resizing state
-  const [copilotWidth, setCopilotWidth] = useState(385);
-  const [isResizing, setIsResizing] = useState(false);
-
-  const startResizing = (mouseDownEvent: React.MouseEvent) => {
-    mouseDownEvent.preventDefault();
-    setIsResizing(true);
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = window.innerWidth - e.clientX;
-      if (newWidth >= 380 && newWidth <= 520) {
-        setCopilotWidth(newWidth);
-      }
-    };
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
   // Handle window width and sidebar auto-collapse
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handleResize = () => {
       const width = window.innerWidth;
-      setWindowWidth(width);
       if (width < 1024) {
         setSidebarCollapsed(true);
       } else {
@@ -106,17 +74,13 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [setSidebarCollapsed]);
 
-  const isOverlayMode = windowWidth < 1200;
-  const gridStyle = (assistantOpen && !isOverlayMode)
-    ? { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr) ${copilotWidth}px` }
-    : { gridTemplateColumns: `var(--sidebar-width) minmax(0, 1fr)` };
+  const gridStyle = { gridTemplateColumns: "var(--sidebar-width) minmax(0, 1fr)" };
 
   return (
     <div
       className="workspace-shell"
       data-module={moduleId}
       data-sidebar-collapsed={sidebarCollapsed}
-      data-overlay-copilot={isOverlayMode}
       style={gridStyle}
     >
       <Sidebar />
@@ -154,12 +118,7 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       {assistantOpen && (
-        <AiAssistantDrawer
-          onClose={() => setAssistantOpen(false)}
-          width={copilotWidth}
-          startResizing={startResizing}
-          isResizing={isResizing}
-        />
+        <AiAssistantDrawer onClose={() => setAssistantOpen(false)} />
       )}
       {notificationsOpen && (
         <NotificationCenterDrawer onClose={() => setNotificationsOpen(false)} />

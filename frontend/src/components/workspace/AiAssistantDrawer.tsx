@@ -20,6 +20,7 @@ import {
   Square,
   Search,
   Maximize2,
+  Minimize2,
   ChevronDown,
   Terminal,
   Grid,
@@ -28,21 +29,16 @@ import {
   Brain,
   Target,
   FileText,
-  Download
+  Download,
+  Minus
 } from "lucide-react";
 
 interface AiAssistantDrawerProps {
   onClose?: () => void;
-  width: number;
-  startResizing: (e: React.MouseEvent) => void;
-  isResizing: boolean;
 }
 
 export default function AiAssistantDrawer({
-  onClose,
-  width,
-  startResizing,
-  isResizing
+  onClose
 }: AiAssistantDrawerProps) {
   const {
     activeTab,
@@ -60,7 +56,50 @@ export default function AiAssistantDrawer({
   const [isTyping, setIsTyping] = useState(false);
   const [currentTab, setCurrentTab] = useState<"chat" | "insights" | "code" | "history">("chat");
 
+  // Floating Window Coordinates and Size
+  const [size, setSize] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("koredata-copilot-size");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return { width: 400, height: 600 };
+  });
+
+  const [offset, setOffset] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("koredata-copilot-offset");
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return { x: 0, y: 0 };
+  });
+
+  const [isMinimized, setIsMinimized] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("koredata-copilot-minimized") === "true";
+    }
+    return false;
+  });
+
+  const [isMaximized, setIsMaximized] = useState(false);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync size and offsets to localStorage for persistence
+  useEffect(() => {
+    localStorage.setItem("koredata-copilot-size", JSON.stringify(size));
+  }, [size]);
+
+  useEffect(() => {
+    localStorage.setItem("koredata-copilot-offset", JSON.stringify(offset));
+  }, [offset]);
+
+  useEffect(() => {
+    localStorage.setItem("koredata-copilot-minimized", isMinimized ? "true" : "false");
+  }, [isMinimized]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -111,49 +150,228 @@ export default function AiAssistantDrawer({
     }, 1200);
   };
 
+  // Draggable Window Handler
+  const startDragging = (e: React.MouseEvent) => {
+    if (isMaximized) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("select")) return;
+
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startOffsetX = offset.x;
+    const startOffsetY = offset.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      let newOffsetX = startOffsetX - deltaX;
+      let newOffsetY = startOffsetY - deltaY;
+
+      // Restrict boundaries within viewport
+      const maxOffsetX = window.innerWidth - size.width - 24;
+      const maxOffsetY = window.innerHeight - size.height - 24;
+      newOffsetX = Math.max(0, Math.min(newOffsetX, maxOffsetX));
+      newOffsetY = Math.max(0, Math.min(newOffsetY, maxOffsetY));
+
+      setOffset({ x: newOffsetX, y: newOffsetY });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  // Resizable Window Handler
+  const startResizing = (e: React.MouseEvent, direction: "left" | "top" | "top-left") => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = size.width;
+    const startHeight = size.height;
+    const startOffsetX = offset.x;
+    const startOffsetY = offset.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newOffsetX = startOffsetX;
+      let newOffsetY = startOffsetY;
+
+      if (direction === "left" || direction === "top-left") {
+        newWidth = startWidth - deltaX;
+        if (newWidth >= 320 && newWidth <= 800) {
+          newOffsetX = startOffsetX + deltaX;
+        } else {
+          newWidth = Math.max(320, Math.min(800, newWidth));
+        }
+      }
+
+      if (direction === "top" || direction === "top-left") {
+        newHeight = startHeight - deltaY;
+        if (newHeight >= 400 && newHeight <= 850) {
+          newOffsetY = startOffsetY + deltaY;
+        } else {
+          newHeight = Math.max(400, Math.min(850, newHeight));
+        }
+      }
+
+      setSize({ width: newWidth, height: newHeight });
+      setOffset({ x: newOffsetX, y: newOffsetY });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
   const activeDatasetName = files.length > 0 ? files[0].file_name : "None (Pending upload)";
   const activeStageName = activeTab?.title || "Workspace Dashboard";
 
-  return (
-    <aside
-      className="ws-ai-drawer"
-      style={{
-        width,
-        minWidth: 380,
-        maxWidth: 520,
+  if (isMinimized) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsMinimized(false)}
+        className="ws-ai-fab animate-fadeIn"
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, var(--ws-ai) 0%, #6366F1 100%)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          color: "#fff",
+          display: "grid",
+          placeItems: "center",
+          cursor: "pointer",
+          zIndex: 9999,
+          boxShadow: "0 12px 32px rgba(99, 102, 241, 0.45)",
+          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
+        title="Restore AI Copilot"
+      >
+        <Sparkles size={24} className="animate-pulse" />
+      </button>
+    );
+  }
+
+  // Calculate position styles based on maximized state
+  const containerStyle: React.CSSProperties = isMaximized
+    ? {
+        position: "fixed",
+        top: 96,
+        bottom: 24,
+        left: "calc(var(--sidebar-width) + 24px)",
+        right: 24,
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
-        background: "var(--ws-card)",
-        borderLeft: "1px solid var(--ws-border)",
-        position: "relative"
-      }}
-    >
-      {/* Resizer Handle */}
-      <div
-        onMouseDown={startResizing}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: -3,
-          width: 6,
-          height: "100%",
-          cursor: "col-resize",
-          zIndex: 50,
-          background: isResizing ? "var(--ws-ai)" : "transparent",
-          transition: "background 0.2s ease"
-        }}
-      />
+        background: "rgba(27, 38, 56, 0.85)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: 20,
+        boxShadow: "0 24px 64px rgba(0, 0, 0, 0.5)",
+        zIndex: 9990,
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        overflow: "hidden"
+      }
+    : {
+        position: "fixed",
+        bottom: 24 + offset.y,
+        right: 24 + offset.x,
+        width: size.width,
+        height: size.height,
+        display: "flex",
+        flexDirection: "column",
+        background: "rgba(27, 38, 56, 0.85)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: 20,
+        boxShadow: "0 24px 64px rgba(0, 0, 0, 0.5)",
+        zIndex: 9990,
+        transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+        overflow: "hidden"
+      };
 
-      {/* Header Info Panel */}
+  return (
+    <aside className="ws-ai-drawer" style={containerStyle}>
+      {/* Resize Handles (Only active when not maximized) */}
+      {!isMaximized && (
+        <>
+          {/* Left Resize Handle */}
+          <div
+            onMouseDown={(e) => startResizing(e, "left")}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 5,
+              height: "100%",
+              cursor: "w-resize",
+              zIndex: 100,
+              background: "transparent"
+            }}
+          />
+          {/* Top Resize Handle */}
+          <div
+            onMouseDown={(e) => startResizing(e, "top")}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: "100%",
+              height: 5,
+              cursor: "n-resize",
+              zIndex: 100,
+              background: "transparent"
+            }}
+          />
+          {/* Top-Left Corner Resize Handle */}
+          <div
+            onMouseDown={(e) => startResizing(e, "top-left")}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 10,
+              height: 10,
+              cursor: "nw-resize",
+              zIndex: 110,
+              background: "transparent"
+            }}
+          />
+        </>
+      )}
+
+      {/* Header Info Panel with Drag Trigger */}
       <div
+        onMouseDown={startDragging}
         style={{
           padding: "16px 20px 12px",
           borderBottom: "1px solid var(--ws-border)",
-          background: "var(--ws-topnav)",
+          background: "rgba(32, 45, 66, 0.4)",
           display: "flex",
           flexDirection: "column",
-          gap: 12
+          gap: 12,
+          cursor: isMaximized ? "default" : "grab"
         }}
       >
         <div className="ws-row-between">
@@ -161,18 +379,43 @@ export default function AiAssistantDrawer({
             <Sparkles size={16} style={{ color: "var(--ws-ai)" }} />
             AI Copilot
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span className="ws-status-badge-header ready" style={{ padding: "3px 8px" }}>
               <span className="ws-status-bullet-header" style={{ background: "var(--ws-success)" }} />
               Ready
             </span>
+
+            {/* Minimize Window */}
+            <button
+              type="button"
+              onClick={() => setIsMinimized(true)}
+              aria-label="Minimize Copilot"
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)", padding: 2 }}
+              title="Minimize"
+            >
+              <Minus size={14} />
+            </button>
+
+            {/* Maximize/Restore Window */}
+            <button
+              type="button"
+              onClick={() => setIsMaximized(!isMaximized)}
+              aria-label="Maximize Copilot"
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)", padding: 2 }}
+              title={isMaximized ? "Restore size" : "Maximize"}
+            >
+              {isMaximized ? <Square size={11} /> : <Maximize2 size={14} />}
+            </button>
+
+            {/* Close Window */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Close Copilot"
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)" }}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)", padding: 2 }}
+              title="Close"
             >
-              <X size={16} />
+              <X size={14} />
             </button>
           </div>
         </div>

@@ -4134,21 +4134,35 @@ body.workspace-mode {
   }
 }
 
-/* ── Fixed / Absolute Overlay Mode for Copilot ───────────── */
-.workspace-shell[data-overlay-copilot="true"] .ws-ai-drawer {
-  position: fixed !important;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  height: 100vh !important;
-  z-index: 9999 !important;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.45) !important;
-  animation: slide-in-drawer 0.22s var(--ws-ease) forwards;
+/* ── Floating Window Mode for Copilot ─────────────────────── */
+.workspace-shell .ws-ai-drawer {
+  height: auto;
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  z-index: 9990;
+  border-radius: 20px;
+  background: rgba(27, 38, 56, 0.82) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
 }
 
-@keyframes slide-in-drawer {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+/* FAB hover scale effect */
+.ws-ai-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 16px 40px rgba(99, 102, 241, 0.6) !important;
+}
+
+/* Grab cursors for drag handle */
+.ws-ai-drawer .grab-handle {
+  cursor: grab;
+}
+.ws-ai-drawer .grab-handle:active {
+  cursor: grabbing;
 }
 
 /* ── Global Motion & Animation System (v3.1) ──────────────── */
