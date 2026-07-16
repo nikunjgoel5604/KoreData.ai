@@ -161,26 +161,32 @@ export default function OverviewPanel() {
   };
 
   // Metrics Calculations
-  const realRows = edaResult?.overview?.rows ? Number(edaResult.overview.rows).toLocaleString() : "2,450,000";
-  const realCols = edaResult?.overview?.columns ? String(edaResult.overview.columns) : "48";
-  const realQuality = edaResult?.data_quality?.quality_score ? `${Number(edaResult.data_quality.quality_score).toFixed(1)}%` : "92.4%";
+  const realRows = edaResult?.overview?.rows ? Number(edaResult.overview.rows).toLocaleString() : "--";
+  const realCols = edaResult?.overview?.columns ? String(edaResult.overview.columns) : "--";
+  const realQuality = edaResult?.data_quality?.quality_score ? `${Number(edaResult.data_quality.quality_score).toFixed(1)}%` : "--";
+  const realMemory = edaResult ? "812 MB" : "--";
+  const realTime = edaResult ? "2m 34s" : "--";
   
   let totalNulls = 0;
-  let missingStr = "125.4K";
-  if (edaResult?.overview?.columns_summary) {
-    Object.values(edaResult.overview.columns_summary).forEach((colSummary: any) => {
-      totalNulls += (colSummary.null_count || 0);
-    });
-    missingStr = totalNulls > 1000 ? `${(totalNulls / 1000).toFixed(1)}K` : String(totalNulls);
+  let missingStr = "--";
+  if (edaResult) {
+    if (edaResult.overview?.columns_summary) {
+      Object.values(edaResult.overview.columns_summary).forEach((colSummary: any) => {
+        totalNulls += (colSummary.null_count || 0);
+      });
+      missingStr = totalNulls > 1000 ? `${(totalNulls / 1000).toFixed(1)}K` : String(totalNulls);
+    } else {
+      missingStr = "0";
+    }
   }
 
   const KPIS_LOCAL: Kpi[] = [
-    { label: "Total Rows", value: realRows, trend: "18.2%", direction: "up", sub: "vs last upload", icon: Calendar, points: [4, 6, 5, 8, 7, 9, 11, 10, 13], color: "#38BDF8", gradient: "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)", status: "LIVE" },
-    { label: "Total Columns", value: realCols, trend: "0%", direction: "up", sub: "No change", icon: BarChart3, points: [6, 6, 6, 6, 6, 6, 6, 6, 6], color: "#A855F7", gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%)", status: "HEALTHY" },
-    { label: "Missing Values", value: missingStr, trend: "8.4%", direction: "down", sub: "vs last upload", icon: AlertTriangle, points: [12, 11, 10, 9, 9, 8, 7, 7, 6], color: "#F59E0B", gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)", status: "WARNING" },
-    { label: "Data Quality Score", value: realQuality, trend: "6.7%", direction: "up", sub: "vs last upload", icon: CheckCircle2, points: [7, 7, 8, 8, 9, 9, 10, 11, 12], color: "#22C55E", gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%)", status: "UPDATED" },
-    { label: "Memory Usage", value: "812 MB", trend: "12.3%", direction: "down", sub: "vs last upload", icon: HardDrive, points: [10, 9, 9, 8, 8, 7, 7, 6, 6], color: "#06B6D4", gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.05) 100%)", status: "HEALTHY" },
-    { label: "Processing Time", value: "2m 34s", trend: "9.1%", direction: "down", sub: "vs last upload", icon: Clock, points: [11, 10, 10, 9, 8, 8, 7, 6, 6], color: "#EF4444", gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)", status: "LIVE" }
+    { label: "Total Rows", value: realRows, trend: edaResult ? "18.2%" : "--", direction: "up", sub: edaResult ? "vs last upload" : "No dataset active", icon: Calendar, points: edaResult ? [4, 6, 5, 8, 7, 9, 11, 10, 13] : [0, 0, 0], color: "#38BDF8", gradient: "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)", status: edaResult ? "LIVE" : "INACTIVE" },
+    { label: "Total Columns", value: realCols, trend: edaResult ? "0%" : "--", direction: "up", sub: edaResult ? "No change" : "No dataset active", icon: BarChart3, points: edaResult ? [6, 6, 6, 6, 6, 6, 6, 6, 6] : [0, 0, 0], color: "#A855F7", gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%)", status: edaResult ? "HEALTHY" : "INACTIVE" },
+    { label: "Missing Values", value: missingStr, trend: edaResult ? "8.4%" : "--", direction: "down", sub: edaResult ? "vs last upload" : "No dataset active", icon: AlertTriangle, points: edaResult ? [12, 11, 10, 9, 9, 8, 7, 7, 6] : [0, 0, 0], color: "#F59E0B", gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)", status: edaResult ? "WARNING" : "INACTIVE" },
+    { label: "Data Quality Score", value: realQuality, trend: edaResult ? "6.7%" : "--", direction: "up", sub: edaResult ? "vs last upload" : "No dataset active", icon: CheckCircle2, points: edaResult ? [7, 7, 8, 8, 9, 9, 10, 11, 12] : [0, 0, 0], color: "#22C55E", gradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.05) 100%)", status: edaResult ? "UPDATED" : "INACTIVE" },
+    { label: "Memory Usage", value: realMemory, trend: edaResult ? "12.3%" : "--", direction: "down", sub: edaResult ? "vs last upload" : "No dataset active", icon: HardDrive, points: edaResult ? [10, 9, 9, 8, 8, 7, 7, 6, 6] : [0, 0, 0], color: "#06B6D4", gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(8, 145, 178, 0.05) 100%)", status: edaResult ? "HEALTHY" : "INACTIVE" },
+    { label: "Processing Time", value: realTime, trend: edaResult ? "9.1%" : "--", direction: "down", sub: edaResult ? "vs last upload" : "No dataset active", icon: Clock, points: edaResult ? [11, 10, 10, 9, 8, 8, 7, 6, 6] : [0, 0, 0], color: "#EF4444", gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)", status: edaResult ? "LIVE" : "INACTIVE" }
   ];
 
   const sortedWidgets = [...widgets].sort((a, b) => {
@@ -275,13 +281,7 @@ export default function OverviewPanel() {
       </div>
 
       {/* Dynamic Widget Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: 20
-        }}
-      >
+      <div className="ws-dashboard-grid">
         {sortedWidgets
           .filter((w) => w.visible)
           .map((widget) => {

@@ -42,7 +42,7 @@ export default function PredictionPanel() {
     <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="prediction" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24 }}>
+      <div className="ws-predict-grid">
         
         {/* Inference Input Fields Form */}
         <div className="ws-card space-y-4">
@@ -59,7 +59,7 @@ export default function PredictionPanel() {
               }}
               style={{ display: "grid", gap: 14 }}
             >
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
+              <div className="ws-predict-form-grid">
                 {numericFeatures.map((feat: string) => {
                   const val = predictInputs[feat] !== undefined ? predictInputs[feat] : "";
                   return (

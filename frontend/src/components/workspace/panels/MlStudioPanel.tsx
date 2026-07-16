@@ -82,7 +82,7 @@ export default function MlStudioPanel() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 24 }}>
+      <div className="ws-ml-layout-grid">
         
         {/* Configuration Column */}
         <div className="ws-card space-y-4" style={{ height: "fit-content" }}>
@@ -111,15 +111,28 @@ export default function MlStudioPanel() {
                 className="ws-card-2"
                 style={{ width: "100%", padding: 8, borderRadius: "var(--ws-radius-sm)", color: "inherit" }}
               >
-                <option value="random-forest">Random Forest Classifier</option>
-                <option value="xgboost">XGBoost Gradient Boosting</option>
-                <option value="logistic-regression">Logistic Regression</option>
+                <option value="gradient_boosting">Gradient Boosting Regressor</option>
+                <option value="random_forest">Random Forest Classifier</option>
+                <option value="xgboost">XGBoost Classifier / Regressor</option>
+                <option value="linear">Linear/Logistic Regression</option>
               </select>
             </div>
           )}
 
           {activeMlStep === "training" && (
             <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, color: "var(--ws-text-muted)", display: "block", marginBottom: 4 }}>Optimizing Metric</label>
+                <select className="ws-card-2" style={{ width: "100%", padding: 8, borderRadius: "var(--ws-radius-sm)", color: "inherit" }}>
+                  <option>Accuracy / R² Score</option>
+                  <option>F1 Index / Log Loss</option>
+                </select>
+              </div>
+              <div className="ws-row-between">
+                <span style={{ fontSize: 12 }}>Explainable Shapley Weights</span>
+                <input type="checkbox" defaultChecked />
+              </div>
+
               <button
                 type="button"
                 onClick={handleGetRecommendations}
@@ -171,7 +184,7 @@ export default function MlStudioPanel() {
 
           {trainedModelCard ? (
             <div style={{ display: "grid", gap: 20 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div className="ws-ml-split-grid">
                 <div className="ws-card-2" style={{ padding: 16 }}>
                   <span style={{ fontSize: 11, color: "var(--ws-text-muted)", display: "block" }}>Accuracy Score</span>
                   <strong style={{ fontSize: 28, color: "var(--ws-success)", display: "block", marginTop: 4 }}>

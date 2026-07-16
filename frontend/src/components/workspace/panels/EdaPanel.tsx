@@ -111,7 +111,7 @@ export default function EdaPanel() {
     <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="eda" />
       
-      <div style={{ display: "grid", gridTemplateColumns: "240px minmax(0, 1fr)", gap: 24 }}>
+      <div className="ws-eda-layout-grid">
         
         {/* Left Side Steps Selection Menu */}
         <div className="ws-card" style={{ padding: 12, display: "grid", gap: 2, alignContent: "start", height: "fit-content" }}>
@@ -139,7 +139,7 @@ export default function EdaPanel() {
             <div className="space-y-6 animate-fadeIn">
               <div className="ws-card">
                 <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Dataset Summary Profile</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+                <div className="ws-eda-cards-grid">
                   <div className="ws-card-2" style={{ padding: 16, borderRadius: "var(--ws-radius-sm)" }}>
                     <small style={{ color: "var(--ws-text-muted)", display: "block", textTransform: "uppercase", fontSize: 11, fontWeight: 700 }}>Total Record Count</small>
                     <strong style={{ fontSize: 24, display: "block", marginTop: 4 }}>
@@ -163,7 +163,7 @@ export default function EdaPanel() {
 
               <div className="ws-card">
                 <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Data Quality Dimension Checks</h2>
-                <div className="ws-two-col" style={{ gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="ws-two-col" style={{ gap: 16 }}>
                   {[
                     { label: "Completeness Check", score: edaResult.eda_accuracy?.completeness || 92.4, desc: "Percentage of non-null records across all loaded columns." },
                     { label: "Accuracy Schema Index", score: edaResult.eda_accuracy?.validity || 94.0, desc: "Conformance check of column type variables." },
@@ -284,7 +284,7 @@ export default function EdaPanel() {
           {edaStep === 4 && (
             <div className="ws-card animate-fadeIn">
               <h2 className="ws-section-title" style={{ marginBottom: 16 }}>Attributes Type Schema</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 24, alignItems: "center" }}>
+              <div className="ws-eda-split-grid" style={{ alignItems: "center" }}>
                 <div style={{ display: "grid", gap: 10 }}>
                   <div className="ws-card-2" style={{ padding: 12, display: "flex", justifyContent: "space-between" }}>
                     <span>Numeric Columns:</span>
@@ -632,9 +632,8 @@ export default function EdaPanel() {
             };
             
             const simulated = simulateCleaning(beforeRows, allColumns, cleanCol || allColumns[0], cleanOp, paramsObj);
-            
             return (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: 20 }} className="animate-fadeIn">
+              <div className="ws-eda-split-grid animate-fadeIn" style={{ gap: 20 }}>
                 <div className="ws-card space-y-4">
                   <h2 className="ws-section-title">Cleaning Panel</h2>
                   

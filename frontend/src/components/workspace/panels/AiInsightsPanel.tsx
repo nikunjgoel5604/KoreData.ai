@@ -27,7 +27,7 @@ export default function AiInsightsPanel() {
     <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="ai-insights" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr", gap: 24 }}>
+      <div className="ws-insights-grid">
         
         {/* Executive Summary Card */}
         <div className="ws-card space-y-4">
@@ -36,7 +36,7 @@ export default function AiInsightsPanel() {
             Based on the statistical properties of the active workspace, the dataset shows strong linearity and moderate density. The target attribute exhibits predictive signals suitable for random forest algorithms with classification accuracies projected above 92%. We recommend winsorizing outlier values before running further models.
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="ws-ml-split-grid">
             <div className="ws-card-2" style={{ padding: 14 }}>
               <strong style={{ color: "var(--ws-success)", display: "block", marginBottom: 6 }}>Risk Profile: LOW</strong>
               <span style={{ fontSize: 11, color: "var(--ws-text-muted)" }}>

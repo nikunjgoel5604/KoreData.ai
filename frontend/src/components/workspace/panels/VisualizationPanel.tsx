@@ -50,7 +50,7 @@ export default function VisualizationPanel() {
     <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="visualization" />
       
-      <div style={{ display: "grid", gridTemplateColumns: "260px minmax(0, 1fr)", gap: 24 }}>
+      <div className="ws-viz-grid">
         
         {/* Visualizer Side Config Panel */}
         <div className="ws-card space-y-4" style={{ height: "fit-content" }}>

@@ -3961,15 +3961,200 @@ body.workspace-mode {
 }
 
 @media (max-width: 1180px) {
-  .workspace-shell { grid-template-columns: 1fr; }
-  .ws-sidebar { display: none; }
-  .ws-ai-drawer { display: none; }
   .ws-two-col { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  /* Hide secondary header action items to prevent topbar squishing */
+  .ws-topbar-actions button[aria-label="Recent Activity"],
+  .ws-topbar-actions button[aria-label="Settings"] {
+    display: none !important;
+  }
+  
+  /* Collapse profile meta text to avatar-only */
+  .ws-profile-meta,
+  .ws-profile-arrow {
+    display: none !important;
+  }
 }
 
 @media (max-width: 720px) {
   .ws-kpi-grid, .ws-quick-grid { grid-template-columns: repeat(2, 1fr); }
   .ws-search-inner { display: none; }
+}
+
+/* ── Responsive Panel Grid Layouts (v3.1) ───────────────── */
+
+/* Dashboard Widget Grid */
+.ws-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 1200px) {
+  .ws-dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ws-dashboard-grid .ws-card {
+    grid-column: span 2 !important;
+  }
+}
+@media (max-width: 768px) {
+  .ws-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .ws-dashboard-grid .ws-card {
+    grid-column: span 1 !important;
+  }
+}
+
+/* EDA Layout Grid */
+.ws-eda-layout-grid {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+}
+@media (max-width: 1024px) {
+  .ws-eda-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* EDA Cards Grid */
+.ws-eda-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1200px) {
+  .ws-eda-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 768px) {
+  .ws-eda-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* EDA Split Grid */
+.ws-eda-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 24px;
+}
+@media (max-width: 1024px) {
+  .ws-eda-split-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ML Studio Layout Grid */
+.ws-ml-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) {
+  .ws-ml-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ML Studio Split Results Grid */
+.ws-ml-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .ws-ml-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Prediction Studio Layout Grid */
+.ws-predict-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) {
+  .ws-predict-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Prediction Inputs Form Grid */
+.ws-predict-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (max-width: 640px) {
+  .ws-predict-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reports Studio Layout Grid */
+.ws-reports-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) {
+  .ws-reports-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* AI Insights Layout Grid */
+.ws-insights-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr;
+  gap: 24px;
+}
+@media (max-width: 1100px) {
+  .ws-insights-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Visualizer Layout Grid */
+.ws-viz-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+}
+@media (max-width: 1024px) {
+  .ws-viz-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ── Fixed / Absolute Overlay Mode for Copilot ───────────── */
+.workspace-shell[data-overlay-copilot="true"] .ws-ai-drawer {
+  position: fixed !important;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.45) !important;
+  animation: slide-in-drawer 0.22s var(--ws-ease) forwards;
+}
+
+@keyframes slide-in-drawer {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 /* ── Global Motion & Animation System (v3.1) ──────────────── */

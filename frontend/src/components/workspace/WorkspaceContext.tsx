@@ -378,7 +378,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const defaultWs = getMockWorkspaceData("sales");
-  const [activeWorkspace, setActiveWorkspace] = useState<string>("sales");
+  const [activeWorkspace, setActiveWorkspace] = useState<string>("custom");
 
   // Custom workspace cache states
   const [customEdaResult, setCustomEdaResult] = useState<any>(null);
@@ -396,16 +396,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [statusMessage, setStatusMessage] = useState("Loading Python cloud packages...");
 
   // Ingested data analytics core state
-  const [edaResult, setEdaResult] = useState<any>(defaultWs.edaResult);
+  const [edaResult, setEdaResult] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
-  const [files, setFiles] = useState<UploadedFile[]>(defaultWs.files);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   
   // Pipeline simulation running states
   const [simRunning, setSimRunning] = useState(false);
   const [simProgress, setSimProgress] = useState(0);
   const [currentStageKey, setCurrentStageKey] = useState<string | null>(null);
   const [stageStatuses, setStageStatuses] = useState<Record<string, string>>({});
-  const [logs, setLogs] = useState<LogEntry[]>(defaultWs.logs);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   // AI assistant states
   const [assistantOpen, setAssistantOpen] = useState(true);
@@ -416,10 +416,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   ]);
 
   // Model & AutoML States
-  const [models, setModels] = useState<any[]>(defaultWs.models);
-  const [savedModels, setSavedModels] = useState<any[]>(defaultWs.savedModels);
+  const [models, setModels] = useState<any[]>([]);
+  const [savedModels, setSavedModels] = useState<any[]>([]);
   const [mlHistory, setMlHistory] = useState<any[]>([]);
-  const [trainedModelCard, setTrainedModelCard] = useState<any>(defaultWs.savedModels[0]);
+  const [trainedModelCard, setTrainedModelCard] = useState<any>(null);
   
   // Visualizer configs
   const [vizChartType, setVizChartType] = useState("bar");

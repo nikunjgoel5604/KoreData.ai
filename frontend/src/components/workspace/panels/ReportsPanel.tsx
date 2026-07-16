@@ -77,7 +77,7 @@ export default function ReportsPanel() {
     <div className="space-y-6 animate-fadeIn">
       <ModuleHeader sectionId="reports" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: 24 }}>
+      <div className="ws-reports-grid">
         
         {/* Templates & compilation settings */}
         <div className="ws-card space-y-4">
