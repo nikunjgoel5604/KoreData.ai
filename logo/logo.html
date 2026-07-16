@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KoreDataX Logo</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #e9e6e2;
+        font-family: Georgia, serif;
+    }
+
+    .container {
+        text-align: center;
+    }
+
+    svg {
+        width: 320px;
+        max-width: 90%;
+    }
+
+    .brand-text {
+        margin-top: 20px;
+        font-size: 52px;
+        font-style: italic;
+        color: #000;
+        text-shadow: 2px 2px 2px rgba(0,0,0,0.2);
+    }
+
+    .brand-text span {
+        color: #1f6f7a;
+    }
+
+    @media (max-width: 600px) {
+        .brand-text {
+            font-size: 34px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<svg viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- LEFT FLOATING DOTS -->
+    <circle cx="40" cy="30" r="5" fill="#1aa3a8"/>
+    <circle cx="70" cy="30" r="5" fill="#0b2a4a"/>
+
+    <!-- LEFT ARROW "<" -->
+    <path d="M120 60 L70 100 L120 140"
+          stroke="url(#grad)"
+          stroke-width="12"
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <!-- RIGHT OPEN CIRCLE -->
+    <path d="M140 40
+             A70 70 0 1 1 140 160"
+          stroke="#0b2a4a"
+          stroke-width="12"
+          fill="none"
+          stroke-linecap="round"/>
+
+    <!-- DATA LINES -->
+    <line x1="150" y1="80" x2="240" y2="80"
+          stroke="#0b2a4a"
+          stroke-width="8"
+          stroke-linecap="round"/>
+
+    <line x1="150" y1="100" x2="240" y2="100"
+          stroke="#0b2a4a"
+          stroke-width="8"
+          stroke-linecap="round"/>
+
+    <line x1="150" y1="120" x2="240" y2="120"
+          stroke="#0b2a4a"
+          stroke-width="8"
+          stroke-linecap="round"/>
+
+    <!-- END DOTS -->
+    <circle cx="240" cy="80" r="5" fill="#0b2a4a"/>
+    <circle cx="240" cy="100" r="5" fill="#0b2a4a"/>
+    <circle cx="240" cy="120" r="5" fill="#0b2a4a"/>
+
+    <!-- GRADIENT -->
+    <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%">
+            <stop offset="0%" stop-color="#1aa3a8"/>
+            <stop offset="100%" stop-color="#0b2a4a"/>
+        </linearGradient>
+    </defs>
+
+</svg>
+
+<div class="brand-text">
+    KoreData<span>X</span>
+</div>
+
+</div>
+
+</body>
+</html>
