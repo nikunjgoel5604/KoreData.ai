@@ -259,7 +259,7 @@ export default function AiAssistantDrawer({
         style={{
           flex: 1,
           padding: 16,
-          background: "#202D42",
+          background: "var(--ws-card-2)",
           overflowY: "auto"
         }}
       >
@@ -380,13 +380,13 @@ export default function AiAssistantDrawer({
                       style={{
                         padding: "12px 14px",
                         borderRadius: 14,
-                        background: isAI ? "#1B2638" : "#2563EB",
-                        border: isAI ? "1px solid #334155" : "none",
-                        color: isAI ? "#CBD5E1" : "#FFFFFF",
+                        background: isAI ? "var(--ws-card)" : "var(--ws-blue)",
+                        border: isAI ? "1px solid var(--ws-border)" : "none",
+                        color: isAI ? "var(--ws-text)" : "#FFFFFF",
                         fontSize: 12,
                         lineHeight: 1.5,
                         whiteSpace: "pre-wrap",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
+                        boxShadow: "var(--ws-shadow-card)"
                       }}
                     >
                       {/* Markdown rendering mockup */}
@@ -395,7 +395,7 @@ export default function AiAssistantDrawer({
                           {msg.text.split("\n").map((line, lIdx) => {
                             if (line.startsWith("###")) {
                               return (
-                                <strong key={lIdx} style={{ display: "block", color: isAI ? "#8B5CF6" : "inherit", marginBottom: 6, fontSize: 13 }}>
+                                <strong key={lIdx} style={{ display: "block", color: isAI ? "var(--ws-ai)" : "inherit", marginBottom: 6, fontSize: 13 }}>
                                   {line.replace("###", "").trim()}
                                 </strong>
                               );
@@ -453,9 +453,9 @@ export default function AiAssistantDrawer({
                     style={{
                       padding: "12px 14px",
                       borderRadius: 14,
-                      background: "#1B2638",
-                      border: "1px solid #334155",
-                      color: "#64748B",
+                      background: "var(--ws-card)",
+                      border: "1px solid var(--ws-border)",
+                      color: "var(--ws-text-muted)",
                       display: "flex",
                       alignItems: "center",
                       gap: 4
@@ -480,32 +480,32 @@ export default function AiAssistantDrawer({
               Pinned Insights & Anomalies
             </span>
             
-            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #22C55E", background: "#1B2638" }}>
+            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #22C55E", background: "var(--ws-card)" }}>
               <div className="ws-row-between" style={{ marginBottom: 4 }}>
                 <strong style={{ fontSize: 12, color: "#22C55E" }}>High Data Quality</strong>
                 <ShieldCheck size={14} style={{ color: "#22C55E" }} />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--ws-text-2)", lineHeight: 1.4 }}>
                 Workspace health is computed at 98.4%. Standard deviation vectors contain zero critical NaN loops.
               </p>
             </div>
 
-            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #3B82F6", background: "#1B2638" }}>
+            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #3B82F6", background: "var(--ws-card)" }}>
               <div className="ws-row-between" style={{ marginBottom: 4 }}>
                 <strong style={{ fontSize: 12, color: "#3B82F6" }}>Correlations Detected</strong>
                 <Activity size={14} style={{ color: "#3B82F6" }} />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--ws-text-2)", lineHeight: 1.4 }}>
                 Strong positive linear linkage (r = 0.89) identified between variables <code className="ws-mono" style={{ fontSize: 10 }}>income</code> and <code className="ws-mono" style={{ fontSize: 10 }}>savings</code>.
               </p>
             </div>
 
-            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #EF4444", background: "#1B2638" }}>
+            <div className="ws-card-2" style={{ padding: 12, borderLeft: "3px solid #EF4444", background: "var(--ws-card)" }}>
               <div className="ws-row-between" style={{ marginBottom: 4 }}>
                 <strong style={{ fontSize: 12, color: "#EF4444" }}>Missing Target Cells</strong>
                 <AlertTriangle size={14} style={{ color: "#EF4444" }} />
               </div>
-              <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--ws-text-2)", lineHeight: 1.4 }}>
                 We detected 12.4% missing values on target column. Please use Imputation in Step 12 of EDA.
               </p>
             </div>
@@ -520,9 +520,9 @@ export default function AiAssistantDrawer({
             </span>
             
             {/* Snippet 1 */}
-            <div className="ws-card-2" style={{ padding: 12, position: "relative", background: "#1B2638" }}>
+            <div className="ws-card-2" style={{ padding: 12, position: "relative", background: "var(--ws-card)" }}>
               <span style={{ fontSize: 10, color: "#06B6D4", fontWeight: 700, display: "block", marginBottom: 6 }}>SQL Query: Clean Workspace Data</span>
-              <pre className="ws-mono" style={{ fontSize: 10, padding: 8, background: "rgba(0,0,0,0.25)", overflowX: "auto", borderRadius: 4, color: "#E2E8F0" }}>
+              <pre className="ws-mono" style={{ fontSize: 10, padding: 8, background: "rgba(0,0,0,0.1)", overflowX: "auto", borderRadius: 4, color: "var(--ws-text)" }}>
 {`SELECT 
   id, 
   COALESCE(age, (SELECT AVG(age) FROM dataset)) as age,
@@ -544,9 +544,9 @@ FROM dataset;`}
             </div>
 
             {/* Snippet 2 */}
-            <div className="ws-card-2" style={{ padding: 12, position: "relative", background: "#1B2638" }}>
+            <div className="ws-card-2" style={{ padding: 12, position: "relative", background: "var(--ws-card)" }}>
               <span style={{ fontSize: 10, color: "#22C55E", fontWeight: 700, display: "block", marginBottom: 6 }}>Python Script: Fit Model</span>
-              <pre className="ws-mono" style={{ fontSize: 10, padding: 8, background: "rgba(0,0,0,0.25)", overflowX: "auto", borderRadius: 4, color: "#E2E8F0" }}>
+              <pre className="ws-mono" style={{ fontSize: 10, padding: 8, background: "rgba(0,0,0,0.1)", overflowX: "auto", borderRadius: 4, color: "var(--ws-text)" }}>
 {`from sklearn.ensemble import RandomForestClassifier
 # Fit model
 clf = RandomForestClassifier(n_estimators=100)
@@ -581,9 +581,9 @@ print("Accuracy:", clf.score(X_test, y_test))`}
                 { time: "10:42 AM", text: "Generate Python script to standard scale numeric variables." },
                 { time: "10:30 AM", text: "What clustering algorithms are available?" }
               ].map((item, idx) => (
-                <div key={idx} className="ws-card-2" style={{ padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1B2638" }}>
-                  <span style={{ fontSize: 12, color: "#CBD5E1" }}>{item.text}</span>
-                  <small style={{ fontSize: 10, color: "#64748B" }}>{item.time}</small>
+                <div key={idx} className="ws-card-2" style={{ padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--ws-card)" }}>
+                  <span style={{ fontSize: 12, color: "var(--ws-text)" }}>{item.text}</span>
+                  <small style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>{item.time}</small>
                 </div>
               ))}
             </div>
@@ -594,9 +594,9 @@ print("Accuracy:", clf.score(X_test, y_test))`}
       {/* Input row footer */}
       <div
         style={{
-          borderTop: "1px solid #334155",
+          borderTop: "1px solid var(--ws-border)",
           padding: 16,
-          background: "#162133",
+          background: "var(--ws-card-2)",
           display: "flex",
           flexDirection: "column",
           gap: 10
@@ -613,8 +613,8 @@ print("Accuracy:", clf.score(X_test, y_test))`}
                 fontSize: 10,
                 padding: "4px 20px 4px 8px",
                 borderRadius: 6,
-                border: "1px solid #334155",
-                color: "#CBD5E1",
+                border: "1px solid var(--ws-border)",
+                color: "var(--ws-text)",
                 cursor: "pointer"
               }}
             >
@@ -632,9 +632,9 @@ print("Accuracy:", clf.score(X_test, y_test))`}
         {/* Input box */}
         <div
           style={{
-            background: "#24344D",
+            background: "var(--ws-card)",
             borderRadius: 12,
-            border: "1px solid #334155",
+            border: "1px solid var(--ws-border)",
             padding: "8px 12px",
             display: "flex",
             flexDirection: "column",
@@ -657,20 +657,20 @@ print("Accuracy:", clf.score(X_test, y_test))`}
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "#F8FAFC",
+              color: "var(--ws-text)",
               fontSize: 12,
               resize: "none",
               fontFamily: "inherit"
             }}
           />
 
-          <div className="ws-row-between" style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 6 }}>
+          <div className="ws-row-between" style={{ borderTop: "1px solid var(--ws-border)", paddingTop: 6 }}>
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 type="button"
                 onClick={() => alert("File attachment opened...")}
                 title="Attach Dataset File"
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)" }}
               >
                 <Paperclip size={14} />
               </button>
@@ -678,7 +678,7 @@ print("Accuracy:", clf.score(X_test, y_test))`}
                 type="button"
                 onClick={() => alert("Voice input activated...")}
                 title="Voice Input"
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)" }}
               >
                 <Mic size={14} />
               </button>
@@ -689,7 +689,7 @@ print("Accuracy:", clf.score(X_test, y_test))`}
               onClick={() => handleSendMessage(aiInputText)}
               aria-label="Send message"
               style={{
-                background: "#8B5CF6",
+                background: "var(--ws-ai)",
                 border: "none",
                 borderRadius: 8,
                 width: 28,
@@ -698,7 +698,7 @@ print("Accuracy:", clf.score(X_test, y_test))`}
                 placeItems: "center",
                 cursor: "pointer",
                 color: "#FFFFFF",
-                boxShadow: "0 4px 10px rgba(139, 92, 246, 0.3)"
+                boxShadow: "0 4px 10px color-mix(in srgb, var(--ws-ai) 30%, transparent)"
               }}
             >
               <Send size={12} />

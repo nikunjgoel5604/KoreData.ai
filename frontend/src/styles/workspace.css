@@ -332,7 +332,7 @@ body.workspace-mode {
 }
 
 .ws-nav-item:hover {
-  background: #1F2937;
+  background: var(--ws-hover);
   color: var(--ws-text);
   transform: translateX(3px);
 }
@@ -604,7 +604,7 @@ body.workspace-mode {
   transition: background-color 0.2s ease;
 }
 .ws-profile:hover {
-  background: #1F2937;
+  background: var(--ws-hover);
 }
 
 .ws-avatar {
@@ -699,9 +699,10 @@ body.workspace-mode {
 
 .ws-workspace-select-input {
   flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  outline: none !important;
   color: var(--ws-text);
   font-size: 13px;
   font-weight: 600;
@@ -710,6 +711,13 @@ body.workspace-mode {
   cursor: pointer;
   padding-right: 24px;
   width: 100%;
+}
+.ws-workspace-select-input:hover,
+.ws-workspace-select-input:focus {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .ws-workspace-selector-arrow {
@@ -1155,7 +1163,7 @@ body.workspace-mode {
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   border: 1px solid var(--ws-border);
-  background: #1F2937;
+  background: var(--ws-hover);
   color: var(--ws-text);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1167,7 +1175,7 @@ body.workspace-mode {
 }
 
 .ws-btn:hover {
-  background: #2D3748;
+  background: var(--ws-hover);
   border-color: #475569;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   transform: translateY(-2px);
@@ -1219,7 +1227,7 @@ body.workspace-mode {
 }
 
 .ws-btn-secondary:hover {
-  background: #1F2937;
+  background: var(--ws-hover);
   border-color: #38BDF8;
   box-shadow: 0 8px 20px rgba(56, 189, 248, 0.1);
   color: var(--ws-text);
@@ -1311,7 +1319,7 @@ body.workspace-mode {
 }
 
 .ws-btn-icon:hover {
-  background: #223149;
+  background: var(--ws-hover);
   color: var(--ws-text);
   transform: translateY(-1px);
   box-shadow: none;
@@ -1531,7 +1539,7 @@ body.workspace-mode {
 }
 
 .ws-kpi-card:hover {
-  background: #223149;
+  background: var(--ws-hover);
   border-color: var(--ws-module-accent, #3B82F6);
   box-shadow: 0 16px 40px rgba(59, 130, 246, 0.2);
   transform: translateY(-4px);
@@ -1764,12 +1772,12 @@ body.workspace-mode {
 }
 
 .ws-table tbody tr:hover {
-  background: #223149;
+  background: var(--ws-hover);
   cursor: pointer;
 }
 
 .ws-table tbody tr.selected {
-  background: #1E3A5F !important;
+  background: var(--ws-selected) !important;
 }
 
 /* Row Action Buttons styling */
@@ -1791,7 +1799,7 @@ body.workspace-mode {
   height: 32px;
   border-radius: 8px;
   border: 1px solid var(--ws-border);
-  background: #1F2937;
+  background: var(--ws-hover);
   color: var(--ws-text);
   display: inline-flex;
   align-items: center;
@@ -1801,7 +1809,7 @@ body.workspace-mode {
 }
 
 .ws-action-btn:hover {
-  background: #2D3748;
+  background: var(--ws-hover);
   border-color: #38BDF8;
   color: #38BDF8;
   transform: translateY(-1px);
@@ -2104,7 +2112,7 @@ body.workspace-mode {
   padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--ws-border);
-  background: #1F2937;
+  background: var(--ws-hover);
   color: var(--ws-text);
   display: inline-flex;
   align-items: center;
@@ -2117,7 +2125,7 @@ body.workspace-mode {
 }
 
 .ws-pagination-btn:hover:not(:disabled) {
-  background: #2D3748;
+  background: var(--ws-hover);
   border-color: #38BDF8;
   color: #38BDF8;
 }
@@ -2155,7 +2163,7 @@ body.workspace-mode {
 }
 
 .ws-menu-popup-item:hover {
-  background: #223149;
+  background: var(--ws-hover);
   color: var(--ws-text);
 }
 
@@ -2171,7 +2179,7 @@ body.workspace-mode {
 
 .ws-skeleton-row td div {
   height: 18px;
-  background: linear-gradient(90deg, #1F2937 25%, #2D3748 50%, #1F2937 75%);
+  background: linear-gradient(90deg, var(--ws-hover) 25%, var(--ws-hover) 50%, var(--ws-hover) 75%);
   background-size: 200% 100%;
   animation: ws-shimmer 1.5s infinite;
   border-radius: 4px;
@@ -2812,7 +2820,7 @@ body.workspace-mode {
 .workspace-shell input[type="week"],
 .workspace-shell input[type="time"],
 .workspace-shell input[type="search"] {
-  background: #1F2937;
+  background: var(--ws-hover);
   border: 1px solid var(--ws-border);
   border-radius: 12px;
   height: 46px;
@@ -2866,7 +2874,7 @@ body.workspace-mode {
 /* ── Select / Dropdown ──────────────────────────────────────────────────── */
 
 .workspace-shell select {
-  background: #1F2937;
+  background: var(--ws-hover);
   border: 1px solid var(--ws-border);
   border-radius: 12px;
   height: 46px;
@@ -2890,18 +2898,18 @@ body.workspace-mode {
 }
 
 .workspace-shell select:hover {
-  border-color: #475569;
-  background-color: #243247;
+  border-color: var(--ws-hover);
+  background-color: var(--ws-hover);
 }
 
 .workspace-shell select:focus {
-  border-color: #38BDF8;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15);
-  background-color: #243247;
+  border-color: var(--ws-blue);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ws-blue) 15%, transparent);
+  background-color: var(--ws-hover);
 }
 
 .workspace-shell select option {
-  background: #1F2937;
+  background: var(--ws-hover);
   color: var(--ws-text);
   padding: 12px 16px;
 }
@@ -2914,7 +2922,7 @@ body.workspace-mode {
 /* ── Textarea ───────────────────────────────────────────────────────────── */
 
 .workspace-shell textarea {
-  background: #1F2937;
+  background: var(--ws-hover);
   border: 1px solid var(--ws-border);
   border-radius: 12px;
   min-height: 140px;
@@ -3051,7 +3059,7 @@ body.workspace-mode {
   height: 20px;
   border: 2px solid var(--ws-border);
   border-radius: 6px;
-  background: #1F2937;
+  background: var(--ws-hover);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -3106,7 +3114,7 @@ body.workspace-mode {
   height: 20px;
   border: 2px solid var(--ws-border);
   border-radius: 50%;
-  background: #1F2937;
+  background: var(--ws-hover);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -3121,7 +3129,7 @@ body.workspace-mode {
 
 .workspace-shell input[type="radio"]:checked {
   border-color: #3B82F6;
-  background: #1F2937;
+  background: var(--ws-hover);
 }
 
 .workspace-shell input[type="radio"]:checked::after {
@@ -3597,7 +3605,7 @@ body.workspace-mode {
   padding: 12px;
   border: 1px solid var(--ws-border);
   border-radius: 12px;
-  background: #1F2937;
+  background: var(--ws-hover);
   min-height: 46px;
   transition: all 0.25s ease;
 }
@@ -3692,7 +3700,7 @@ body.workspace-mode {
 
 .workspace-shell .ws-card select.ws-card-2,
 .workspace-shell select.ws-card-2 {
-  background: #1F2937 !important;
+  background: var(--ws-hover) !important;
   border: 1px solid var(--ws-border) !important;
   border-radius: 12px !important;
   height: 46px !important;
@@ -3729,7 +3737,7 @@ body.workspace-mode {
 
 .workspace-shell .ws-card input.ws-card-2,
 .workspace-shell input.ws-card-2 {
-  background: #1F2937 !important;
+  background: var(--ws-hover) !important;
   border: 1px solid var(--ws-border) !important;
   border-radius: 12px !important;
   height: 46px !important;

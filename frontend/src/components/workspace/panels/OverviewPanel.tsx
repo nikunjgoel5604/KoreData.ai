@@ -205,8 +205,8 @@ export default function OverviewPanel() {
           gap: 16,
           flexWrap: "wrap",
           marginBottom: 20,
-          background: "#162133",
-          border: "1px solid #2E3B52",
+          background: "var(--ws-card-2)",
+          border: "1px solid var(--ws-border)",
           borderRadius: 12,
           padding: 12
         }}
@@ -241,8 +241,8 @@ export default function OverviewPanel() {
                   fontSize: 11,
                   padding: "6px 20px 6px 10px",
                   borderRadius: 8,
-                  border: "1px solid #2E3B52",
-                  color: "#CBD5E1",
+                  border: "1px solid var(--ws-border)",
+                  color: "var(--ws-text)",
                   cursor: "pointer"
                 }}
                 defaultValue=""
@@ -521,12 +521,12 @@ export default function OverviewPanel() {
                         <div
                           key={rIdx}
                           className="ws-card-2"
-                          style={{ padding: 10, display: "flex", gap: 10, alignItems: "flex-start", background: "#1B2638", border: "1px solid #334155" }}
+                          style={{ padding: 10, display: "flex", gap: 10, alignItems: "flex-start" }}
                         >
                           <Icon size={14} style={{ color: rec.c, marginTop: 2, flexShrink: 0 }} />
                           <div>
-                            <strong style={{ fontSize: 11, color: "#CBD5E1", display: "block" }}>{rec.t}</strong>
-                            <p style={{ margin: "2px 0 0", fontSize: 9.5, color: "#64748B", lineHeight: 1.3 }}>{rec.d}</p>
+                            <strong style={{ fontSize: 11, color: "var(--ws-text)", display: "block" }}>{rec.t}</strong>
+                            <p style={{ margin: "2px 0 0", fontSize: 9.5, color: "var(--ws-text-muted)", lineHeight: 1.3 }}>{rec.d}</p>
                           </div>
                         </div>
                       );
@@ -543,10 +543,10 @@ export default function OverviewPanel() {
                     ].map((act, aIdx) => (
                       <div key={aIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 11 }}>
                         <div>
-                          <strong style={{ color: "#E2E8F0", display: "block" }}>{act.t}</strong>
-                          <span style={{ color: "#64748B" }}>{act.s}</span>
+                          <strong style={{ color: "var(--ws-text)", display: "block" }}>{act.t}</strong>
+                          <span style={{ color: "var(--ws-text-muted)" }}>{act.s}</span>
                         </div>
-                        <span style={{ color: "#64748B", fontSize: 9 }}>{act.time}</span>
+                        <span style={{ color: "var(--ws-text-muted)", fontSize: 9 }}>{act.time}</span>
                       </div>
                     ))}
                   </div>
@@ -601,16 +601,16 @@ export default function OverviewPanel() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <div>
-                        <span style={{ fontSize: 10, color: "#64748B" }}>LATEST INFERENCES</span>
-                        <strong style={{ fontSize: 13, color: "#CBD5E1", display: "block" }}>Customer Churn Batch Inferences</strong>
+                        <span style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>LATEST INFERENCES</span>
+                        <strong style={{ fontSize: 13, color: "var(--ws-text)", display: "block" }}>Customer Churn Batch Inferences</strong>
                       </div>
                       <div>
-                        <span style={{ fontSize: 10, color: "#64748B" }}>AVERAGE CONFIDENCE</span>
-                        <strong style={{ fontSize: 13, color: "#CBD5E1", display: "block" }}>94.2%</strong>
+                        <span style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>AVERAGE CONFIDENCE</span>
+                        <strong style={{ fontSize: 13, color: "var(--ws-text)", display: "block" }}>94.2%</strong>
                       </div>
                       <div>
-                        <span style={{ fontSize: 10, color: "#64748B" }}>HIGH RISK ALERTS</span>
-                        <strong style={{ fontSize: 13, color: "#EF4444", display: "block" }}>142 Accounts flagged Churn</strong>
+                        <span style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>HIGH RISK ALERTS</span>
+                        <strong style={{ fontSize: 13, color: "var(--ws-danger)", display: "block" }}>142 Accounts flagged Churn</strong>
                       </div>
                     </div>
                     {/* Mock prob curve SVG */}
@@ -633,13 +633,13 @@ export default function OverviewPanel() {
                       <div
                         key={rIdx}
                         className="ws-card-2"
-                        style={{ padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#1B2638", border: "1px solid #334155" }}
+                        style={{ padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}
                       >
                         <div style={{ overflow: "hidden" }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: "#E2E8F0", display: "block", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ws-text)", display: "block", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {rep.name}
                           </span>
-                          <span style={{ fontSize: 9, color: "#64748B" }}>Generated {rep.time} • {rep.size}</span>
+                          <span style={{ fontSize: 9, color: "var(--ws-text-muted)" }}>Generated {rep.time} • {rep.size}</span>
                         </div>
                         <button
                           type="button"
