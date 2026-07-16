@@ -1,9 +1,11 @@
 "use client";
 
+import React, { useState } from "react";
 import { FileUp, Loader2, FolderOpen, Trash2 } from "lucide-react";
 import { useWorkspace, type UploadedFile } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
 import DataTable, { type ColumnConfig } from "./DataTable";
+import ConfirmDialog from "../ConfirmDialog";
 
 export default function UploadPanel() {
   const {
@@ -14,6 +16,8 @@ export default function UploadPanel() {
     handleRemoveFile,
     statusMessage
   } = useWorkspace();
+
+  const [deleteConfirm, setDeleteConfirm] = useState<UploadedFile | null>(null);
 
   const columns: ColumnConfig<UploadedFile>[] = [
     {
@@ -54,9 +58,7 @@ export default function UploadPanel() {
       icon: Trash2,
       danger: true,
       onClick: (row: UploadedFile) => {
-        if (confirm(`Are you sure you want to delete the dataset "${row.file_name}"? This action cannot be undone.`)) {
-          handleRemoveFile(row.id);
-        }
+        setDeleteConfirm(row);
       }
     }
   ];
@@ -147,6 +149,20 @@ export default function UploadPanel() {
           emptyDesc="Ingest datasets to build the profile history."
         />
       </div>
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Dataset"
+          description={`Are you sure you want to permanently delete "${deleteConfirm.file_name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          isDanger={true}
+          onConfirm={() => {
+            handleRemoveFile(deleteConfirm.id);
+            setDeleteConfirm(null);
+          }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   );
 }

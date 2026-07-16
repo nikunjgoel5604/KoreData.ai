@@ -51,68 +51,50 @@ export default function ChartCard({
 
   return (
     <>
-      {/* Fullscreen Overlay */}
+      {/* Fullscreen Overlay Dialog */}
       {isFullscreen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "#111827",
-            zIndex: 9999,
-            padding: 32,
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-            overflowY: "auto"
-          }}
-        >
-          <div className="ws-row-between" style={{ borderBottom: "1px solid #2E3B52", paddingBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: "rgba(59, 130, 246, 0.1)",
-                  color: "#3B82F6",
-                  display: "grid",
-                  placeItems: "center"
-                }}
-              >
-                <Icon size={20} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "#F8FAFC" }}>{title}</h2>
-                <p style={{ fontSize: 13, color: "#94A3B8", margin: "4px 0 0" }}>{description}</p>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                type="button"
-                className="ws-action-btn"
-                onClick={toggleFullscreen}
-                title="Exit Fullscreen"
-              >
-                <Minimize2 size={16} />
-              </button>
-            </div>
-          </div>
-
+        <div className="ws-dialog-backdrop" onClick={toggleFullscreen}>
           <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#1B2638",
-              borderRadius: 18,
-              border: "1px solid #2E3B52",
-              padding: 48,
-              minHeight: 400
-            }}
+            className="ws-dialog"
+            style={{ maxWidth: 1200, height: "85vh" }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ width: "100%", maxWidth: 800 }}>{children}</div>
+            <div className="ws-dialog-header">
+              <div className="ws-dialog-title">
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: "rgba(59, 130, 246, 0.1)",
+                    color: "#3B82F6",
+                    display: "grid",
+                    placeItems: "center"
+                  }}
+                >
+                  <Icon size={18} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "#F8FAFC" }}>{title}</h2>
+                  <p className="ws-dialog-desc" style={{ margin: "2px 0 0" }}>{description}</p>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  className="ws-action-btn"
+                  onClick={toggleFullscreen}
+                  title="Exit Fullscreen"
+                >
+                  <Minimize2 size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="ws-dialog-body" style={{ alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "100%", height: "100%", maxWidth: 900 }}>{children}</div>
+            </div>
           </div>
         </div>
       )}

@@ -102,7 +102,9 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
         <TopBar />
         <TabBar />
         <main className="ws-content ws-scroll">
-          <ActivePanel />
+          <div key={moduleId} className="ws-page-transition" style={{ height: '100%' }}>
+            <ActivePanel />
+          </div>
         </main>
       </div>
       {assistantOpen && (

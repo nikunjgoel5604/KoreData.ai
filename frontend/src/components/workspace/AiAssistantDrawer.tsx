@@ -124,8 +124,8 @@ export default function AiAssistantDrawer({
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: "#1B2638",
-        borderLeft: "1px solid #334155",
+        background: "var(--ws-card)",
+        borderLeft: "1px solid var(--ws-border)",
         position: "relative"
       }}
     >
@@ -140,7 +140,7 @@ export default function AiAssistantDrawer({
           height: "100%",
           cursor: "col-resize",
           zIndex: 50,
-          background: isResizing ? "#8B5CF6" : "transparent",
+          background: isResizing ? "var(--ws-ai)" : "transparent",
           transition: "background 0.2s ease"
         }}
       />
@@ -149,28 +149,28 @@ export default function AiAssistantDrawer({
       <div
         style={{
           padding: "16px 20px 12px",
-          borderBottom: "1px solid #334155",
-          background: "#152136",
+          borderBottom: "1px solid var(--ws-border)",
+          background: "var(--ws-topnav)",
           display: "flex",
           flexDirection: "column",
           gap: 12
         }}
       >
         <div className="ws-row-between">
-          <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "#F8FAFC" }}>
-            <Sparkles size={16} style={{ color: "#8B5CF6" }} />
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, color: "var(--ws-text)" }}>
+            <Sparkles size={16} style={{ color: "var(--ws-ai)" }} />
             AI Copilot
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span className="ws-status-badge-header ready" style={{ padding: "3px 8px" }}>
-              <span className="ws-status-bullet-header" style={{ background: "#22C55E" }} />
+              <span className="ws-status-bullet-header" style={{ background: "var(--ws-success)" }} />
               Ready
             </span>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close Copilot"
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)" }}
             >
               <X size={16} />
             </button>
@@ -187,22 +187,22 @@ export default function AiAssistantDrawer({
             borderRadius: 8,
             padding: 8,
             fontSize: 10,
-            color: "#94A3B8"
+            color: "var(--ws-text-muted)"
           }}
         >
           <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <span style={{ color: "#64748B", display: "block" }}>WORKSPACE</span>
-            <strong style={{ color: "#CBD5E1" }}>Sales Analytics</strong>
+            <span style={{ color: "var(--ws-text-muted)", display: "block" }}>WORKSPACE</span>
+            <strong style={{ color: "var(--ws-text-2)" }}>Sales Analytics</strong>
           </div>
           <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <span style={{ color: "#64748B", display: "block" }}>DATASET</span>
-            <strong style={{ color: "#CBD5E1" }} title={activeDatasetName}>
+            <span style={{ color: "var(--ws-text-muted)", display: "block" }}>DATASET</span>
+            <strong style={{ color: "var(--ws-text-2)" }} title={activeDatasetName}>
               {activeDatasetName}
             </strong>
           </div>
           <div style={{ gridColumn: "span 2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 4 }}>
-            <span style={{ color: "#64748B", display: "block" }}>PIPELINE STAGE</span>
-            <strong style={{ color: "#CBD5E1" }}>{activeStageName}</strong>
+            <span style={{ color: "var(--ws-text-muted)", display: "block" }}>PIPELINE STAGE</span>
+            <strong style={{ color: "var(--ws-text-2)" }}>{activeStageName}</strong>
           </div>
         </div>
       </div>
@@ -211,10 +211,10 @@ export default function AiAssistantDrawer({
       <div
         style={{
           display: "flex",
-          borderBottom: "1px solid #334155",
+          borderBottom: "1px solid var(--ws-border)",
           padding: "6px 12px",
           gap: 4,
-          background: "#162133"
+          background: "var(--ws-workspace)"
         }}
       >
         {[

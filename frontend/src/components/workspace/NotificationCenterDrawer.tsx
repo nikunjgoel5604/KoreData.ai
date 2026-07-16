@@ -170,41 +170,16 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
   return (
     <>
       {/* Background Overlay */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.5)",
-          zIndex: 999,
-          backdropFilter: "blur(4px)",
-          animation: "ws-fade-in 0.25s ease-out"
-        }}
-        onClick={onClose}
-      />
+      <div className="ws-drawer-backdrop" onClick={onClose} />
 
       {/* Main Slide-out Panel */}
-      <aside
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          width: 420,
-          height: "100%",
-          background: "#1B2638",
-          borderLeft: "1px solid #334155",
-          boxShadow: "-10px 0 35px rgba(0,0,0,0.4)",
-          zIndex: 1000,
-          display: "flex",
-          flexDirection: "column",
-          animation: "ws-slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
-        }}
-      >
+      <aside className="ws-drawer">
         {/* Header Block */}
         <div
           style={{
             padding: "20px 24px",
-            borderBottom: "1px solid #334155",
-            background: "#152136",
+            borderBottom: "1px solid var(--ws-border)",
+            background: "var(--ws-topnav)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between"
@@ -216,8 +191,8 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                background: "rgba(59, 130, 246, 0.12)",
-                color: "#3B82F6",
+                background: "color-mix(in srgb, var(--ws-blue) 12%, transparent)",
+                color: "var(--ws-blue)",
                 display: "grid",
                 placeItems: "center"
               }}
@@ -225,10 +200,10 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
               <Bell size={18} />
             </div>
             <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "#F8FAFC" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--ws-text)" }}>
                 Notification Hub
               </h2>
-              <span style={{ fontSize: 11, color: "#64748B" }}>
+              <span style={{ fontSize: 11, color: "var(--ws-text-muted)" }}>
                 Keep track of jobs and project status
               </span>
             </div>
@@ -237,7 +212,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
           <button
             type="button"
             onClick={onClose}
-            style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748B" }}
+            style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--ws-text-muted)" }}
             title="Close Drawer"
           >
             <X size={18} />
@@ -245,7 +220,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
         </div>
 
         {/* Filters and Controls */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #334155", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--ws-border)", display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Quick Actions Row */}
           <div className="ws-row-between">
             <div style={{ display: "flex", gap: 6 }}>
@@ -265,9 +240,9 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                     height: "auto",
                     minWidth: "auto",
                     borderRadius: 6,
-                    background: activeFilter === f.id ? "#3B82F6" : "rgba(255,255,255,0.03)",
-                    color: activeFilter === f.id ? "#FFFFFF" : "#94A3B8",
-                    borderColor: activeFilter === f.id ? "#3B82F6" : "#334155"
+                    background: activeFilter === f.id ? "var(--ws-blue)" : "color-mix(in srgb, var(--ws-text) 3%, transparent)",
+                    color: activeFilter === f.id ? "#FFFFFF" : "var(--ws-text-muted)",
+                    borderColor: activeFilter === f.id ? "var(--ws-blue)" : "var(--ws-border)"
                   }}
                 >
                   {f.label}
@@ -280,7 +255,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
               onClick={handleMarkAllRead}
               style={{
                 fontSize: 11,
-                color: "#3B82F6",
+                color: "var(--ws-blue)",
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -292,7 +267,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
           </div>
 
           {/* Search bar */}
-          <div className="ws-search-inner" style={{ background: "#202D42" }}>
+          <div className="ws-search-inner" style={{ background: "var(--ws-card-2)" }}>
             <Search size={14} className="ws-search-icon" />
             <input
               value={searchTerm}
@@ -309,20 +284,20 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
           {/* Running Background Jobs */}
           {backgroundJobs.length > 0 && (
             <div>
-              <h3 style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
-                <Loader2 size={12} className="animate-spin" style={{ color: "#06B6D4" }} /> Active Background Jobs
+              <h3 style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-text-muted)", textTransform: "uppercase", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                <Loader2 size={12} className="animate-spin" style={{ color: "var(--ws-accent)" }} /> Active Background Jobs
               </h3>
               <div style={{ display: "grid", gap: 10 }}>
                 {backgroundJobs.map((job) => (
                   <div
                     key={job.name}
                     className="ws-card-2"
-                    style={{ padding: 12, background: "#202D42", border: "1px solid #334155", borderRadius: 12 }}
+                    style={{ padding: 12, background: "var(--ws-card-2)", border: "1px solid var(--ws-border)", borderRadius: 12 }}
                   >
                     <div className="ws-row-between" style={{ marginBottom: 6 }}>
-                      <strong style={{ fontSize: 12, color: "#E2E8F0" }}>{job.name}</strong>
+                      <strong style={{ fontSize: 12, color: "var(--ws-text)" }}>{job.name}</strong>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 10, color: "#64748B" }}>ETA: {job.eta}</span>
+                        <span style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>ETA: {job.eta}</span>
                         <button
                           type="button"
                           onClick={() => handleCancelJob(job.name)}
@@ -330,7 +305,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                             background: "transparent",
                             border: "none",
                             cursor: "pointer",
-                            color: "#EF4444",
+                            color: "var(--ws-danger)",
                             fontSize: 10,
                             padding: 0
                           }}
@@ -344,7 +319,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                       <div className="ws-quality-bar-track" style={{ flex: 1, height: 6 }}>
                         <div className="ws-quality-bar-fill" style={{ width: `${job.progress}%`, height: "100%" }} />
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#3B82F6", minWidth: 28, textAlign: "right" }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-blue)", minWidth: 28, textAlign: "right" }}>
                         {job.progress}%
                       </span>
                     </div>
@@ -356,10 +331,10 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
 
           {/* Workflow Timeline Track */}
           <div>
-            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", margin: "0 0 14px" }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-text-muted)", textTransform: "uppercase", margin: "0 0 14px" }}>
               Workspace Workflow Timeline
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 0, paddingLeft: 12, borderLeft: "2px solid #334155", marginLeft: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0, paddingLeft: 12, borderLeft: "2px solid var(--ws-border)", marginLeft: 8 }}>
               {[
                 { time: "10:20 AM", text: "Dataset sales_2025.csv uploaded" },
                 { time: "10:22 AM", text: "EDA quality profiling completed" },
@@ -376,13 +351,13 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                       width: 10,
                       height: 10,
                       borderRadius: "50%",
-                      background: idx === 3 ? "#3B82F6" : "#334155",
-                      border: "2px solid #1B2638",
-                      boxShadow: idx === 3 ? "0 0 8px #3B82F6" : "none"
+                      background: idx === 3 ? "var(--ws-blue)" : "var(--ws-border)",
+                      border: "2px solid var(--ws-bg)",
+                      boxShadow: idx === 3 ? "0 0 8px var(--ws-blue)" : "none"
                     }}
                   />
-                  <div style={{ fontSize: 12, color: "#E2E8F0" }}>{step.text}</div>
-                  <small style={{ fontSize: 10, color: "#64748B" }}>{step.time}</small>
+                  <div style={{ fontSize: 12, color: "var(--ws-text)" }}>{step.text}</div>
+                  <small style={{ fontSize: 10, color: "var(--ws-text-muted)" }}>{step.time}</small>
                 </div>
               ))}
             </div>
@@ -390,12 +365,12 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
 
           {/* Alerts Timeline List */}
           <div>
-            <h3 style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", margin: "0 0 10px" }}>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-text-muted)", textTransform: "uppercase", margin: "0 0 10px" }}>
               Alerts & Notifications
             </h3>
             <div style={{ display: "grid", gap: 10 }}>
               {filtered.length === 0 ? (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "#64748B", fontSize: 12 }}>
+                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--ws-text-muted)", fontSize: 12 }}>
                   No matching notifications found.
                 </div>
               ) : (
@@ -407,8 +382,8 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                       className="ws-card-2"
                       style={{
                         padding: 14,
-                        background: item.read ? "rgba(32, 45, 66, 0.6)" : "#202D42",
-                        border: "1px solid #334155",
+                        background: item.read ? "color-mix(in srgb, var(--ws-card-2) 60%, transparent)" : "var(--ws-card-2)",
+                        border: "1px solid var(--ws-border)",
                         borderRadius: 12,
                         position: "relative",
                         display: "flex",
@@ -423,7 +398,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                       {/* Content */}
                       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
                         <div className="ws-row-between">
-                          <strong style={{ fontSize: 12, color: "#F8FAFC" }}>{item.title}</strong>
+                          <strong style={{ fontSize: 12, color: "var(--ws-text)" }}>{item.title}</strong>
                           <span
                             style={{
                               fontSize: 9,
@@ -437,10 +412,10 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                             {pStyle.label}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontSize: 11, color: "#94A3B8", lineHeight: 1.4 }}>
+                        <p style={{ margin: 0, fontSize: 11, color: "var(--ws-text-2)", lineHeight: 1.4 }}>
                           {item.desc}
                         </p>
-                        <span style={{ fontSize: 10, color: "#64748B", marginTop: 4 }}>
+                        <span style={{ fontSize: 10, color: "var(--ws-text-muted)", marginTop: 4 }}>
                           {item.time}
                         </span>
 
@@ -451,7 +426,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                             onClick={() => handleToggleRead(item.id)}
                             style={{
                               fontSize: 10,
-                              color: "#3B82F6",
+                              color: "var(--ws-blue)",
                               background: "transparent",
                               border: "none",
                               cursor: "pointer",
@@ -465,7 +440,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                             onClick={() => handleTogglePin(item.id)}
                             style={{
                               fontSize: 10,
-                              color: item.pinned ? "#8B5CF6" : "#64748B",
+                              color: item.pinned ? "var(--ws-ai)" : "var(--ws-text-muted)",
                               background: "transparent",
                               border: "none",
                               cursor: "pointer",
@@ -482,7 +457,7 @@ export default function NotificationCenterDrawer({ onClose }: { onClose: () => v
                             onClick={() => handleDelete(item.id)}
                             style={{
                               fontSize: 10,
-                              color: "#EF4444",
+                              color: "var(--ws-danger)",
                               background: "transparent",
                               border: "none",
                               cursor: "pointer",

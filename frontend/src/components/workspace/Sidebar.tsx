@@ -39,46 +39,46 @@ export default function Sidebar() {
         <div className="ws-logo-mark">
           <svg width="38" height="38" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Left-most vertical line that bends left at top */}
-            <path d="M6 24V11L4 9" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="4" cy="9" r="1.8" fill="#22D3EE"/>
+            <path d="M6 24V11L4 9" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="4" cy="9" r="1.8" fill="var(--ws-accent)"/>
             
             {/* Second vertical line straight to top node */}
-            <path d="M9 24V7" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round"/>
-            <circle cx="9" cy="7" r="1.8" fill="#22D3EE"/>
+            <path d="M9 24V7" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round"/>
+            <circle cx="9" cy="7" r="1.8" fill="var(--ws-accent)"/>
             
             {/* Third vertical line straight to top node */}
-            <path d="M12 24V7" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round"/>
-            <circle cx="12" cy="7" r="1.8" fill="#22D3EE"/>
+            <path d="M12 24V7" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round"/>
+            <circle cx="12" cy="7" r="1.8" fill="var(--ws-accent)"/>
             
             {/* Main K center diagonals and circuit paths inside the loop */}
-            <path d="M9 16L18 9" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round"/>
-            <circle cx="18" cy="9" r="1.8" fill="#22D3EE"/>
+            <path d="M9 16L18 9" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round"/>
+            <circle cx="18" cy="9" r="1.8" fill="var(--ws-accent)"/>
             
-            <path d="M9 16L18 23" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round"/>
-            <circle cx="18" cy="23" r="1.8" fill="#22D3EE"/>
+            <path d="M9 16L18 23" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round"/>
+            <circle cx="18" cy="23" r="1.8" fill="var(--ws-accent)"/>
             
             {/* Semicircle circuit loop representing D or outer orbit */}
-            <path d="M14 6C21 6 25 9.5 25 16C25 22.5 21 26 14 26" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round"/>
+            <path d="M14 6C21 6 25 9.5 25 16C25 22.5 21 26 14 26" stroke="var(--ws-text)" strokeWidth="2.2" strokeLinecap="round"/>
             
             {/* Four horizontal terminal lines extending out from D */}
-            <line x1="20" y1="12" x2="28" y2="12" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="28" cy="12" r="1.2" fill="#22D3EE"/>
+            <line x1="20" y1="12" x2="28" y2="12" stroke="var(--ws-text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="28" cy="12" r="1.2" fill="var(--ws-accent)"/>
             
-            <line x1="21" y1="14.5" x2="29" y2="14.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="29" cy="14.5" r="1.2" fill="#22D3EE"/>
+            <line x1="21" y1="14.5" x2="29" y2="14.5" stroke="var(--ws-text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="29" cy="14.5" r="1.2" fill="var(--ws-accent)"/>
             
-            <line x1="21" y1="17.5" x2="29" y2="17.5" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="29" cy="17.5" r="1.2" fill="#22D3EE"/>
+            <line x1="21" y1="17.5" x2="29" y2="17.5" stroke="var(--ws-text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="29" cy="17.5" r="1.2" fill="var(--ws-accent)"/>
             
-            <line x1="20" y1="20" x2="28" y2="20" stroke="#FFFFFF" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="28" cy="20" r="1.2" fill="#22D3EE"/>
+            <line x1="20" y1="20" x2="28" y2="20" stroke="var(--ws-text)" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="28" cy="20" r="1.2" fill="var(--ws-accent)"/>
           </svg>
         </div>
         {!sidebarCollapsed && (
           <div className="ws-logo-text">
             <svg className="ws-brand-title-svg" width="177" height="26" viewBox="0 0 177 28" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block" }}>
-              {/* KOR + E (Cyan) */}
-              <g stroke="#22D3EE" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+              {/* KOR + E (Accent) */}
+              <g stroke="var(--ws-accent)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                 {/* K */}
                 <path d="M 4 4 V 24 M 4 14 L 13 4 M 4 14 L 13 24" />
                 {/* O */}
@@ -89,8 +89,8 @@ export default function Sidebar() {
                 <path d="M 73 6 H 82 M 73 14 H 82 M 73 22 H 82" />
               </g>
               
-              {/* DATA (White) */}
-              <g stroke="#F8FAFC" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+              {/* DATA (Text) */}
+              <g stroke="var(--ws-text)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
                 {/* D */}
                 <path d="M 93 4 V 24 M 93 4 H 99 C 104 4 106.5 7.5 106.5 14 C 106.5 20.5 104 24 99 24 H 93" />
                 {/* A */}

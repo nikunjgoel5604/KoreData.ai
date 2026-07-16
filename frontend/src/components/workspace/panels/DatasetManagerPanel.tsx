@@ -1,12 +1,15 @@
 "use client";
 
+import React, { useState } from "react";
 import { useWorkspace, type UploadedFile } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
 import DataTable, { type ColumnConfig } from "./DataTable";
 import { FolderOpen, Trash2 } from "lucide-react";
+import ConfirmDialog from "../ConfirmDialog";
 
 export default function DatasetManagerPanel() {
   const { files, handleReuseFile, handleRemoveFile } = useWorkspace();
+  const [deleteConfirm, setDeleteConfirm] = useState<UploadedFile | null>(null);
 
   const columns: ColumnConfig<UploadedFile>[] = [
     {
@@ -53,9 +56,7 @@ export default function DatasetManagerPanel() {
       icon: Trash2,
       danger: true,
       onClick: (row: UploadedFile) => {
-        if (confirm(`Are you sure you want to delete the dataset "${row.file_name}"? This action cannot be undone.`)) {
-          handleRemoveFile(row.id);
-        }
+        setDeleteConfirm(row);
       }
     }
   ];
@@ -79,6 +80,20 @@ export default function DatasetManagerPanel() {
           emptyDesc="Upload a dataset to begin analyzing."
         />
       </div>
+
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Dataset"
+          description={`Are you sure you want to permanently delete "${deleteConfirm.file_name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          isDanger={true}
+          onConfirm={() => {
+            handleRemoveFile(deleteConfirm.id);
+            setDeleteConfirm(null);
+          }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   );
 }
