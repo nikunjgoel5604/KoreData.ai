@@ -9,7 +9,15 @@ import {
   Database,
   Dot,
   LayoutGrid,
-  FolderOpen
+  FolderOpen,
+  Folder,
+  Star,
+  Share2,
+  Layout,
+  Users,
+  User,
+  Settings,
+  UploadCloud
 } from "lucide-react";
 import { NAV_GROUPS, SECTION_REGISTRY } from "./sections";
 import { useWorkspace } from "./WorkspaceContext";
@@ -24,7 +32,10 @@ export default function Sidebar() {
     simRunning,
     simProgress,
     activeWorkspace,
-    changeWorkspace
+    changeWorkspace,
+    projects,
+    projectsFilter,
+    setProjectsFilter
   } = useWorkspace();
 
   const workspaceLabels = {
@@ -32,9 +43,10 @@ export default function Sidebar() {
     churn: "Customer Churn Prediction",
     marketing: "Marketing Campaign ROI",
     revenue: "Revenue Forecasting",
-    custom: "Custom Dataset"
+    custom: "Personal Sandbox"
   };
-  const activeWorkspaceLabel = workspaceLabels[activeWorkspace as keyof typeof workspaceLabels] || "Sales Analysis Q2";
+  const activeProj = projects.find(p => p.id === activeWorkspace);
+  const activeWorkspaceLabel = activeProj ? activeProj.name : (workspaceLabels[activeWorkspace as keyof typeof workspaceLabels] || "My Projects");
 
   const datasetName = edaResult?.overview?.dataset_name || "sales_q2.csv";
   const workspaceStatus = simRunning ? "Running" : (edaResult ? "Active" : "Idle");
@@ -121,14 +133,14 @@ export default function Sidebar() {
 
       {/* Navigation Group Items */}
       <nav className="ws-nav ws-scroll">
-        {/* Core Workspace & Platform Contexts */}
+        {/* Platform section */}
         <div className="ws-nav-group-container">
           {!sidebarCollapsed && <div className="ws-nav-group-label">Platform</div>}
           <div className="ws-nav-group">
             {/* Dashboard Home */}
             <button
               type="button"
-              className={`ws-nav-item${activeTab?.sectionId === "dashboard" && activeWorkspace !== "custom" ? " active" : ""}`}
+              className={`ws-nav-item${activeTab?.sectionId === "dashboard" ? " active" : ""}`}
               onClick={() => openSection("dashboard")}
               data-tooltip="Dashboard Home"
             >
@@ -136,18 +148,84 @@ export default function Sidebar() {
               {!sidebarCollapsed && <span>Dashboard Home</span>}
             </button>
 
-            {/* My Projects (User Workspace) */}
+            {/* My Projects */}
             <button
               type="button"
-              className={`ws-nav-item${activeWorkspace === "custom" ? " active" : ""}`}
+              className={`ws-nav-item${activeTab?.sectionId === "projects" && projectsFilter === "all" ? " active" : ""}`}
               onClick={() => {
-                changeWorkspace("custom");
-                openSection("dashboard");
+                setProjectsFilter("all");
+                openSection("projects");
               }}
               data-tooltip="My Projects"
             >
-              <FolderOpen size={16} style={{ color: activeWorkspace === "custom" ? "var(--ws-module-accent)" : "inherit" }} />
+              <Folder size={16} />
               {!sidebarCollapsed && <span>My Projects</span>}
+            </button>
+
+            {/* Favorites sub-item */}
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                className={`ws-nav-item${activeTab?.sectionId === "projects" && projectsFilter === "favorites" ? " active" : ""}`}
+                onClick={() => {
+                  setProjectsFilter("favorites");
+                  openSection("projects");
+                }}
+                style={{ paddingLeft: 28, fontSize: 12, opacity: 0.85 }}
+              >
+                <Star size={12} fill={activeTab?.sectionId === "projects" && projectsFilter === "favorites" ? "currentColor" : "transparent"} />
+                <span>Favorites</span>
+              </button>
+            )}
+
+            {/* Shared sub-item */}
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                className={`ws-nav-item${activeTab?.sectionId === "projects" && projectsFilter === "shared" ? " active" : ""}`}
+                onClick={() => {
+                  setProjectsFilter("shared");
+                  openSection("projects");
+                }}
+                style={{ paddingLeft: 28, fontSize: 12, opacity: 0.85 }}
+              >
+                <Share2 size={12} />
+                <span>Shared with Me</span>
+              </button>
+            )}
+
+            {/* Templates sub-item */}
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                className={`ws-nav-item${activeTab?.sectionId === "projects" && projectsFilter === "templates" ? " active" : ""}`}
+                onClick={() => {
+                  setProjectsFilter("templates");
+                  openSection("projects");
+                }}
+                style={{ paddingLeft: 28, fontSize: 12, opacity: 0.85 }}
+              >
+                <Layout size={12} />
+                <span>Templates</span>
+              </button>
+            )}
+
+            {/* Import Dataset */}
+            <button
+              type="button"
+              className={`ws-nav-item${activeTab?.sectionId === "import-dataset" ? " active" : ""}`}
+              onClick={() => {
+                // If user clicks import dataset and is in sample project, swap to Personal Sandbox
+                const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+                if (isSample) {
+                  changeWorkspace("custom");
+                }
+                openSection("import-dataset");
+              }}
+              data-tooltip="Import Dataset"
+            >
+              <UploadCloud size={16} />
+              {!sidebarCollapsed && <span>Import Dataset</span>}
             </button>
           </div>
           {sidebarCollapsed && <div className="ws-nav-group-divider" />}
@@ -155,7 +233,7 @@ export default function Sidebar() {
 
         {/* Sample Dashboards Nav Section */}
         <div className="ws-nav-group-container" style={{ marginTop: 12 }}>
-          {!sidebarCollapsed && <div className="ws-nav-group-label">Sample Dashboards</div>}
+          {!sidebarCollapsed && <div className="ws-nav-group-label">Sample Projects</div>}
           <div className="ws-nav-group">
             {[
               { id: "sales", label: "Sales Analysis Q2" },
@@ -163,7 +241,7 @@ export default function Sidebar() {
               { id: "marketing", label: "Marketing ROI" },
               { id: "revenue", label: "Revenue Forecast" }
             ].map((dash) => {
-              const isActive = activeWorkspace === dash.id;
+              const isActive = activeWorkspace === dash.id && activeTab?.sectionId === "dashboard";
               return (
                 <button
                   key={dash.id}
@@ -184,20 +262,16 @@ export default function Sidebar() {
           {sidebarCollapsed && <div className="ws-nav-group-divider" />}
         </div>
 
-        {/* Analytics & Management Tools */}
+        {/* Analytics Pipeline (Only show if not on projects list directly, or show always for context) */}
         {NAV_GROUPS.map((group) => {
-          // If group is 'platform', we only render sections other than 'dashboard' (e.g. 'import-dataset')
-          const sectionsToRender = group.id === "platform" 
-            ? group.sections.filter(s => s !== "dashboard") 
-            : group.sections;
-
-          if (sectionsToRender.length === 0) return null;
+          // Filter out platform categories as they are handled above
+          if (group.id === "platform" || group.id === "admin") return null;
 
           return (
             <div key={group.id} className="ws-nav-group-container" style={{ marginTop: 12 }}>
               {!sidebarCollapsed && <div className="ws-nav-group-label">{group.label}</div>}
               <div className="ws-nav-group">
-                {sectionsToRender.map((sectionId) => {
+                {group.sections.map((sectionId) => {
                   const meta = SECTION_REGISTRY[sectionId];
                   const Icon = meta.icon;
                   const isActive = activeTab?.sectionId === sectionId;
@@ -208,15 +282,11 @@ export default function Sidebar() {
                       type="button"
                       className={`ws-nav-item${isActive ? " active" : ""}`}
                       onClick={() => {
-                        // If user clicks import dataset and is NOT in custom workspace, swap them to custom!
-                        if (sectionId === "import-dataset" && activeWorkspace !== "custom") {
-                          changeWorkspace("custom");
-                        }
                         openSection(sectionId);
                       }}
                       data-tooltip={meta.label}
                     >
-                      <Icon />
+                      <Icon size={16} />
                       {!sidebarCollapsed && <span>{meta.label}</span>}
                     </button>
                   );
@@ -226,6 +296,33 @@ export default function Sidebar() {
             </div>
           );
         })}
+
+        {/* Administration Section */}
+        <div className="ws-nav-group-container" style={{ marginTop: 12 }}>
+          {!sidebarCollapsed && <div className="ws-nav-group-label">Administration</div>}
+          <div className="ws-nav-group">
+            {/* Settings */}
+            <button
+              type="button"
+              className={`ws-nav-item${activeTab?.sectionId === "workspace-settings" ? " active" : ""}`}
+              onClick={() => openSection("workspace-settings")}
+              data-tooltip="Settings"
+            >
+              <Settings size={16} />
+              {!sidebarCollapsed && <span>Settings</span>}
+            </button>
+            {/* Account */}
+            <button
+              type="button"
+              className={`ws-nav-item${activeTab?.sectionId === "account" ? " active" : ""}`}
+              onClick={() => openSection("account")}
+              data-tooltip="Account"
+            >
+              <User size={16} />
+              {!sidebarCollapsed && <span>Account</span>}
+            </button>
+          </div>
+        </div>
       </nav>
 
       {/* Footer Area with current workspace and profile */}

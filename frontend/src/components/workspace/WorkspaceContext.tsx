@@ -36,9 +36,19 @@ export interface UploadedFile {
 }
 
 export interface WorkspaceContextValue {
-  // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
+  // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom or project ID)
   activeWorkspace: string;
-  changeWorkspace: (workspaceId: "sales" | "churn" | "marketing" | "revenue" | "custom") => void;
+  changeWorkspace: (workspaceId: string) => void;
+
+  projects: any[];
+  setProjects: React.Dispatch<React.SetStateAction<any[]>>;
+  addProject: (projectData: any) => void;
+  deleteProject: (id: string) => void;
+  duplicateProject: (id: string) => void;
+  updateProject: (id: string, updates: any) => void;
+  toggleFavoriteProject: (id: string) => void;
+  projectsFilter: string;
+  setProjectsFilter: (filter: string) => void;
 
   // Tabs core
   tabs: WorkspaceTab[];
@@ -373,12 +383,168 @@ export const simulateCleaning = (rows: any[], cols: string[], col: string, op: s
   return { rows: newRows, columns: newCols };
 };
 
+const SEED_PROJECTS = [
+  {
+    id: "sales",
+    name: "Sales Analysis Q2",
+    description: "An enterprise-grade analysis of retail and wholesale sales trends in Q2.",
+    icon: "trending-up",
+    colorTheme: "blue",
+    industryTemplate: "Retail",
+    projectType: "Automated Reporting",
+    visibility: "team",
+    tags: ["Retail", "Sales", "Q2"],
+    createdDate: "2026-05-15",
+    lastModified: "2026-07-16",
+    owner: "Nikunj Goel",
+    status: "Active",
+    datasetCount: 3,
+    modelsCount: 2,
+    reportsCount: 12,
+    storageUsed: "4.8 MB",
+    pipelineProgress: 85,
+    teamMembers: [
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" },
+      { name: "Sarah Connor", email: "sarah@koredata.ai", role: "Editor" }
+    ],
+    isFavorite: true,
+    isSample: true
+  },
+  {
+    id: "churn",
+    name: "Customer Churn Prediction",
+    description: "Machine learning prediction models to identify high-risk subscription cancellations.",
+    icon: "brain",
+    colorTheme: "purple",
+    industryTemplate: "Telecom",
+    projectType: "ML Classification",
+    visibility: "team",
+    tags: ["ML", "Churn", "Retention"],
+    createdDate: "2026-04-10",
+    lastModified: "2026-07-15",
+    owner: "Nikunj Goel",
+    status: "Active",
+    datasetCount: 2,
+    modelsCount: 4,
+    reportsCount: 8,
+    storageUsed: "12.4 MB",
+    pipelineProgress: 95,
+    teamMembers: [
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" },
+      { name: "Alex Mercer", email: "alex@koredata.ai", role: "Viewer" }
+    ],
+    isFavorite: false,
+    isSample: true
+  },
+  {
+    id: "marketing",
+    name: "Marketing Campaign ROI",
+    description: "Attribution models tracking advertisement spend return on investment.",
+    icon: "bar-chart",
+    colorTheme: "cyan",
+    industryTemplate: "Marketing",
+    projectType: "Attribution Modeling",
+    visibility: "public",
+    tags: ["ROI", "Marketing", "Ads"],
+    createdDate: "2026-06-01",
+    lastModified: "2026-07-14",
+    owner: "Nikunj Goel",
+    status: "Active",
+    datasetCount: 1,
+    modelsCount: 1,
+    reportsCount: 4,
+    storageUsed: "2.1 MB",
+    pipelineProgress: 60,
+    teamMembers: [
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" }
+    ],
+    isFavorite: true,
+    isSample: true
+  },
+  {
+    id: "revenue",
+    name: "Revenue Forecasting",
+    description: "Predictive time-series forecasting of upcoming ARR and pipeline growth.",
+    icon: "database",
+    colorTheme: "green",
+    industryTemplate: "Finance",
+    projectType: "Time-Series Forecasting",
+    visibility: "private",
+    tags: ["Forecasting", "Revenue", "ARR"],
+    createdDate: "2026-03-20",
+    lastModified: "2026-07-16",
+    owner: "Nikunj Goel",
+    status: "Active",
+    datasetCount: 4,
+    modelsCount: 3,
+    reportsCount: 18,
+    storageUsed: "8.9 MB",
+    pipelineProgress: 75,
+    teamMembers: [
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" },
+      { name: "Bruce Wayne", email: "bruce@koredata.ai", role: "Viewer" }
+    ],
+    isFavorite: false,
+    isSample: true
+  },
+  {
+    id: "custom",
+    name: "Personal Sandbox",
+    description: "Your default scratch workspace for custom datasets and quick experiments.",
+    icon: "folder",
+    colorTheme: "blue",
+    industryTemplate: "Custom",
+    projectType: "Scratchpad",
+    visibility: "private",
+    tags: ["Sandbox", "Custom"],
+    createdDate: "2026-07-16",
+    lastModified: "2026-07-17",
+    owner: "Nikunj Goel",
+    status: "Active",
+    datasetCount: 1,
+    modelsCount: 1,
+    reportsCount: 0,
+    storageUsed: "1.2 MB",
+    pipelineProgress: 10,
+    teamMembers: [
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" }
+    ],
+    isFavorite: false,
+    isSample: false
+  }
+];
+
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Authentication & Profile helpers
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const defaultWs = getMockWorkspaceData("sales");
   const [activeWorkspace, setActiveWorkspace] = useState<string>("custom");
+
+  // Dynamic projects list
+  const [projects, setProjects] = useState<any[]>(() => {
+    if (typeof window === "undefined") return SEED_PROJECTS;
+    const saved = localStorage.getItem("koredata-projects");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return SEED_PROJECTS;
+  });
+
+  const [projectsFilter, setProjectsFilter] = useState<string>("all");
+
+  // Project-specific caches
+  const [projectStates, setProjectStates] = useState<Record<string, any>>(() => {
+    if (typeof window === "undefined") return {};
+    const saved = localStorage.getItem("koredata-project-states");
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {};
+  });
 
   // Custom workspace cache states
   const [customEdaResult, setCustomEdaResult] = useState<any>(null);
@@ -387,6 +553,82 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [customFiles, setCustomFiles] = useState<UploadedFile[]>([]);
   const [customReports, setCustomReports] = useState<any[]>([]);
   const [customLogs, setCustomLogs] = useState<LogEntry[]>([]);
+
+  // Persist projects state
+  useEffect(() => {
+    localStorage.setItem("koredata-projects", JSON.stringify(projects));
+  }, [projects]);
+
+  // Persist project states cache
+  useEffect(() => {
+    localStorage.setItem("koredata-project-states", JSON.stringify(projectStates));
+  }, [projectStates]);
+
+  const addProject = useCallback((projectData: any) => {
+    const newProj = {
+      ...projectData,
+      id: `proj-${Date.now()}`,
+      createdDate: new Date().toISOString().split("T")[0],
+      lastModified: new Date().toISOString().split("T")[0],
+      owner: "Nikunj Goel",
+      status: "Active",
+      datasetCount: 0,
+      modelsCount: 0,
+      reportsCount: 0,
+      storageUsed: "0 KB",
+      pipelineProgress: 0,
+      teamMembers: [
+        { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" }
+      ],
+      isFavorite: false,
+      isSample: false
+    };
+    setProjects((prev) => [...prev, newProj]);
+    addLog("Projects", `Project "${newProj.name}" created successfully.`, "success");
+  }, [addLog]);
+
+  const deleteProject = useCallback((id: string) => {
+    const proj = projects.find(p => p.id === id);
+    if (proj?.isSample) {
+      alert("Sample projects cannot be deleted.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete project "${proj?.name || id}"?`)) return;
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    addLog("Projects", `Project "${proj?.name || id}" deleted.`, "warning");
+    if (activeWorkspace === id) {
+      changeWorkspace("custom");
+    }
+  }, [activeWorkspace, projects, changeWorkspace, addLog]);
+
+  const duplicateProject = useCallback((id: string) => {
+    const target = projects.find((p) => p.id === id);
+    if (!target) return;
+    const clone = {
+      ...target,
+      id: `proj-${Date.now()}`,
+      name: `${target.name} (Copy)`,
+      createdDate: new Date().toISOString().split("T")[0],
+      lastModified: new Date().toISOString().split("T")[0],
+      isSample: false,
+      isFavorite: false
+    };
+    setProjects((prev) => [...prev, clone]);
+    addLog("Projects", `Duplicated project "${target.name}" to "${clone.name}".`, "success");
+  }, [projects, addLog]);
+
+  const updateProject = useCallback((id: string, updates: Partial<any>) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates, lastModified: new Date().toISOString().split("T")[0] } : p))
+    );
+    addLog("Projects", `Updated details for project ID: ${id}`, "success");
+  }, [addLog]);
+
+  const toggleFavoriteProject = useCallback((id: string) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, isFavorite: !p.isFavorite } : p))
+    );
+  }, []);
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -702,42 +944,29 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [edaResult]);
 
-  const changeWorkspace = useCallback((wsId: "sales" | "churn" | "marketing" | "revenue" | "custom") => {
-    // Before switching, if previous workspace was custom, cache the current working state
-    if (activeWorkspace === "custom") {
-      setCustomEdaResult(edaResult);
-      setCustomModels(models);
-      setCustomSavedModels(savedModels);
-      setCustomFiles(files);
-      setCustomReports(generatedReportsList);
-      setCustomLogs(logs);
+  const changeWorkspace = useCallback((wsId: string) => {
+    // Before switching, if previous workspace was not a sample, cache its state
+    const prevIsSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    if (!prevIsSample) {
+      setProjectStates((prev: any) => ({
+        ...prev,
+        [activeWorkspace]: {
+          edaResult,
+          models,
+          savedModels,
+          files,
+          generatedReportsList,
+          logs,
+          trainedModelCard
+        }
+      }));
     }
 
     setActiveWorkspace(wsId);
 
-    if (wsId === "custom") {
-      setEdaResult(customEdaResult);
-      setModels(customModels);
-      setSavedModels(customSavedModels);
-      setFiles(customFiles);
-      setGeneratedReportsList(customReports);
-      setTrainedModelCard(customSavedModels[0] || null);
-      setPredictResult(null);
-      setPredictInputs({});
-      setLogs(customLogs);
-
-      const cols = customEdaResult?.dataset_slices?.col_names || [];
-      if (cols.length > 0) {
-        setTargetCol(cols[cols.length - 1]);
-        setSelectedColumn(cols[0]);
-        setCleanCol(cols[0]);
-        setVizXAxis(cols[0]);
-        setVizYAxis(cols[1] || cols[0]);
-      }
-      
-      addLog("Workspace", "Swapped to My Projects workspace", "success");
-    } else {
-      const ws = getMockWorkspaceData(wsId);
+    const isNewSample = ["sales", "churn", "marketing", "revenue"].includes(wsId);
+    if (isNewSample) {
+      const ws = getMockWorkspaceData(wsId as any);
       setEdaResult(ws.edaResult);
       setModels(ws.models);
       setSavedModels(ws.savedModels);
@@ -758,6 +987,44 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       }
       
       addLog("Workspace", `Swapped to sample project: ${wsId.toUpperCase()}`, "success");
+    } else {
+      // It's a user project
+      const cached = projectStates[wsId];
+      if (cached) {
+        setEdaResult(cached.edaResult);
+        setModels(cached.models);
+        setSavedModels(cached.savedModels);
+        setFiles(cached.files);
+        setGeneratedReportsList(cached.generatedReportsList);
+        setTrainedModelCard(cached.trainedModelCard);
+        setPredictResult(null);
+        setPredictInputs({});
+        setLogs(cached.logs);
+
+        const cols = cached.edaResult?.dataset_slices?.col_names || [];
+        if (cols.length > 0) {
+          setTargetCol(cols[cols.length - 1]);
+          setSelectedColumn(cols[0]);
+          setCleanCol(cols[0]);
+          setVizXAxis(cols[0]);
+          setVizYAxis(cols[1] || cols[0]);
+        }
+      } else {
+        // Clear workspace
+        setEdaResult(null);
+        setModels([]);
+        setSavedModels([]);
+        setFiles([]);
+        setGeneratedReportsList([]);
+        setTrainedModelCard(null);
+        setPredictResult(null);
+        setPredictInputs({});
+        setLogs([
+          { timestamp: new Date().toLocaleTimeString(), node: "System", message: "New workspace initialized.", type: "success" }
+        ]);
+      }
+      
+      addLog("Workspace", `Swapped to custom project: ${wsId}`, "success");
     }
   }, [
     activeWorkspace,
@@ -767,12 +1034,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     files,
     generatedReportsList,
     logs,
-    customEdaResult,
-    customModels,
-    customSavedModels,
-    customFiles,
-    customReports,
-    customLogs,
+    trainedModelCard,
+    projectStates,
     addLog
   ]);
 
@@ -1481,6 +1744,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
     activeWorkspace,
     changeWorkspace,
+
+    projects,
+    setProjects,
+    addProject,
+    deleteProject,
+    duplicateProject,
+    updateProject,
+    toggleFavoriteProject,
+    projectsFilter,
+    setProjectsFilter,
 
     // Tabs state
     tabs: state.tabs,

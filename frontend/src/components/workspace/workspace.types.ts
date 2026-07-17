@@ -15,7 +15,8 @@ export type SectionId =
   | "pipeline-history"
   | "notification-center"
   | "workspace-settings"
-  | "account";
+  | "account"
+  | "projects";
 
 export type NavGroupId = "platform" | "pipeline" | "data" | "admin";
 

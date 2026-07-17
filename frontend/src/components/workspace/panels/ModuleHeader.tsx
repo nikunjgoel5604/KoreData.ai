@@ -20,7 +20,8 @@ const MODULE_SUBTITLES: Record<SectionId, string> = {
   "pipeline-history": "Review past pipeline runs, logs, and execution history.",
   "notification-center": "All workspace alerts, warnings, and notifications.",
   "workspace-settings": "Configure workspace preferences, integrations, and team access.",
-  account: "Your profile, security settings, and account preferences."
+  account: "Your profile, security settings, and account preferences.",
+  projects: "Enterprise project management, team collaboration, and templates."
 };
 
 export default function ModuleHeader({ sectionId }: { sectionId?: SectionId }) {

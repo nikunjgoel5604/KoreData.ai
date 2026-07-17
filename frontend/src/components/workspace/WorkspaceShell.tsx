@@ -8,6 +8,7 @@ import AiAssistantDrawer from "./AiAssistantDrawer";
 import NotificationCenterDrawer from "./NotificationCenterDrawer";
 import OverviewPanel from "./panels/OverviewPanel";
 import GenericPanel from "./panels/GenericPanel";
+import ProjectsPanel from "./panels/ProjectsPanel";
 import UploadPanel from "./panels/UploadPanel";
 import EdaPanel from "./panels/EdaPanel";
 import VisualizationPanel from "./panels/VisualizationPanel";
@@ -28,6 +29,8 @@ function ActivePanel() {
   switch (activeTab.sectionId) {
     case "dashboard":
       return <OverviewPanel />;
+    case "projects":
+      return <ProjectsPanel />;
     case "import-dataset":
       return <UploadPanel />;
     case "eda":
@@ -73,6 +76,18 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [setSidebarCollapsed]);
+
+  // Global Shortcut listener for Ctrl + Shift + A to toggle AI Assistant
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        setAssistantOpen(!assistantOpen);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setAssistantOpen, assistantOpen]);
 
   const gridStyle = { gridTemplateColumns: "var(--sidebar-width) minmax(0, 1fr)" };
 

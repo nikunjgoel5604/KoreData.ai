@@ -12,8 +12,8 @@ import {
   Database,
   Clock,
   Bell,
-  Settings,
   User,
+  Folder,
   type LucideIcon
 } from "lucide-react";
 import type { NavGroupId, SectionId } from "./workspace.types";
@@ -33,6 +33,13 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
     icon: LayoutGrid,
     group: "platform",
     description: "Workspace overview, KPIs, and recent activity."
+  },
+  projects: {
+    id: "projects",
+    label: "My Projects",
+    icon: Folder,
+    group: "platform",
+    description: "Enterprise project management, collaboration, and settings."
   },
   "import-dataset": {
     id: "import-dataset",
@@ -135,7 +142,7 @@ export const SECTION_REGISTRY: Record<SectionId, SectionMeta> = {
 };
 
 export const NAV_GROUPS: { id: NavGroupId; label: string; sections: SectionId[] }[] = [
-  { id: "platform", label: "Platform", sections: ["dashboard", "import-dataset"] },
+  { id: "platform", label: "Platform", sections: ["dashboard", "projects", "import-dataset"] },
   {
     id: "pipeline",
     label: "Analytics Pipeline",
