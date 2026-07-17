@@ -79,6 +79,8 @@ class MLDataset(BaseModel):
     target_col: Optional[str]  = None
     task_hint:  Optional[str]  = None
     eda_score:  Optional[float] = None
+    project_id: Optional[str]  = None
+    dataset_id: Optional[int]  = None
 
     @validator("task_hint")
     def valid_task(cls, v):
@@ -148,7 +150,7 @@ class IdeasRequest(MLDataset):
 
 # ─── DB persistence helper ────────────────────────────────────────────────────
 
-def _persist_training_run(login_id: str, result: dict, file_path: Optional[str] = None) -> int:
+def _persist_training_run(login_id: str, result: dict, file_path: Optional[str] = None, project_id: Optional[str] = None, dataset_id: Optional[int] = None) -> int:
     m = result.get("metrics", {})
     try:
         task = result.get("task_type", "")
@@ -159,14 +161,15 @@ def _persist_training_run(login_id: str, result: dict, file_path: Optional[str] 
         )
         row_id = db_execute(
             """INSERT INTO ml_training_history
-               (login_id, model_key, model_name, category, task_type, target_col,
+               (login_id, project_id, model_key, model_name, category, task_type, target_col,
                 n_features, n_rows_train, n_rows_test, test_size, eda_score,
                 primary_metric, f1_score, precision_score, recall_score, roc_auc,
                 rmse, mae, r2_score, cv_score, cv_std, hyperparams,
                 model_file_path, deploy_ready, grade)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
             (
                 login_id,
+                project_id,
                 result.get("model_key",""),
                 result.get("model_name",""),
                 result.get("category","Machine Learning"),
@@ -193,6 +196,45 @@ def _persist_training_run(login_id: str, result: dict, file_path: Optional[str] 
                 result.get("grade"),
             )
         )
+        
+        if file_path and row_id:
+            import os
+            file_size_kb = 0.0
+            if os.path.isfile(file_path):
+                file_size_kb = round(os.path.getsize(file_path) / 1024.0, 2)
+            
+            db_execute(
+                """INSERT INTO ml_saved_models
+                   (login_id, project_id, dataset_id, history_id, model_key, model_name, task_type, file_path, file_size_kb, feature_names, primary_metric, is_active)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,1)""",
+                (
+                    login_id,
+                    project_id,
+                    dataset_id,
+                    row_id,
+                    result.get("model_key",""),
+                    result.get("model_name",""),
+                    task,
+                    file_path,
+                    file_size_kb,
+                    json.dumps(result.get("feature_names", [])),
+                    primary
+                )
+            )
+            
+            if project_id:
+                try:
+                    from main import log_project_activity, refresh_project_statistics
+                    log_project_activity(
+                        project_id, login_id,
+                        f"Trained & Saved ML Model: {result.get('model_name')}",
+                        "model", str(row_id)
+                    )
+                    db_execute("UPDATE project_pipeline SET status = 'Completed' WHERE project_id = %s AND step_name = 'Machine Learning'", (project_id,))
+                    refresh_project_statistics(project_id)
+                except Exception as log_err:
+                    logger.warning("Failed to log ML activity: %s", log_err)
+                    
         return row_id or 0
     except Exception as exc:
         logger.warning("[ml_routes] DB persist failed: %s", exc)
@@ -538,7 +580,7 @@ def ml_train(body: TrainRequest, authorization: Optional[str] = Header(None)):
             result.pop("_le",     None)
             result["model_saved"] = False
 
-        history_id = _persist_training_run(user["login_id"], result, file_path)
+        history_id = _persist_training_run(user["login_id"], result, file_path, project_id=body.project_id, dataset_id=body.dataset_id)
         result["history_id"] = history_id
 
         return {"ok": True, **result}
@@ -615,10 +657,36 @@ def ml_report(body: ReportRequest, authorization: Optional[str] = Header(None)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @ml_router.get("/saved")
-def ml_saved(authorization: Optional[str] = Header(None)):
-    user  = _require_auth(authorization)
-    saved = list_saved_models(user["login_id"])
-    return {"ok": True, "saved_models": saved, "total": len(saved)}
+def ml_saved(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    
+    if project_id:
+        rows = db_fetchall(
+            """SELECT id, model_key, model_name, task_type, file_path, file_size_kb, feature_names, primary_metric, saved_at
+               FROM ml_saved_models
+               WHERE login_id = %s AND project_id = %s AND is_active = 1
+               ORDER BY saved_at DESC""",
+            (user["login_id"], project_id)
+        )
+    else:
+        rows = db_fetchall(
+            """SELECT id, model_key, model_name, task_type, file_path, file_size_kb, feature_names, primary_metric, saved_at
+               FROM ml_saved_models
+               WHERE login_id = %s AND project_id IS NULL AND is_active = 1
+               ORDER BY saved_at DESC""",
+            (user["login_id"],)
+        )
+        
+    for r in rows:
+        r["saved_at"] = str(r["saved_at"])
+        if r["feature_names"]:
+            try:
+                r["feature_names"] = json.loads(r["feature_names"])
+            except Exception:
+                pass
+        r["download_url"] = f"/ml/download/{r['model_key']}"
+        
+    return {"ok": True, "saved_models": rows, "total": len(rows)}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -627,20 +695,35 @@ def ml_saved(authorization: Optional[str] = Header(None)):
 
 @ml_router.get("/history")
 def ml_history(
+    project_id:    Optional[str]  = None,
     limit:         int            = 20,
     authorization: Optional[str]  = Header(None),
 ):
     user = _require_auth(authorization)
-    rows = db_fetchall(
-        """SELECT id, model_key, model_name, category, task_type, target_col,
-                  primary_metric, f1_score, rmse, r2_score, cv_score,
-                  eda_score, deploy_ready, grade, trained_at
-           FROM ml_training_history
-           WHERE login_id = %s
-           ORDER BY trained_at DESC
-           LIMIT %s""",
-        (user["login_id"], min(limit, 100)),
-    )
+    
+    if project_id:
+        rows = db_fetchall(
+            """SELECT id, model_key, model_name, category, task_type, target_col,
+                      primary_metric, f1_score, rmse, r2_score, cv_score,
+                      eda_score, deploy_ready, grade, trained_at
+               FROM ml_training_history
+               WHERE login_id = %s AND project_id = %s
+               ORDER BY trained_at DESC
+               LIMIT %s""",
+            (user["login_id"], project_id, min(limit, 100)),
+        )
+    else:
+        rows = db_fetchall(
+            """SELECT id, model_key, model_name, category, task_type, target_col,
+                      primary_metric, f1_score, rmse, r2_score, cv_score,
+                      eda_score, deploy_ready, grade, trained_at
+               FROM ml_training_history
+               WHERE login_id = %s AND project_id IS NULL
+               ORDER BY trained_at DESC
+               LIMIT %s""",
+            (user["login_id"], min(limit, 100)),
+        )
+        
     for r in rows:
         r["trained_at"]   = str(r["trained_at"])
         r["deploy_ready"] = bool(r["deploy_ready"])
@@ -652,16 +735,29 @@ def ml_history(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @ml_router.get("/download/{model_key}")
-def ml_download(model_key: str, authorization: Optional[str] = Header(None)):
+def ml_download(model_key: str, project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     user  = _require_auth(authorization)
-    d     = _model_dir(user["login_id"])
-    files = sorted(d.glob(f"{model_key}_*.joblib"), reverse=True)
-    if not files:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No saved model '{model_key}'. Train the model first."
-        )
-    fpath = files[0]
+    if project_id:
+        row = db_fetchone("SELECT file_path FROM ml_saved_models WHERE login_id = %s AND project_id = %s AND model_key = %s AND is_active = 1 ORDER BY saved_at DESC LIMIT 1", (user["login_id"], project_id, model_key))
+    else:
+        row = db_fetchone("SELECT file_path FROM ml_saved_models WHERE login_id = %s AND project_id IS NULL AND model_key = %s AND is_active = 1 ORDER BY saved_at DESC LIMIT 1", (user["login_id"], model_key))
+        
+    if not row or not row["file_path"]:
+        d     = _model_dir(user["login_id"])
+        files = sorted(d.glob(f"{model_key}_*.joblib"), reverse=True)
+        if not files:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No saved model '{model_key}'. Train the model first."
+            )
+        fpath = files[0]
+    else:
+        fpath = row["file_path"]
+        
+    import os
+    if not os.path.isfile(fpath):
+        raise HTTPException(status_code=404, detail="Model file not found on disk.")
+        
     return FileResponse(
         path       = str(fpath),
         filename   = f"kore_{model_key}_{user['login_id']}.joblib",
@@ -674,9 +770,19 @@ def ml_download(model_key: str, authorization: Optional[str] = Header(None)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @ml_router.delete("/delete/{model_key}")
-def ml_delete(model_key: str, authorization: Optional[str] = Header(None)):
+def ml_delete(model_key: str, project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     user    = _require_auth(authorization)
+    if project_id:
+        db_execute("UPDATE ml_saved_models SET is_active = 0 WHERE login_id = %s AND project_id = %s AND model_key = %s", (user["login_id"], project_id, model_key))
+        try:
+            from main import log_project_activity, refresh_project_statistics
+            log_project_activity(project_id, user["login_id"], f"Deleted ML Model: {model_key}", "model", model_key)
+            refresh_project_statistics(project_id)
+        except Exception:
+            pass
+    else:
+        db_execute("UPDATE ml_saved_models SET is_active = 0 WHERE login_id = %s AND project_id IS NULL AND model_key = %s", (user["login_id"], model_key))
+        
+    # Delete from file system
     deleted = delete_saved_model(model_key, user["login_id"])
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"No model '{model_key}' found to delete.")
     return {"ok": True, "message": f"Model '{model_key}' deleted."}

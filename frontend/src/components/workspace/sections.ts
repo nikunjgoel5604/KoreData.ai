@@ -12,6 +12,7 @@ import {
   Database,
   Clock,
   Bell,
+  Settings,
   User,
   Folder,
   type LucideIcon

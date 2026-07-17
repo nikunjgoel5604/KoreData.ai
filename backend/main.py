@@ -32,7 +32,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from dotenv import load_dotenv
-load_dotenv()
+# Load environment variables from absolute path
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dotenv_path = os.path.join(base_dir, ".env")
+load_dotenv(dotenv_path=dotenv_path, override=True)
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +48,7 @@ from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import pandas as pd
 
-from database           import init_db, db_fetchone, db_fetchall, db_execute
+from database           import initialize_database, db_fetchone, db_fetchall, db_execute
 from eda_engine         import perform_eda
 import notification_engine as notif
 from simulation_engine  import simulation_router
@@ -59,10 +62,10 @@ from landing_routes     import landing_router, init_contact_table
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    initialize_database()
     init_contact_table()
     logger.info(
-        "[Kore] v9.2 started — routers: simulation, activity, ml, account, landing"
+        "[Kore] v10.0 started — routers: simulation, activity, ml, account, landing"
         " | DEMO_MODE=%s", DEMO_MODE
     )
     yield
@@ -84,6 +87,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import mysql.connector
+
+@app.exception_handler(mysql.connector.Error)
+async def mysql_exception_handler(request: Request, exc: mysql.connector.Error):
+    logger.error(f"[DB GLOBAL EXCEPTION] Code: {exc.errno} | Message: {exc.msg}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "module": "Database",
+            "code": "DB_CONNECTION_FAILED" if exc.errno in (2002, 2003, 2006, 2013) else "DB_QUERY_FAILED",
+            "message": "Database query or connection failed.",
+            "details": "See backend logs."
+        }
+    )
 
 # ─── Mount routers ────────────────────────────────────────────────────────────
 app.include_router(simulation_router)
@@ -639,7 +660,41 @@ class ApplyMissingRequest(BaseModel):
     columns:  list
 
 
+class ProjectCreateRequest(BaseModel):
+    name:         str
+    description:  Optional[str] = ""
+    project_type: Optional[str] = "Standard"
+    industry:     Optional[str] = "General"
+    visibility:   Optional[str] = "private"
+    color_theme:  Optional[str] = "blue"
+    icon:         Optional[str] = "folder"
+
+class ProjectUpdateRequest(BaseModel):
+    name:                   Optional[str] = None
+    description:            Optional[str] = None
+    project_type:           Optional[str] = None
+    industry:               Optional[str] = None
+    visibility:             Optional[str] = None
+    color_theme:            Optional[str] = None
+    icon:                   Optional[str] = None
+    is_favorite:            Optional[int] = None
+    is_archived:            Optional[int] = None
+    active_dataset:         Optional[str] = None
+    active_model:           Optional[str] = None
+    current_pipeline_stage: Optional[str] = None
+
+class ProjectShareRequest(BaseModel):
+    email: str
+    role:  str = "Viewer"
+
 class WorkspaceSaveRequest(BaseModel):
+    active_project_id:       Optional[str] = None
+    active_dataset_id:       Optional[int] = None
+    active_model_id:         Optional[int] = None
+    current_module:          Optional[str] = None
+    current_page:            Optional[str] = None
+    current_chart:           Optional[str] = None
+    last_pipeline_step:      Optional[str] = None
     eda_result:              Optional[str] = None
     active_panels:           Optional[str] = None
     selected_panel:          Optional[str] = None
@@ -652,6 +707,7 @@ class WorkspaceSaveRequest(BaseModel):
     active_tab_id:           Optional[str] = None
     workspace_settings_json: Optional[str] = None
     workspace_history_json:  Optional[str] = None
+
 
 
 # ─── Performance monitor ──────────────────────────────────────────────────────
@@ -682,19 +738,27 @@ class PerformanceMonitor:
 
 @app.get("/health")
 def health_check():
-    """Railway / Docker healthcheck. Must respond 200 quickly."""
-    from database import get_connection
-    db_ok = False
+    """Railway / Docker healthcheck. Expanded to include detailed db, pool, and storage telemetry."""
+    from database import get_db_health_status
+    import time
+    
+    db_stats = {}
     try:
-        conn = get_connection()
-        conn.close()
-        db_ok = True
-    except Exception:
-        pass
+        db_stats = get_db_health_status()
+    except Exception as exc:
+        logger.error(f"[HEALTH] Failed to fetch db stats: {exc}")
+        db_stats = {"status": "unhealthy", "error": str(exc)}
+        
     return {
-        "status":  "ok" if db_ok else "degraded",
-        "db":      "connected" if db_ok else "unavailable",
-        "version": "9.2",
+        "status": "ok" if db_stats.get("status") == "healthy" else "degraded",
+        "app_version": "10.0",
+        "mysql_version": db_stats.get("mysql_version", "Unknown"),
+        "schema_version": db_stats.get("schema_version", 0),
+        "database_size_mb": db_stats.get("database_size_mb", 0.0),
+        "connection_pool": db_stats.get("pool", {}),
+        "storage": db_stats.get("storage", {}),
+        "server_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "app_uptime_sec": db_stats.get("uptime_sec", 0),
         "service": "kore-data-ex",
     }
 
@@ -1172,13 +1236,23 @@ def me(authorization: Optional[str] = Header(None)):
 
 
 @app.get("/my-files")
-def my_files(authorization: Optional[str] = Header(None)):
-    user  = _require_auth(authorization)
-    files = db_fetchall(
-        "SELECT id, file_name, file_type, file_size_kb, row_count, col_count, uploaded_at "
-        "FROM uploaded_files WHERE login_id = %s ORDER BY uploaded_at DESC",
-        (user["login_id"],),
-    )
+def my_files(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    
+    if project_id:
+        check_project_access(project_id, user["login_id"])
+        files = db_fetchall(
+            "SELECT id, file_name, file_type, file_size_kb, row_count, col_count, uploaded_at, data_quality_score, status "
+            "FROM uploaded_files WHERE project_id = %s AND status = 'Active' ORDER BY uploaded_at DESC",
+            (project_id,),
+        )
+    else:
+        files = db_fetchall(
+            "SELECT id, file_name, file_type, file_size_kb, row_count, col_count, uploaded_at, data_quality_score, status "
+            "FROM uploaded_files WHERE login_id = %s AND project_id IS NULL AND status = 'Active' ORDER BY uploaded_at DESC",
+            (user["login_id"],),
+        )
+        
     for f in files:
         f["uploaded_at"] = str(f["uploaded_at"])
     return {"files": files, "total": len(files)}
@@ -1187,7 +1261,43 @@ def my_files(authorization: Optional[str] = Header(None)):
 @app.delete("/my-files/{file_id}")
 def delete_file(file_id: int, authorization: Optional[str] = Header(None)):
     user = _require_auth(authorization)
-    db_execute("DELETE FROM uploaded_files WHERE id = %s AND login_id = %s", (file_id, user["login_id"]))
+    
+    file_row = db_fetchone("SELECT * FROM uploaded_files WHERE id = %s", (file_id,))
+    if not file_row:
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    project_id = file_row.get("project_id")
+    if project_id:
+        check_project_access(project_id, user["login_id"], "Editor")
+        
+    db_execute("DELETE FROM uploaded_files WHERE id = %s", (file_id,))
+    
+    if file_row.get("storage_path"):
+        full_path = os.path.join(BASE_DIR, file_row["storage_path"])
+        if os.path.isfile(full_path):
+            try:
+                os.remove(full_path)
+            except Exception:
+                pass
+                
+    if file_row.get("eda_json_path"):
+        full_eda_path = os.path.join(BASE_DIR, file_row["eda_json_path"])
+        if os.path.isfile(full_eda_path):
+            try:
+                os.remove(full_eda_path)
+            except Exception:
+                pass
+                
+    if project_id:
+        proj = db_fetchone("SELECT active_dataset FROM projects WHERE id = %s", (project_id,))
+        if proj and proj["active_dataset"] == file_row["file_name"]:
+            next_f = db_fetchone("SELECT file_name FROM uploaded_files WHERE project_id = %s AND status = 'Active' ORDER BY uploaded_at DESC LIMIT 1", (project_id,))
+            next_name = next_f["file_name"] if next_f else None
+            db_execute("UPDATE projects SET active_dataset = %s WHERE id = %s", (next_name, project_id))
+            
+        refresh_project_statistics(project_id)
+        log_project_activity(project_id, user["login_id"], f"Deleted dataset: {file_row['file_name']}", "dataset", str(file_id))
+        
     return {"ok": True, "message": "File deleted successfully"}
 
 
@@ -1217,20 +1327,20 @@ def get_file_eda(file_id: int, authorization: Optional[str] = Header(None)):
 # ─── Notification routes ──────────────────────────────────────────────────────
 
 @app.get("/notifications")
-def get_notifications(authorization: Optional[str] = Header(None)):
+def get_notifications(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     user  = _require_auth(authorization)
-    items = notif.get_notifications(user["login_id"])
+    items = notif.get_notifications(user["login_id"], project_id=project_id)
     return {
         "notifications": items,
         "total":         len(items),
-        "unread_count":  notif.get_unread_count(user["login_id"]),
+        "unread_count":  notif.get_unread_count(user["login_id"], project_id=project_id),
     }
 
 
 @app.get("/notifications/unread-count")
-def unread_count(authorization: Optional[str] = Header(None)):
+def unread_count(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     user = _require_auth(authorization)
-    return {"unread_count": notif.get_unread_count(user["login_id"])}
+    return {"unread_count": notif.get_unread_count(user["login_id"], project_id=project_id)}
 
 
 @app.post("/notifications/{notif_id}/read")
@@ -1252,9 +1362,9 @@ def notification_mark_unread(notif_id: int, authorization: Optional[str] = Heade
 
 
 @app.post("/notifications/read-all")
-def notification_mark_all_read(authorization: Optional[str] = Header(None)):
+def notification_mark_all_read(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
     user = _require_auth(authorization)
-    notif.mark_all_read(user["login_id"])
+    notif.mark_all_read(user["login_id"], project_id=project_id)
     return {"ok": True, "unread_count": 0}
 
 
@@ -1262,12 +1372,23 @@ def notification_mark_all_read(authorization: Optional[str] = Header(None)):
 
 @app.post("/upload")
 async def upload_file(
+    project_id:    Optional[str] = None,
     file:          UploadFile    = File(...),
     authorization: Optional[str] = Header(None),
 ):
     monitor = PerformanceMonitor()
     monitor.start()
     try:
+        user = None
+        if authorization and authorization.startswith("Bearer "):
+            user = get_user_from_token(authorization[7:])
+            
+        if not user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+            
+        if project_id:
+            check_project_access(project_id, user["login_id"], "Editor")
+            
         contents = await file.read()
         monitor.log_stage("file_read")
 
@@ -1288,45 +1409,68 @@ async def upload_file(
         eda_result = perform_eda(df)
         monitor.log_stage("eda_complete")
 
-        if authorization and authorization.startswith("Bearer "):
-            user = get_user_from_token(authorization[7:])
-            if user:
-                parts   = (file.filename or "file.csv").rsplit(".", 1)
-                ext     = parts[-1] if len(parts) == 2 else "unknown"
-                size_kb = round(len(contents) / 1024, 2)
-                rows    = eda_result.get("overview", {}).get("rows",    None)
-                cols    = eda_result.get("overview", {}).get("columns", None)
-                file_id = db_execute(
-                    "INSERT INTO uploaded_files "
-                    "(login_id, file_name, file_type, file_size_kb, row_count, col_count) "
-                    "VALUES (%s, %s, %s, %s, %s, %s)",
-                    (user["login_id"], file.filename, ext, size_kb, rows, cols),
-                )
+        parts   = (file.filename or "file.csv").rsplit(".", 1)
+        ext     = parts[-1] if len(parts) == 2 else "unknown"
+        size_kb = round(len(contents) / 1024, 2)
+        rows    = eda_result.get("overview", {}).get("rows",    None)
+        cols    = eda_result.get("overview", {}).get("columns", None)
+        
+        missing_pct = eda_result.get("overview", {}).get("missing_pct", 0)
+        quality_score = max(0.0, min(100.0, 100.0 - missing_pct))
+
+        file_id = db_execute(
+            "INSERT INTO uploaded_files "
+            "(login_id, project_id, file_name, file_type, file_size_kb, row_count, col_count, data_quality_score, status) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Active')",
+            (user["login_id"], project_id, file.filename, ext, size_kb, rows, cols, quality_score),
+        )
+        
+        if project_id:
+            setup_project_folders(user["login_id"], project_id)
+            raw_rel_path = os.path.join("storage", "users", user["login_id"], "projects", project_id, "datasets", f"{file_id}_{file.filename}")
+            raw_full_path = os.path.join(BASE_DIR, raw_rel_path)
+            
+            with open(raw_full_path, "wb") as f_raw:
+                f_raw.write(contents)
                 
-                # Cache EDA result in local storage files
-                import json
-                eda_filename = f"{user['login_id']}_{file_id}_eda.json"
-                eda_rel_path = os.path.join("storage", "eda", eda_filename)
-                eda_full_path = os.path.join(BASE_DIR, eda_rel_path)
-                try:
-                    with open(eda_full_path, "w", encoding="utf-8") as f_out:
-                        json.dump(eda_result, f_out, ensure_ascii=False, indent=2)
-                    
-                    db_execute(
-                        "UPDATE uploaded_files SET eda_json_path = %s WHERE id = %s",
-                        (eda_rel_path, file_id)
-                    )
-                except Exception as file_exc:
-                    logger.error(f"[Kore] Failed to write EDA JSON to disk: {file_exc}")
-                try:
-                    notif.create_notification(
-                        user["login_id"],
-                        f'"{file.filename}" uploaded — {rows or "?"} rows, {cols or "?"} cols. EDA complete.',
-                        notif.TYPE_SUCCESS,
-                        "overview",
-                    )
-                except Exception:
-                    pass
+            eda_filename = f"{file_id}_eda.json"
+            eda_rel_path = os.path.join("storage", "users", user["login_id"], "projects", project_id, "eda", eda_filename)
+        else:
+            raw_rel_path = None
+            eda_filename = f"{user['login_id']}_{file_id}_eda.json"
+            eda_rel_path = os.path.join("storage", "eda", eda_filename)
+            
+        eda_full_path = os.path.join(BASE_DIR, eda_rel_path)
+        
+        import json
+        try:
+            with open(eda_full_path, "w", encoding="utf-8") as f_out:
+                json.dump(eda_result, f_out, ensure_ascii=False, indent=2)
+            
+            db_execute(
+                "UPDATE uploaded_files SET eda_json_path = %s, storage_path = %s WHERE id = %s",
+                (eda_rel_path, raw_rel_path, file_id)
+            )
+        except Exception as file_exc:
+            logger.error(f"[Kore] Failed to write EDA JSON to disk: {file_exc}")
+            
+        if project_id:
+            db_execute("UPDATE projects SET active_dataset = %s WHERE id = %s", (file.filename, project_id))
+            refresh_project_statistics(project_id)
+            log_project_activity(project_id, user["login_id"], f"Uploaded dataset: {file.filename}", "dataset", str(file_id))
+            db_execute("UPDATE project_pipeline SET status = 'Completed' WHERE project_id = %s AND step_name = 'Import Dataset'", (project_id,))
+            
+        try:
+            notif.create_notification(
+                user["login_id"],
+                f'"{file.filename}" uploaded — {rows or "?"} rows, {cols or "?"} cols. EDA complete.',
+                notif.TYPE_SUCCESS,
+                "overview",
+            )
+            if project_id:
+                db_execute("UPDATE user_notifications SET project_id = %s WHERE login_id = %s AND project_id IS NULL ORDER BY id DESC LIMIT 1", (project_id, user["login_id"]))
+        except Exception:
+            pass
 
         eda_result["_performance_metrics"] = {
             "stages":          monitor.metrics,
@@ -1335,9 +1479,14 @@ async def upload_file(
             "file_name":       file.filename,
             "processed_at":    datetime.now().isoformat(),
         }
+        eda_result["dataset_id"] = file_id
+        eda_result["file_name"] = file.filename
+        eda_result["storage_path"] = raw_rel_path
+        
         return eda_result
 
     except Exception as exc:
+        logger.error(f"Upload failed: {exc}")
         return JSONResponse(status_code=500, content={"error": f"EDA processing failed: {exc}"})
 
 
@@ -1465,12 +1614,152 @@ async def dataset_apply_missing(
 
 # ─── Workspace State Routes ───────────────────────────────────────────────────
 
+# ─── Project Management Helpers ────────────────────────────────────────────────
+
+import uuid
+
+def check_project_access(project_id: str, login_id: str, minimum_role: str = "Viewer") -> dict:
+    """
+    Checks if a user has access to a project and returns their role.
+    Raises HTTPException if access is denied.
+    """
+    project = db_fetchone("SELECT * FROM projects WHERE id = %s AND is_deleted = 0", (project_id,))
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found or deleted")
+    
+    # If the user is the owner of the project, they have full access
+    if project["login_id"] == login_id:
+        return {"project": project, "role": "Owner"}
+    
+    # Check project_members table
+    member = db_fetchone("SELECT * FROM project_members WHERE project_id = %s AND login_id = %s", (project_id, login_id))
+    if not member:
+        raise HTTPException(status_code=403, detail="Access denied. You are not a member of this project.")
+    
+    role_hierarchy = {
+        "Owner": 5,
+        "Admin": 4,
+        "Editor": 3,
+        "Viewer": 2,
+        "Guest": 1
+    }
+    
+    user_level = role_hierarchy.get(member["role"], 0)
+    required_level = role_hierarchy.get(minimum_role, 0)
+    
+    if user_level < required_level:
+        raise HTTPException(status_code=403, detail=f"Insufficient permissions. Requires {minimum_role} role.")
+        
+    return {"project": project, "role": member["role"]}
+
+
+def setup_project_folders(login_id: str, project_id: str):
+    try:
+        user_dir = os.path.join(BASE_DIR, "storage", "users", login_id, "projects", project_id)
+        subdirs = ["datasets", "eda", "charts", "models", "reports", "exports", "notebooks", "ai", "temp"]
+        for subdir in subdirs:
+            path = os.path.join(user_dir, subdir)
+            os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        logger.warning(f"Failed to create project folder structure: {e}")
+
+
+def log_project_activity(project_id: str, login_id: str, action: str, entity: str = None, entity_id: str = None, prev_val: str = None, new_val: str = None):
+    try:
+        db_execute(
+            "INSERT INTO project_activity_log (project_id, login_id, action, entity, entity_id, previous_value, new_value) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (project_id, login_id, action, entity, entity_id, prev_val, new_val)
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log project activity: {e}")
+
+
+def get_project_stats(project_id: str) -> dict:
+    try:
+        ds_count = db_fetchone("SELECT COUNT(*) as cnt FROM uploaded_files WHERE project_id = %s AND status = 'Active'", (project_id,))
+        md_count = db_fetchone("SELECT COUNT(*) as cnt FROM ml_saved_models WHERE project_id = %s", (project_id,))
+        ch_count = db_fetchone("SELECT COUNT(*) as cnt FROM visualizations WHERE project_id = %s", (project_id,))
+        rp_count = db_fetchone("SELECT COUNT(*) as cnt FROM project_reports WHERE project_id = %s", (project_id,))
+        ex_count = db_fetchone("SELECT COUNT(*) as cnt FROM project_exports WHERE project_id = %s", (project_id,))
+        
+        # calculate storage used
+        total_kb = db_fetchone("SELECT SUM(file_size_kb) as total FROM uploaded_files WHERE project_id = %s AND status = 'Active'", (project_id,))
+        kb = total_kb["total"] if total_kb and total_kb["total"] else 0
+        storage_str = f"{round(kb / 1024, 2)} MB" if kb > 1024 else f"{round(kb, 1)} KB"
+        
+        # calculate pipeline completion %
+        pipeline_steps = db_fetchall("SELECT status FROM project_pipeline WHERE project_id = %s", (project_id,))
+        completed = sum(1 for step in pipeline_steps if step["status"] == "Completed")
+        total_steps = len(pipeline_steps) or 8
+        completion_pct = int((completed / total_steps) * 100)
+        
+        # average quality score
+        avg_score = db_fetchone("SELECT AVG(data_quality_score) as avg FROM uploaded_files WHERE project_id = %s AND status = 'Active'", (project_id,))
+        q_score = round(avg_score["avg"], 1) if avg_score and avg_score["avg"] is not None else None
+        
+        return {
+            "dataset_count": ds_count["cnt"] if ds_count else 0,
+            "model_count": md_count["cnt"] if md_count else 0,
+            "chart_count": ch_count["cnt"] if ch_count else 0,
+            "report_count": rp_count["cnt"] if rp_count else 0,
+            "export_count": ex_count["cnt"] if ex_count else 0,
+            "storage_used": storage_str,
+            "pipeline_completion": completion_pct,
+            "quality_score": q_score
+        }
+    except Exception as e:
+        logger.warning(f"Failed to get project stats: {e}")
+        return {}
+
+
+def refresh_project_statistics(project_id: str):
+    try:
+        stats = get_project_stats(project_id)
+        if not stats:
+            return
+        
+        # Update project_statistics table
+        exists = db_fetchone("SELECT 1 FROM project_statistics WHERE project_id = %s", (project_id,))
+        if exists:
+            db_execute(
+                "UPDATE project_statistics SET dataset_count = %s, model_count = %s, chart_count = %s, report_count = %s, "
+                "export_count = %s, storage_used = %s, pipeline_completion = %s, quality_score = %s WHERE project_id = %s",
+                (stats["dataset_count"], stats["model_count"], stats["chart_count"], stats["report_count"],
+                 stats["export_count"], stats["storage_used"], stats["pipeline_completion"], stats["quality_score"], project_id)
+            )
+        else:
+            db_execute(
+                "INSERT INTO project_statistics (project_id, dataset_count, model_count, chart_count, report_count, "
+                "export_count, storage_used, pipeline_completion, quality_score) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (project_id, stats["dataset_count"], stats["model_count"], stats["chart_count"], stats["report_count"],
+                 stats["export_count"], stats["storage_used"], stats["pipeline_completion"], stats["quality_score"])
+            )
+        
+        # Sync storage_used, dataset_count, model_count, report_count on the projects table as well
+        db_execute(
+            "UPDATE projects SET storage_used = %s, dataset_count = %s, model_count = %s, report_count = %s WHERE id = %s",
+            (stats["storage_used"], stats["dataset_count"], stats["model_count"], stats["report_count"], project_id)
+        )
+    except Exception as e:
+        logger.warning(f"Failed to refresh project statistics: {e}")
+
+
+# ─── Workspace State Routes ───────────────────────────────────────────────────
+
 @app.get("/workspace/state")
 def get_workspace_state(authorization: Optional[str] = Header(None)):
     user = _require_auth(authorization)
     state = db_fetchone("SELECT * FROM kore_workspace_state WHERE login_id = %s", (user["login_id"],))
     if not state:
         return {
+            "active_project_id": None,
+            "active_dataset_id": None,
+            "active_model_id": None,
+            "current_module": None,
+            "current_page": None,
+            "current_chart": None,
+            "last_pipeline_step": None,
             "eda_result": None,
             "active_panels": None,
             "selected_panel": "dashboard",
@@ -1496,11 +1785,15 @@ def save_workspace_state(body: WorkspaceSaveRequest, authorization: Optional[str
     if exists:
         db_execute(
             "UPDATE kore_workspace_state SET "
+            "active_project_id = %s, active_dataset_id = %s, active_model_id = %s, "
+            "current_module = %s, current_page = %s, current_chart = %s, last_pipeline_step = %s, "
             "eda_result = %s, active_panels = %s, selected_panel = %s, "
             "sim_running = %s, current_stage_key = %s, sim_progress = %s, "
             "stage_statuses = %s, logs = %s, open_tabs_json = %s, active_tab_id = %s, "
             "workspace_settings_json = %s, workspace_history_json = %s WHERE login_id = %s",
             (
+                body.active_project_id, body.active_dataset_id, body.active_model_id,
+                body.current_module, body.current_page, body.current_chart, body.last_pipeline_step,
                 body.eda_result, body.active_panels, body.selected_panel,
                 body.sim_running, body.current_stage_key, body.sim_progress,
                 body.stage_statuses, body.logs, body.open_tabs_json, body.active_tab_id,
@@ -1510,11 +1803,14 @@ def save_workspace_state(body: WorkspaceSaveRequest, authorization: Optional[str
     else:
         db_execute(
             "INSERT INTO kore_workspace_state "
-            "(login_id, eda_result, active_panels, selected_panel, sim_running, current_stage_key, "
+            "(login_id, active_project_id, active_dataset_id, active_model_id, current_module, current_page, "
+            "current_chart, last_pipeline_step, eda_result, active_panels, selected_panel, sim_running, current_stage_key, "
             "sim_progress, stage_statuses, logs, open_tabs_json, active_tab_id, workspace_settings_json, workspace_history_json) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
-                lid, body.eda_result, body.active_panels, body.selected_panel,
+                lid, body.active_project_id, body.active_dataset_id, body.active_model_id,
+                body.current_module, body.current_page, body.current_chart, body.last_pipeline_step,
+                body.eda_result, body.active_panels, body.selected_panel,
                 body.sim_running, body.current_stage_key, body.sim_progress,
                 body.stage_statuses, body.logs, body.open_tabs_json, body.active_tab_id,
                 body.workspace_settings_json, body.workspace_history_json
@@ -1523,16 +1819,406 @@ def save_workspace_state(body: WorkspaceSaveRequest, authorization: Optional[str
     return {"ok": True, "message": "Workspace state saved to MySQL"}
 
 
+# ─── Project APIs ─────────────────────────────────────────────────────────────
+
+@app.get("/projects")
+def get_projects(authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    lid = user["login_id"]
+    
+    projects = db_fetchall(
+        "SELECT p.*, "
+        "       ps.dataset_count, ps.model_count, ps.chart_count, ps.report_count, ps.export_count, "
+        "       ps.storage_used as stat_storage_used, ps.pipeline_completion, ps.quality_score "
+        "FROM projects p "
+        "LEFT JOIN project_members pm ON pm.project_id = p.id "
+        "LEFT JOIN project_statistics ps ON ps.project_id = p.id "
+        "WHERE p.is_deleted = 0 AND (p.login_id = %s OR pm.login_id = %s) "
+        "GROUP BY p.id "
+        "ORDER BY p.is_favorite DESC, p.last_opened_at DESC, p.created_at DESC",
+        (lid, lid)
+    )
+    for p in projects:
+        p["created_at"] = str(p["created_at"])
+        p["updated_at"] = str(p["updated_at"])
+        p["last_opened_at"] = str(p["last_opened_at"]) if p["last_opened_at"] else None
+        p["is_favorite"] = bool(p["is_favorite"])
+        p["is_archived"] = bool(p["is_archived"])
+        p["is_deleted"] = bool(p["is_deleted"])
+        if p["stat_storage_used"] is not None:
+            p["storage_used"] = p["stat_storage_used"]
+            
+    return {"projects": projects, "total": len(projects)}
+
+
+@app.get("/projects/{project_id}")
+def get_project_details(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    access = check_project_access(project_id, user["login_id"])
+    project = access["project"]
+    
+    refresh_project_statistics(project_id)
+    stats = db_fetchone("SELECT * FROM project_statistics WHERE project_id = %s", (project_id,))
+    
+    pipeline = db_fetchall("SELECT step_name, status, updated_at FROM project_pipeline WHERE project_id = %s", (project_id,))
+    for step in pipeline:
+        step["updated_at"] = str(step["updated_at"])
+        
+    activity = db_fetchall("SELECT * FROM project_activity_log WHERE project_id = %s ORDER BY created_at DESC LIMIT 30", (project_id,))
+    for act in activity:
+        act["created_at"] = str(act["created_at"])
+        
+    members = db_fetchall(
+        "SELECT pm.id, pm.login_id, pm.role, pm.created_at, "
+        "       CONCAT(u.first_name, ' ', u.last_name) as name, u.email "
+        "FROM project_members pm "
+        "JOIN kore_users u ON u.login_id = pm.login_id "
+        "WHERE pm.project_id = %s",
+        (project_id,)
+    )
+    for m in members:
+        m["created_at"] = str(m["created_at"])
+        
+    return {
+        "project": {
+            **project,
+            "created_at": str(project["created_at"]),
+            "updated_at": str(project["updated_at"]),
+            "last_opened_at": str(project["last_opened_at"]) if project["last_opened_at"] else None,
+            "is_favorite": bool(project["is_favorite"]),
+            "is_archived": bool(project["is_archived"]),
+            "is_deleted": bool(project["is_deleted"])
+        },
+        "role": access["role"],
+        "stats": stats or {},
+        "pipeline": pipeline,
+        "activity": activity,
+        "members": members
+    }
+
+
+@app.post("/projects")
+def create_project(body: ProjectCreateRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    lid = user["login_id"]
+    
+    project_id = "proj-" + str(uuid.uuid4())[:8]
+    
+    db_execute(
+        "INSERT INTO projects (id, login_id, name, description, project_type, industry, visibility, color_theme, icon) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (project_id, lid, body.name, body.description, body.project_type, body.industry, body.visibility, body.color_theme, body.icon)
+    )
+    
+    setup_project_folders(lid, project_id)
+    
+    db_execute("INSERT INTO project_members (project_id, login_id, role) VALUES (%s, %s, 'Owner')", (project_id, lid))
+    
+    db_execute("INSERT INTO project_settings (project_id, default_theme) VALUES (%s, %s)", (project_id, "dark" if body.color_theme == "indigo" else "light"))
+    
+    steps = ['Import Dataset', 'EDA', 'Visualization', 'Feature Engineering', 'Machine Learning', 'Prediction', 'Reports', 'Export']
+    for step in steps:
+        db_execute("INSERT INTO project_pipeline (project_id, step_name, status) VALUES (%s, %s, 'Not Started')", (project_id, step))
+        
+    log_project_activity(project_id, lid, "Project created", "project", project_id, None, body.name)
+    refresh_project_statistics(project_id)
+    
+    db_execute(
+        "INSERT INTO kore_workspace_state (login_id, active_project_id) "
+        "VALUES (%s, %s) ON DUPLICATE KEY UPDATE active_project_id = %s",
+        (lid, project_id, project_id)
+    )
+    
+    try:
+        notif.create_notification(
+            lid,
+            f"Project '{body.name}' created successfully.",
+            notif.TYPE_SUCCESS,
+            "overview"
+        )
+        db_execute("UPDATE user_notifications SET project_id = %s WHERE login_id = %s AND project_id IS NULL ORDER BY id DESC LIMIT 1", (project_id, lid))
+    except Exception:
+        pass
+        
+    return {"ok": True, "project_id": project_id, "message": "Project created successfully."}
+
+
+@app.put("/projects/{project_id}")
+def update_project(project_id: str, body: ProjectUpdateRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    access = check_project_access(project_id, user["login_id"], "Editor")
+    
+    fields = []
+    params = []
+    changes = []
+    
+    update_fields = {
+        "name": body.name,
+        "description": body.description,
+        "project_type": body.project_type,
+        "industry": body.industry,
+        "visibility": body.visibility,
+        "color_theme": body.color_theme,
+        "icon": body.icon,
+        "is_favorite": body.is_favorite,
+        "is_archived": body.is_archived,
+        "active_dataset": body.active_dataset,
+        "active_model": body.active_model,
+        "current_pipeline_stage": body.current_pipeline_stage
+    }
+    
+    for col, val in update_fields.items():
+        if val is not None:
+            fields.append(f"{col} = %s")
+            params.append(val)
+            changes.append(f"{col}: {val}")
+            
+    if not fields:
+        return {"ok": True, "message": "No changes requested."}
+        
+    params.append(project_id)
+    db_execute(f"UPDATE projects SET {', '.join(fields)} WHERE id = %s", tuple(params))
+    
+    log_project_activity(project_id, user["login_id"], "Project updated", "project", project_id, None, ", ".join(changes))
+    return {"ok": True, "message": "Project updated successfully."}
+
+
+@app.delete("/projects/{project_id}")
+def delete_project(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"], "Admin")
+    lid = user["login_id"]
+    
+    # Soft delete
+    db_execute("UPDATE projects SET is_deleted = 1 WHERE id = %s", (project_id,))
+    log_project_activity(project_id, lid, "Project soft-deleted", "project", project_id)
+    
+    # Auto-switch user active project if deleting currently active project
+    state = db_fetchone("SELECT active_project_id FROM kore_workspace_state WHERE login_id = %s", (lid,))
+    if state and state["active_project_id"] == project_id:
+        next_proj = db_fetchone("SELECT id FROM projects WHERE login_id = %s AND is_deleted = 0 LIMIT 1", (lid,))
+        next_id = next_proj["id"] if next_proj else None
+        db_execute("UPDATE kore_workspace_state SET active_project_id = %s WHERE login_id = %s", (next_id, lid))
+        
+    return {"ok": True, "message": "Project deleted successfully."}
+
+
+@app.post("/projects/{project_id}/archive")
+def archive_project(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"], "Editor")
+    
+    db_execute("UPDATE projects SET is_archived = 1 WHERE id = %s", (project_id,))
+    log_project_activity(project_id, user["login_id"], "Project archived", "project", project_id)
+    return {"ok": True, "message": "Project archived successfully."}
+
+
+@app.post("/projects/{project_id}/restore")
+def restore_project(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"], "Editor")
+    
+    db_execute("UPDATE projects SET is_archived = 0, is_deleted = 0 WHERE id = %s", (project_id,))
+    log_project_activity(project_id, user["login_id"], "Project restored", "project", project_id)
+    return {"ok": True, "message": "Project restored successfully."}
+
+
+@app.post("/projects/{project_id}/duplicate")
+def duplicate_project(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    lid = user["login_id"]
+    access = check_project_access(project_id, lid, "Viewer")
+    orig = access["project"]
+    
+    new_id = "proj-" + str(uuid.uuid4())[:8]
+    new_name = orig["name"] + " (Copy)"
+    
+    db_execute(
+        "INSERT INTO projects (id, login_id, name, description, project_type, industry, visibility, color_theme, icon) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+        (new_id, lid, new_name, orig["description"], orig["project_type"], orig["industry"], orig["visibility"], orig["color_theme"], orig["icon"])
+    )
+    
+    setup_project_folders(lid, new_id)
+    
+    db_execute("INSERT INTO project_members (project_id, login_id, role) VALUES (%s, %s, 'Owner')", (new_id, lid))
+    
+    orig_pipeline = db_fetchall("SELECT step_name, status FROM project_pipeline WHERE project_id = %s", (project_id,))
+    for step in orig_pipeline:
+        db_execute("INSERT INTO project_pipeline (project_id, step_name, status) VALUES (%s, %s, %s)", (new_id, step["step_name"], step["status"]))
+        
+    refresh_project_statistics(new_id)
+    
+    orig_files = db_fetchall("SELECT * FROM uploaded_files WHERE project_id = %s AND status = 'Active'", (project_id,))
+    for f in orig_files:
+        db_execute(
+            "INSERT INTO uploaded_files (login_id, project_id, file_name, file_type, file_size_kb, row_count, col_count, eda_json_path, report_json_path, data_quality_score, storage_path) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (lid, new_id, f["file_name"], f["file_type"], f["file_size_kb"], f["row_count"], f["col_count"], f["eda_json_path"], f["report_json_path"], f["data_quality_score"], f["storage_path"])
+        )
+        
+    refresh_project_statistics(new_id)
+    log_project_activity(new_id, lid, "Project duplicated", "project", new_id, project_id, f"Cloned from {project_id}")
+    
+    return {"ok": True, "project_id": new_id, "message": "Project duplicated successfully."}
+
+
+@app.post("/projects/{project_id}/favorite")
+def favorite_project(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"], "Viewer")
+    
+    project = db_fetchone("SELECT is_favorite FROM projects WHERE id = %s", (project_id,))
+    new_fav = 0 if project["is_favorite"] else 1
+    db_execute("UPDATE projects SET is_favorite = %s WHERE id = %s", (new_fav, project_id))
+    
+    action = "Project starred" if new_fav else "Project unstarred"
+    log_project_activity(project_id, user["login_id"], action, "project", project_id)
+    return {"ok": True, "is_favorite": bool(new_fav), "message": f"{action} successfully."}
+
+
+@app.post("/projects/{project_id}/share")
+def share_project(project_id: str, body: ProjectShareRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"], "Editor")
+    
+    target_user = db_fetchone("SELECT login_id, first_name, last_name FROM kore_users WHERE email = %s", (body.email.strip(),))
+    if not target_user:
+        raise HTTPException(status_code=404, detail="No Kore user registered with that email address.")
+        
+    target_lid = target_user["login_id"]
+    
+    exists = db_fetchone("SELECT 1 FROM project_members WHERE project_id = %s AND login_id = %s", (project_id, target_lid))
+    if exists:
+        db_execute("UPDATE project_members SET role = %s WHERE project_id = %s AND login_id = %s", (body.role, project_id, target_lid))
+    else:
+        db_execute("INSERT INTO project_members (project_id, login_id, role) VALUES (%s, %s, %s)", (project_id, target_lid, body.role))
+        
+    log_project_activity(project_id, user["login_id"], f"Shared project with {body.email}", "member", target_lid, None, body.role)
+    
+    try:
+        notif.create_notification(
+            target_lid,
+            f"You have been invited to project as '{body.role}' by {user['first_name']}.",
+            notif.TYPE_INFO,
+            "overview"
+        )
+        db_execute("UPDATE user_notifications SET project_id = %s WHERE login_id = %s AND project_id IS NULL ORDER BY id DESC LIMIT 1", (project_id, target_lid))
+    except Exception:
+        pass
+        
+    return {"ok": True, "message": f"Project successfully shared with {body.email} as {body.role}."}
+
+
+@app.post("/projects/{project_id}/transfer-owner")
+def transfer_owner(project_id: str, body: ProjectShareRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    access = check_project_access(project_id, user["login_id"])
+    if access["role"] != "Owner":
+        raise HTTPException(status_code=403, detail="Only the project Owner can transfer ownership.")
+        
+    target_user = db_fetchone("SELECT login_id FROM kore_users WHERE email = %s", (body.email.strip(),))
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    target_lid = target_user["login_id"]
+    
+    db_execute("UPDATE projects SET login_id = %s WHERE id = %s", (target_lid, project_id))
+    db_execute("UPDATE project_members SET role = 'Admin' WHERE project_id = %s AND login_id = %s", (project_id, user["login_id"]))
+    
+    exists = db_fetchone("SELECT 1 FROM project_members WHERE project_id = %s AND login_id = %s", (project_id, target_lid))
+    if exists:
+        db_execute("UPDATE project_members SET role = 'Owner' WHERE project_id = %s AND login_id = %s", (project_id, target_lid))
+    else:
+        db_execute("INSERT INTO project_members (project_id, login_id, role) VALUES (%s, %s, 'Owner')", (project_id, target_lid))
+        
+    log_project_activity(project_id, user["login_id"], f"Transferred ownership to {body.email}", "project", project_id)
+    return {"ok": True, "message": f"Ownership successfully transferred to {body.email}."}
+
+
+@app.get("/projects/{project_id}/activity")
+def get_project_activity(project_id: str, limit: int = 50, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"])
+    
+    activity = db_fetchall(
+        "SELECT a.*, CONCAT(u.first_name, ' ', u.last_name) as user_name, u.email "
+        "FROM project_activity_log a "
+        "JOIN kore_users u ON u.login_id = a.login_id "
+        "WHERE a.project_id = %s "
+        "ORDER BY a.created_at DESC "
+        "LIMIT %s",
+        (project_id, limit)
+    )
+    for act in activity:
+        act["created_at"] = str(act["created_at"])
+        
+    return {"activity": activity, "total": len(activity)}
+
+
+@app.get("/projects/{project_id}/statistics")
+def get_project_statistics(project_id: str, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    check_project_access(project_id, user["login_id"])
+    
+    refresh_project_statistics(project_id)
+    stats = db_fetchone("SELECT * FROM project_statistics WHERE project_id = %s", (project_id,))
+    if stats:
+        stats["updated_at"] = str(stats["updated_at"])
+    return {"statistics": stats or {}}
+
+
+class ActivateProjectRequest(BaseModel):
+    project_id: str
+
+@app.post("/workspace/activate")
+def activate_project(body: ActivateProjectRequest, authorization: Optional[str] = Header(None)):
+    user = _require_auth(authorization)
+    lid = user["login_id"]
+    
+    check_project_access(body.project_id, lid)
+    
+    db_execute(
+        "INSERT INTO kore_workspace_state (login_id, active_project_id) "
+        "VALUES (%s, %s) ON DUPLICATE KEY UPDATE active_project_id = %s",
+        (lid, body.project_id, body.project_id)
+    )
+    
+    db_execute("UPDATE projects SET last_opened_at = NOW() WHERE id = %s", (body.project_id,))
+    return {"ok": True, "message": "Project activated in workspace state."}
+
+
 # ─── Stats ───────────────────────────────────────────────────────────────────
 
 @app.get("/stats")
-def stats():
+def stats(project_id: Optional[str] = None, authorization: Optional[str] = Header(None)):
+    if project_id and authorization:
+        try:
+            user = _require_auth(authorization)
+            check_project_access(project_id, user["login_id"])
+            refresh_project_statistics(project_id)
+            stat = db_fetchone("SELECT * FROM project_statistics WHERE project_id = %s", (project_id,))
+            if stat:
+                return {
+                    "total_users": 1,
+                    "total_uploads": stat["dataset_count"],
+                    "model_count": stat["model_count"],
+                    "chart_count": stat["chart_count"],
+                    "report_count": stat["report_count"],
+                    "export_count": stat["export_count"],
+                    "storage_used": stat["storage_used"],
+                    "pipeline_completion": stat["pipeline_completion"]
+                }
+        except Exception:
+            pass
+            
     uc = db_fetchone("SELECT COUNT(*) AS cnt FROM kore_users")
     fc = db_fetchone("SELECT COUNT(*) AS cnt FROM uploaded_files")
     return {
         "total_users":   uc["cnt"] if uc else 0,
         "total_uploads": fc["cnt"] if fc else 0,
     }
+
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────

@@ -48,7 +48,131 @@ const themeColors: Record<string, string> = {
   orange: "#F97316"
 };
 
+class ProjectsPanelErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: any }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("[ProjectsPanel ErrorBoundary] Caught render error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 16, alignItems: "center", justifyContent: "center", minHeight: 300, background: "var(--ws-card)", borderRadius: 16, border: "1px solid var(--ws-border)" }}>
+          <Info size={48} style={{ color: "var(--ws-danger)" }} />
+          <h3 style={{ color: "var(--ws-text)", margin: 0 }}>Unable to load Projects</h3>
+          <p style={{ color: "var(--ws-text-muted)", fontSize: 13, margin: 0, textAlign: "center", maxWidth: 400 }}>
+            An unexpected error occurred while rendering the Projects list. The system has automatically logged the issue.
+          </p>
+          <button
+            type="button"
+            className="ws-btn ws-btn-primary"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ padding: "8px 16px", borderRadius: 8 }}
+          >
+            Retry Loading
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// 1. Storage unit parser to sort storage numerically (Requirement 5)
+const parseStorageToBytes = (storageStr: any): number => {
+  if (!storageStr) return 0;
+  const str = String(storageStr).trim().toLowerCase();
+  const match = str.match(/^([\d.]+)\s*(kb|mb|gb|tb|b)?$/);
+  if (!match) return 0;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return 0;
+  const unit = match[2] || "kb";
+  const multipliers: Record<string, number> = {
+    b: 1,
+    kb: 1024,
+    mb: 1024 * 1024,
+    gb: 1024 * 1024 * 1024,
+    tb: 1024 * 1024 * 1024 * 1024
+  };
+  return num * (multipliers[unit] || 1);
+};
+
+// 2. Safe date parser (Requirement 4)
+const parseDateToMs = (dateStr: any): number => {
+  if (!dateStr) return 0;
+  try {
+    const time = Date.parse(String(dateStr).trim());
+    return isNaN(time) ? 0 : time;
+  } catch (e) {
+    return 0;
+  }
+};
+
+// 3. Project normalization utility (Requirement 2 & 10)
+const normalizeProject = (p: any): any => {
+  if (!p || typeof p !== "object") return null;
+  
+  const id = String(p.id || "").trim();
+  const name = String(p.name || "Untitled Project").trim();
+  const description = String(p.description || "").trim();
+  const createdAt = String(p.createdAt || p.createdDate || p.created_at || "").trim();
+  const lastModified = String(p.lastModified || p.last_modified_at || p.updated_at || p.created_at || p.createdDate || "").trim();
+  const storageUsed = String(p.storageUsed || p.storage_used || "0 KB").trim();
+  const status = String(p.status || "Active").trim();
+  const industryTemplate = String(p.industryTemplate || p.template || "Custom").trim();
+  const projectType = String(p.projectType || "Standard").trim();
+  const owner = String(p.owner || "Me").trim();
+  const icon = String(p.icon || "folder").trim();
+  const colorTheme = String(p.colorTheme || p.color_theme || "blue").trim();
+  const tags = Array.isArray(p.tags) ? p.tags.map(t => String(t).trim()).filter(Boolean) : [];
+  const isFavorite = !!(p.isFavorite || p.favorite);
+  const isArchived = !!(p.isArchived || p.archived);
+  const isSample = !!p.isSample;
+  const pipelineProgress = typeof p.pipelineProgress === "number" ? p.pipelineProgress : 0;
+  const datasetCount = typeof p.datasetCount === "number" ? p.datasetCount : 0;
+  const modelsCount = typeof p.modelsCount === "number" ? p.modelsCount : 0;
+  const teamMembers = Array.isArray(p.teamMembers) ? p.teamMembers : [];
+  const sharedBy = p.sharedBy || null;
+
+  // Requirement 14: Log missing fields and auto-repair them
+  const missing: string[] = [];
+  if (!p.id) missing.push("id");
+  if (!p.name) missing.push("name");
+  if (!p.lastModified) missing.push("lastModified");
+  if (!p.storageUsed) missing.push("storageUsed");
+  if (!p.tags) missing.push("tags");
+  if (missing.length > 0) {
+    console.warn(`[Project Validation Repair] Normalized project ID: ${id || "unknown"}. Missing fields: ${missing.join(", ")}`);
+  }
+
+  return {
+    id, name, description, createdAt, lastModified, storageUsed, status,
+    industryTemplate, projectType, owner, icon, colorTheme, tags,
+    isFavorite, isArchived, isSample, pipelineProgress, datasetCount,
+    modelsCount, teamMembers, sharedBy
+  };
+};
+
 export default function ProjectsPanel() {
+  return (
+    <ProjectsPanelErrorBoundary>
+      <ProjectsPanelContent />
+    </ProjectsPanelErrorBoundary>
+  );
+}
+
+function ProjectsPanelContent() {
   const {
     projects,
     addProject,
@@ -56,11 +180,13 @@ export default function ProjectsPanel() {
     duplicateProject,
     updateProject,
     toggleFavoriteProject,
+    shareProject,
     changeWorkspace,
     openSection,
     projectsFilter,
     setProjectsFilter,
-    activeWorkspace
+    activeWorkspace,
+    createProjectFromTemplate
   } = useWorkspace();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,18 +220,23 @@ export default function ProjectsPanel() {
 
   // Filter projects list
   const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
+    const normalized = (projects || []).map(normalizeProject).filter(Boolean);
+
+    return normalized.filter((p) => {
       // 1. Sidebar tab filters
       if (projectsFilter === "favorites" && !p.isFavorite) return false;
-      if (projectsFilter === "shared" && p.isSample) return false; // mockup: shared with me excludes samples
-      if (projectsFilter === "templates" && p.industryTemplate === "Custom") return false;
+      if (projectsFilter === "shared" && !p.sharedBy) return false;
+      if (projectsFilter === "samples" && !p.isSample) return false;
+      if (projectsFilter === "templates") return false; // Templates filter displays the Templates gallery view
 
       // 2. Search query filter
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.tags.some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-      if (!matchesSearch) return false;
+      const query = searchQuery.trim().toLowerCase();
+      if (query) {
+        const nameMatch = String(p.name || "").toLowerCase().includes(query);
+        const descMatch = String(p.description || "").toLowerCase().includes(query);
+        const tagMatch = Array.isArray(p.tags) && p.tags.some((t: string) => String(t || "").toLowerCase().includes(query));
+        if (!nameMatch && !descMatch && !tagMatch) return false;
+      }
 
       // 3. Toolbar filters
       if (templateFilter !== "all" && p.industryTemplate !== templateFilter) return false;
@@ -114,15 +245,26 @@ export default function ProjectsPanel() {
       return true;
     }).sort((a, b) => {
       if (sortField === "name") {
-        return a.name.localeCompare(b.name);
+        const nameA = String(a.name || "").trim().toLowerCase();
+        const nameB = String(b.name || "").trim().toLowerCase();
+        return nameA.localeCompare(nameB);
       }
       if (sortField === "progress") {
-        return b.pipelineProgress - a.pipelineProgress;
+        const progA = typeof a.pipelineProgress === "number" ? a.pipelineProgress : 0;
+        const progB = typeof b.pipelineProgress === "number" ? b.pipelineProgress : 0;
+        return progB - progA;
       }
       if (sortField === "storage") {
-        return b.storageUsed.localeCompare(a.storageUsed);
+        const sizeA = parseStorageToBytes(a.storageUsed);
+        const sizeB = parseStorageToBytes(b.storageUsed);
+        return sizeB - sizeA;
       }
-      return b.lastModified.localeCompare(a.lastModified); // default last modified
+      // lastModified sort with invalid date failover (Requirement 4)
+      const timeA = parseDateToMs(a.lastModified);
+      const timeB = parseDateToMs(b.lastModified);
+      if (timeA === 0 && timeB > 0) return 1;
+      if (timeB === 0 && timeA > 0) return -1;
+      return timeB - timeA;
     });
   }, [projects, projectsFilter, searchQuery, templateFilter, statusFilter, sortField]);
 
@@ -158,15 +300,13 @@ export default function ProjectsPanel() {
     openSection("dashboard");
   };
 
-  const handleShareInvite = () => {
+  const handleShareInvite = async () => {
     if (!inviteEmail.trim() || !shareProj) return;
-    const updatedMembers = [
-      ...(shareProj.teamMembers || []),
-      { name: inviteEmail.split("@")[0], email: inviteEmail, role: inviteRole }
-    ];
-    updateProject(shareProj.id, { teamMembers: updatedMembers });
-    setInviteEmail("");
-    alert(`Teammate invited: ${inviteEmail} as ${inviteRole}`);
+    const ok = await shareProject(shareProj.id, inviteEmail, inviteRole);
+    if (ok) {
+      setInviteEmail("");
+      setShareProj(null);
+    }
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
@@ -196,6 +336,8 @@ export default function ProjectsPanel() {
           Create Project
         </button>
       </div>
+
+
 
       {/* Projects Filters Sub-bar */}
       <div
@@ -236,31 +378,7 @@ export default function ProjectsPanel() {
           />
         </div>
 
-        {/* Template Filter */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, color: "var(--ws-text-muted)" }}>Template:</span>
-          <select
-            value={templateFilter}
-            onChange={(e) => setTemplateFilter(e.target.value)}
-            style={{
-              height: 40,
-              padding: "0 12px",
-              background: "var(--ws-workspace)",
-              border: "1px solid var(--ws-border)",
-              borderRadius: 10,
-              color: "var(--ws-text)",
-              fontSize: 13,
-              cursor: "pointer"
-            }}
-          >
-            <option value="all">All Templates</option>
-            <option value="Finance">Finance</option>
-            <option value="Telecom">Telecom</option>
-            <option value="Marketing">Marketing</option>
-            <option value="Retail">Retail</option>
-            <option value="Custom">Custom</option>
-          </select>
-        </div>
+
 
         {/* Status Filter */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -680,7 +798,7 @@ export default function ProjectsPanel() {
                     )}
                   </div>
                   <span style={{ color: "var(--ws-text-muted)", fontSize: 10 }}>
-                    {p.owner === "Nikunj Goel" ? "Owner: Me" : `Owner: ${p.owner}`}
+                    {p.sharedBy ? `Shared by: ${p.sharedBy.name} (${p.sharedBy.role})` : (p.owner === "Nikunj Goel" ? "Owner: Me" : `Owner: ${p.owner}`)}
                   </span>
                 </div>
 

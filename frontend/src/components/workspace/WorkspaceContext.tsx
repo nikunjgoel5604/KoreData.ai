@@ -47,8 +47,10 @@ export interface WorkspaceContextValue {
   duplicateProject: (id: string) => void;
   updateProject: (id: string, updates: any) => void;
   toggleFavoriteProject: (id: string) => void;
+  shareProject: (id: string, email: string, role: string) => Promise<boolean>;
   projectsFilter: string;
   setProjectsFilter: (filter: string) => void;
+  createProjectFromTemplate: (templateKey: string) => void;
 
   // Tabs core
   tabs: WorkspaceTab[];
@@ -511,8 +513,180 @@ const SEED_PROJECTS = [
     ],
     isFavorite: false,
     isSample: false
+  },
+  {
+    id: "shared-marketing",
+    name: "Marketing ROI Dashboard",
+    description: "Campaign statistics and conversion analysis shared by Sarah Smith.",
+    icon: "bar-chart",
+    colorTheme: "orange",
+    industryTemplate: "Marketing",
+    projectType: "Marketing Attribution",
+    visibility: "team",
+    tags: ["Marketing", "ROI", "Campaign"],
+    createdDate: "2026-06-10",
+    lastModified: "2026-07-15",
+    owner: "Sarah Smith",
+    status: "Active",
+    datasetCount: 1,
+    modelsCount: 1,
+    reportsCount: 5,
+    storageUsed: "3.2 MB",
+    pipelineProgress: 75,
+    teamMembers: [
+      { name: "Sarah Smith", email: "sarah@koredata.ai", role: "Owner" },
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Editor" }
+    ],
+    isFavorite: false,
+    isSample: false,
+    sharedBy: { name: "Sarah Smith", avatar: "SS", role: "Editor" }
+  },
+  {
+    id: "shared-fraud",
+    name: "Fraud Detection Pipeline",
+    description: "Risk assessment ML pipelines shared by John Doe.",
+    icon: "brain",
+    colorTheme: "purple",
+    industryTemplate: "Finance",
+    projectType: "Anomaly Classification",
+    visibility: "team",
+    tags: ["Security", "Finance", "Anomaly"],
+    createdDate: "2026-07-01",
+    lastModified: "2026-07-16",
+    owner: "John Doe",
+    status: "Active",
+    datasetCount: 2,
+    modelsCount: 3,
+    reportsCount: 2,
+    storageUsed: "15.7 MB",
+    pipelineProgress: 90,
+    teamMembers: [
+      { name: "John Doe", email: "john@koredata.ai", role: "Owner" },
+      { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Viewer" }
+    ],
+    isFavorite: false,
+    isSample: false,
+    sharedBy: { name: "John Doe", avatar: "JD", role: "Viewer" }
   }
 ];
+
+const TEMPLATE_CONFIGS: Record<string, any> = {
+  "blank": {
+    name: "New Blank Project",
+    description: "A blank workspace container to upload custom datasets and train models.",
+    icon: "folder",
+    colorTheme: "blue",
+    industryTemplate: "Custom",
+    projectType: "General Sandbox",
+    tags: ["Blank", "Sandbox"]
+  },
+  "sales": {
+    name: "Sales Analytics Project",
+    description: "Pre-configured template for tracking revenue, volume, and customer sales pipelines.",
+    icon: "trending-up",
+    colorTheme: "cyan",
+    industryTemplate: "Retail",
+    projectType: "Sales Forecast",
+    tags: ["Retail", "Sales", "Forecast"]
+  },
+  "finance": {
+    name: "Finance Analytics Project",
+    description: "Financial time-series forecasting, ARR, churn, and net margin analyses.",
+    icon: "database",
+    colorTheme: "green",
+    industryTemplate: "Finance",
+    projectType: "Financial Forecasting",
+    tags: ["Finance", "ARR", "Margin"]
+  },
+  "churn": {
+    name: "Customer Churn Project",
+    description: "Classification model pipeline configured to predict and isolate subscriber attrition.",
+    icon: "brain",
+    colorTheme: "purple",
+    industryTemplate: "Telecom",
+    projectType: "Attrition Analytics",
+    tags: ["ML", "Churn", "Retention"]
+  },
+  "marketing": {
+    name: "Marketing Campaign Project",
+    description: "Attribution and ROI modeling for advertisement channels, search traffic, and campaigns.",
+    icon: "bar-chart",
+    colorTheme: "orange",
+    industryTemplate: "Marketing",
+    projectType: "ROI Analytics",
+    tags: ["ROI", "Marketing", "Ads"]
+  },
+  "manufacturing": {
+    name: "Manufacturing Optimization Project",
+    description: "Predictive maintenance and equipment anomaly detection for machinery.",
+    icon: "database",
+    colorTheme: "blue",
+    industryTemplate: "Custom",
+    projectType: "Predictive Maintenance",
+    tags: ["IoT", "Anomaly", "Factory"]
+  },
+  "retail": {
+    name: "Retail Analytics Project",
+    description: "Basket analysis, customer segmentation, and product cross-selling configurations.",
+    icon: "trending-up",
+    colorTheme: "cyan",
+    industryTemplate: "Retail",
+    projectType: "Market Basket Analysis",
+    tags: ["Retail", "Segmentation", "Basket"]
+  },
+  "healthcare": {
+    name: "Healthcare Analytics Project",
+    description: "Patient readmission predictions and treatment outcomes statistical models.",
+    icon: "brain",
+    colorTheme: "purple",
+    industryTemplate: "Custom",
+    projectType: "Outcome Prediction",
+    tags: ["Healthcare", "ML", "Clinical"]
+  },
+  "custom": {
+    name: "Custom Project Template",
+    description: "Your custom analytics configuration template.",
+    icon: "folder",
+    colorTheme: "orange",
+    industryTemplate: "Custom",
+    projectType: "Custom Sandbox",
+    tags: ["Custom", "Sandbox"]
+  }
+};
+
+export function validateAndNormalizeProject(p: any): any {
+  if (!p || typeof p !== "object") return null;
+
+  const id = String(p.id || p.project_id || "").trim();
+  const name = String(p.name || p.projectName || "Untitled Project").trim();
+  const description = String(p.description || p.Descrip || p.desc || "").trim();
+  const createdAt = String(p.createdAt || p.createdDate || p.created_at || "").trim();
+  const lastModified = String(p.lastModified || p.lastModifiedDate || p.last_modified_at || p.updated_at || p.created_at || p.createdDate || "").trim();
+  const storageUsed = String(p.storageUsed || p.storage_used || "0 KB").trim();
+  const status = String(p.status || "Active").trim();
+  const industryTemplate = String(p.industryTemplate || p.template || p.industry || "Custom").trim();
+  const projectType = String(p.projectType || p.project_type || "Standard").trim();
+  const owner = String(p.owner || p.ownerName || p.owner_id || "Me").trim();
+  const icon = String(p.icon || "folder").trim();
+  const colorTheme = String(p.colorTheme || p.color_theme || p.color || "blue").trim();
+  const tags = Array.isArray(p.tags) ? p.tags.map((t: any) => String(t).trim()).filter(Boolean) : [];
+  const isFavorite = !!(p.isFavorite || p.favorite || p.is_favorite);
+  const isArchived = !!(p.isArchived || p.archived || p.is_archived);
+  const isDeleted = !!(p.isDeleted || p.deleted || p.is_deleted);
+  const pipelineProgress = typeof p.pipelineProgress === "number" ? p.pipelineProgress : (typeof p.pipeline_progress === "number" ? p.pipeline_progress : 0);
+  const datasetCount = typeof p.datasetCount === "number" ? p.datasetCount : (typeof p.dataset_count === "number" ? p.dataset_count : 0);
+  const modelsCount = typeof p.modelsCount === "number" ? p.modelsCount : (typeof p.models_count === "number" ? p.models_count : 0);
+  const teamMembers = Array.isArray(p.teamMembers) ? p.teamMembers : (Array.isArray(p.team_members) ? p.team_members : []);
+  const sharedBy = p.sharedBy || p.shared_by || null;
+  const isSample = !!p.isSample;
+
+  return {
+    id, name, description, createdAt, lastModified, storageUsed, status,
+    industryTemplate, projectType, owner, icon, colorTheme, tags,
+    isFavorite, isArchived, isDeleted, pipelineProgress, datasetCount,
+    modelsCount, teamMembers, sharedBy, isSample
+  };
+}
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Authentication & Profile helpers
@@ -523,15 +697,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   // Dynamic projects list
   const [projects, setProjects] = useState<any[]>(() => {
-    if (typeof window === "undefined") return SEED_PROJECTS;
+    const rawSeed = Array.isArray(SEED_PROJECTS) ? SEED_PROJECTS : [];
+    const normalizedSeed = rawSeed.map(validateAndNormalizeProject).filter(Boolean);
+    
+    if (typeof window === "undefined") return normalizedSeed;
     const saved = localStorage.getItem("koredata-projects");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(validateAndNormalizeProject).filter(Boolean);
+        }
       } catch (e) {}
     }
-    return SEED_PROJECTS;
+    return normalizedSeed;
   });
 
   const [projectsFilter, setProjectsFilter] = useState<string>("all");
@@ -554,81 +733,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [customReports, setCustomReports] = useState<any[]>([]);
   const [customLogs, setCustomLogs] = useState<LogEntry[]>([]);
 
-  // Persist projects state
-  useEffect(() => {
-    localStorage.setItem("koredata-projects", JSON.stringify(projects));
-  }, [projects]);
 
-  // Persist project states cache
-  useEffect(() => {
-    localStorage.setItem("koredata-project-states", JSON.stringify(projectStates));
-  }, [projectStates]);
-
-  const addProject = useCallback((projectData: any) => {
-    const newProj = {
-      ...projectData,
-      id: `proj-${Date.now()}`,
-      createdDate: new Date().toISOString().split("T")[0],
-      lastModified: new Date().toISOString().split("T")[0],
-      owner: "Nikunj Goel",
-      status: "Active",
-      datasetCount: 0,
-      modelsCount: 0,
-      reportsCount: 0,
-      storageUsed: "0 KB",
-      pipelineProgress: 0,
-      teamMembers: [
-        { name: "Nikunj Goel", email: "goel@koredata.ai", role: "Owner" }
-      ],
-      isFavorite: false,
-      isSample: false
-    };
-    setProjects((prev) => [...prev, newProj]);
-    addLog("Projects", `Project "${newProj.name}" created successfully.`, "success");
-  }, [addLog]);
-
-  const deleteProject = useCallback((id: string) => {
-    const proj = projects.find(p => p.id === id);
-    if (proj?.isSample) {
-      alert("Sample projects cannot be deleted.");
-      return;
-    }
-    if (!confirm(`Are you sure you want to delete project "${proj?.name || id}"?`)) return;
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    addLog("Projects", `Project "${proj?.name || id}" deleted.`, "warning");
-    if (activeWorkspace === id) {
-      changeWorkspace("custom");
-    }
-  }, [activeWorkspace, projects, changeWorkspace, addLog]);
-
-  const duplicateProject = useCallback((id: string) => {
-    const target = projects.find((p) => p.id === id);
-    if (!target) return;
-    const clone = {
-      ...target,
-      id: `proj-${Date.now()}`,
-      name: `${target.name} (Copy)`,
-      createdDate: new Date().toISOString().split("T")[0],
-      lastModified: new Date().toISOString().split("T")[0],
-      isSample: false,
-      isFavorite: false
-    };
-    setProjects((prev) => [...prev, clone]);
-    addLog("Projects", `Duplicated project "${target.name}" to "${clone.name}".`, "success");
-  }, [projects, addLog]);
-
-  const updateProject = useCallback((id: string, updates: Partial<any>) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates, lastModified: new Date().toISOString().split("T")[0] } : p))
-    );
-    addLog("Projects", `Updated details for project ID: ${id}`, "success");
-  }, [addLog]);
-
-  const toggleFavoriteProject = useCallback((id: string) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, isFavorite: !p.isFavorite } : p))
-    );
-  }, []);
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -743,6 +848,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setLogs((prev) => [...prev, { timestamp, node, message, type }]);
   }, []);
 
+
+
   // Hydrate token
   useEffect(() => {
     const savedToken = window.localStorage.getItem("koredata-token");
@@ -837,7 +944,187 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [state.tabs, state.activeTabId]
   );
 
-  // --- Fetch APIs initialization ---
+  // --- Fetch APIs initialization & Project CRUD Helpers ---
+  const loadProjects = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/projects`, { headers: authHeaders });
+      if (res.ok) {
+        const data = await res.json();
+        const dbProjects = data.projects || [];
+        const normalizedDb = dbProjects.map(validateAndNormalizeProject).filter(Boolean);
+        const samples = SEED_PROJECTS.map(validateAndNormalizeProject).filter(Boolean).filter((p) => p.isSample);
+        setProjects([...samples, ...normalizedDb]);
+      }
+    } catch (e) {
+      console.error("Failed to load projects", e);
+    }
+  }, [token, authHeaders]);
+
+  const changeWorkspace = useCallback(async (wsId: string) => {
+    const isSample = ["sales", "churn", "marketing", "revenue"].includes(wsId);
+    const prevIsSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    
+    if (!prevIsSample && activeWorkspace && activeWorkspace !== "custom") {
+      setProjectStates((prev: any) => ({
+        ...prev,
+        [activeWorkspace]: {
+          edaResult,
+          models,
+          savedModels,
+          files,
+          generatedReportsList,
+          logs,
+          trainedModelCard
+        }
+      }));
+    }
+
+    setActiveWorkspace(wsId);
+
+    if (isSample) {
+      const ws = getMockWorkspaceData(wsId as any);
+      setEdaResult(ws.edaResult);
+      setModels(ws.models);
+      setSavedModels(ws.savedModels);
+      setFiles(ws.files);
+      setGeneratedReportsList(ws.reports);
+      setTrainedModelCard(ws.savedModels[0] || null);
+      setPredictResult(null);
+      setPredictInputs({});
+      setLogs(ws.logs);
+
+      const cols = ws.edaResult?.dataset_slices?.col_names || [];
+      if (cols.length > 0) {
+        setTargetCol(cols[cols.length - 1]);
+        setSelectedColumn(cols[0]);
+        setCleanCol(cols[0]);
+        setVizXAxis(cols[0]);
+        setVizYAxis(cols[1] || cols[0]);
+      }
+      
+      addLog("Workspace", `Swapped to sample project: ${wsId.toUpperCase()}`, "success");
+    } else {
+      addLog("Workspace", `Activating project workspace ${wsId}...`, "info");
+      try {
+        const actRes = await fetch(`${API_BASE}/workspace/activate`, {
+          method: "POST",
+          headers: { ...authHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({ project_id: wsId })
+        });
+        if (!actRes.ok) throw new Error("Failed to activate workspace in backend");
+
+        const [filesRes, savedRes, historyRes, projRes, notifRes] = await Promise.all([
+          fetch(`${API_BASE}/my-files?project_id=${wsId}`, { headers: authHeaders }),
+          fetch(`${API_BASE}/ml/saved?project_id=${wsId}`, { headers: authHeaders }),
+          fetch(`${API_BASE}/ml/history?project_id=${wsId}`, { headers: authHeaders }),
+          fetch(`${API_BASE}/projects/${wsId}`, { headers: authHeaders }),
+          fetch(`${API_BASE}/notifications?project_id=${wsId}`, { headers: authHeaders })
+        ]);
+
+        let currentFiles: UploadedFile[] = [];
+        if (filesRes.ok) {
+          const d = await filesRes.json();
+          currentFiles = d.files || [];
+          setFiles(currentFiles);
+        }
+        if (savedRes.ok) {
+          const d = await savedRes.json();
+          setSavedModels(d.saved_models || []);
+        }
+        if (historyRes.ok) {
+          const d = await historyRes.json();
+          setMlHistory(d.history || []);
+        }
+        if (notifRes.ok) {
+          const d = await notifRes.json();
+          setNotifications(d.notifications || []);
+        }
+
+        if (projRes.ok) {
+          const projData = await projRes.json();
+          const activeDs = projData.project?.active_dataset;
+          if (activeDs) {
+            const fileRow = currentFiles.find((f: any) => f.file_name === activeDs);
+            if (fileRow) {
+              const edaRes = await fetch(`${API_BASE}/my-files/${fileRow.id}/eda`, { headers: authHeaders });
+              if (edaRes.ok) {
+                setEdaResult(await edaRes.json());
+              }
+            }
+          } else {
+            setEdaResult(null);
+          }
+
+          if (projData.activity) {
+            setLogs(projData.activity.map((a: any) => ({
+              timestamp: new Date(a.created_at).toLocaleTimeString(),
+              node: a.entity || "System",
+              message: `${a.action}: ${a.new_value || ""}`,
+              type: "info"
+            })));
+          }
+        }
+
+        addLog("Workspace", `Project ${wsId} active and synced successfully.`, "success");
+      } catch (err: any) {
+        addLog("Workspace", `Failed to activate project: ${err.message}`, "error");
+        
+        const cached = projectStates[wsId];
+        if (cached) {
+          setEdaResult(cached.edaResult);
+          setModels(cached.models);
+          setSavedModels(cached.savedModels);
+          setFiles(cached.files);
+          setGeneratedReportsList(cached.generatedReportsList);
+          setTrainedModelCard(cached.trainedModelCard);
+          setPredictResult(null);
+          setPredictInputs({});
+          setLogs(cached.logs);
+
+          const cols = cached.edaResult?.dataset_slices?.col_names || [];
+          if (cols.length > 0) {
+            setTargetCol(cols[cols.length - 1]);
+            setSelectedColumn(cols[0]);
+            setCleanCol(cols[0]);
+            setVizXAxis(cols[0]);
+            setVizYAxis(cols[1] || cols[0]);
+          }
+        } else {
+          setEdaResult(null);
+          setModels([]);
+          setSavedModels([]);
+          setFiles([]);
+          setGeneratedReportsList([]);
+          setTrainedModelCard(null);
+          setPredictResult(null);
+          setPredictInputs({});
+          setLogs([
+            { timestamp: new Date().toLocaleTimeString(), node: "System", message: "New workspace initialized.", type: "success" }
+          ]);
+        }
+      }
+    }
+  }, [
+    activeWorkspace,
+    edaResult,
+    models,
+    savedModels,
+    files,
+    generatedReportsList,
+    logs,
+    trainedModelCard,
+    projectStates,
+    authHeaders,
+    addLog
+  ]);
+
+  useEffect(() => {
+    if (token) {
+      loadProjects();
+    }
+  }, [token, loadProjects]);
+
   useEffect(() => {
     if (!token) return;
 
@@ -856,45 +1143,60 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setUser(await profileRes.json());
         addLog("Security", "User session verified securely.", "success");
 
-        const [filesRes, notifRes, modelsRes, savedRes, historyRes, wsRes] = await Promise.all([
-          fetch(`${API_BASE}/my-files`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/notifications`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/ml/models`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/ml/saved`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/ml/history`, { headers: authHeaders }).catch(() => null),
-          fetch(`${API_BASE}/workspace/state`, { headers: authHeaders }).catch(() => null)
-        ]);
+        const wsRes = await fetch(`${API_BASE}/workspace/state`, { headers: authHeaders }).catch(() => null);
+        let selectedWs = activeWorkspace;
 
-        if (notifRes?.ok) {
-          const data = await notifRes.json();
-          setNotifications(data.notifications || []);
+        if (wsRes?.ok) {
+          const ws = await wsRes.json();
+          if (ws.active_project_id) {
+            selectedWs = ws.active_project_id;
+          }
         }
 
-        // Only load backend files/models/workspace if user is in a custom workspace,
-        // otherwise preserve the selected sample dashboard data.
-        if (activeWorkspace === "custom") {
-          if (filesRes?.ok) {
-            const data = await filesRes.json();
-            setFiles(data.files || []);
-          }
-          if (modelsRes?.ok) {
-            const data = await modelsRes.json();
-            setModels(data.models || data.available_models || data.registry || []);
-          }
-          if (savedRes?.ok) {
-            const data = await savedRes.json();
-            setSavedModels(data.models || data.saved || data.saved_models || []);
-          }
-          if (historyRes?.ok) {
-            const data = await historyRes.json();
-            setMlHistory(data.history || data.items || []);
-          }
-          if (wsRes?.ok) {
-            const ws = await wsRes.json();
-            if (ws.eda_result) {
-              setEdaResult(JSON.parse(ws.eda_result));
+        const projsRes = await fetch(`${API_BASE}/projects`, { headers: authHeaders }).catch(() => null);
+        let currentProjects = [];
+        const samples = SEED_PROJECTS.map(validateAndNormalizeProject).filter(Boolean).filter((p) => p.isSample);
+        if (projsRes?.ok) {
+          const pData = await projsRes.json();
+          currentProjects = (pData.projects || []).map(validateAndNormalizeProject).filter(Boolean);
+          setProjects([...samples, ...currentProjects]);
+        } else {
+          setProjects(samples);
+        }
+
+        if (!selectedWs || selectedWs === "custom") {
+          const validUserProj = currentProjects.find((p: any) => !p.isDeleted && !p.isArchived);
+          if (validUserProj) {
+            selectedWs = validUserProj.id;
+          } else {
+            addLog("Projects", "No active project found. Generating default private workspace...", "info");
+            const createRes = await fetch(`${API_BASE}/projects`, {
+              method: "POST",
+              headers: { ...authHeaders, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: "My Sandbox Project",
+                description: "A private workspace for analyzing datasets and building ML models.",
+                project_type: "Standard",
+                industry: "General",
+                visibility: "private",
+                color_theme: "blue",
+                icon: "folder"
+              })
+            });
+            if (createRes.ok) {
+              const createData = await createRes.json();
+              selectedWs = createData.project_id;
+              const projsResNew = await fetch(`${API_BASE}/projects`, { headers: authHeaders }).catch(() => null);
+              if (projsResNew?.ok) {
+                const newDbProjs = ((await projsResNew.json()).projects || []).map(validateAndNormalizeProject).filter(Boolean);
+                setProjects([...samples, ...newDbProjs]);
+              }
             }
           }
+        }
+
+        if (selectedWs) {
+          await changeWorkspace(selectedWs);
         }
 
         setApiStatus("ready");
@@ -918,7 +1220,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     };
 
     loadDashboardData();
-  }, [token, authHeaders, addLog]);
+  }, [token, authHeaders, addLog, changeWorkspace]);
 
   // Set default code text
   useEffect(() => {
@@ -944,100 +1246,145 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [edaResult]);
 
-  const changeWorkspace = useCallback((wsId: string) => {
-    // Before switching, if previous workspace was not a sample, cache its state
-    const prevIsSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
-    if (!prevIsSample) {
-      setProjectStates((prev: any) => ({
-        ...prev,
-        [activeWorkspace]: {
-          edaResult,
-          models,
-          savedModels,
-          files,
-          generatedReportsList,
-          logs,
-          trainedModelCard
-        }
-      }));
-    }
+  // Persist projects state
+  useEffect(() => {
+    localStorage.setItem("koredata-projects", JSON.stringify(projects));
+  }, [projects]);
 
-    setActiveWorkspace(wsId);
+  // Persist project states cache
+  useEffect(() => {
+    localStorage.setItem("koredata-project-states", JSON.stringify(projectStates));
+  }, [projectStates]);
 
-    const isNewSample = ["sales", "churn", "marketing", "revenue"].includes(wsId);
-    if (isNewSample) {
-      const ws = getMockWorkspaceData(wsId as any);
-      setEdaResult(ws.edaResult);
-      setModels(ws.models);
-      setSavedModels(ws.savedModels);
-      setFiles(ws.files);
-      setGeneratedReportsList(ws.reports);
-      setTrainedModelCard(ws.savedModels[0] || null);
-      setPredictResult(null);
-      setPredictInputs({});
-      setLogs(ws.logs);
-
-      const cols = ws.edaResult?.dataset_slices?.col_names || [];
-      if (cols.length > 0) {
-        setTargetCol(cols[cols.length - 1]);
-        setSelectedColumn(cols[0]);
-        setCleanCol(cols[0]);
-        setVizXAxis(cols[0]);
-        setVizYAxis(cols[1] || cols[0]);
-      }
-      
-      addLog("Workspace", `Swapped to sample project: ${wsId.toUpperCase()}`, "success");
-    } else {
-      // It's a user project
-      const cached = projectStates[wsId];
-      if (cached) {
-        setEdaResult(cached.edaResult);
-        setModels(cached.models);
-        setSavedModels(cached.savedModels);
-        setFiles(cached.files);
-        setGeneratedReportsList(cached.generatedReportsList);
-        setTrainedModelCard(cached.trainedModelCard);
-        setPredictResult(null);
-        setPredictInputs({});
-        setLogs(cached.logs);
-
-        const cols = cached.edaResult?.dataset_slices?.col_names || [];
-        if (cols.length > 0) {
-          setTargetCol(cols[cols.length - 1]);
-          setSelectedColumn(cols[0]);
-          setCleanCol(cols[0]);
-          setVizXAxis(cols[0]);
-          setVizYAxis(cols[1] || cols[0]);
+  const addProject = useCallback(async (projectData: any) => {
+    addLog("Projects", `Creating project "${projectData.name}"...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/projects`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: projectData.name,
+          description: projectData.description || "",
+          project_type: projectData.projectType || "Standard",
+          industry: projectData.industryTemplate || "General",
+          visibility: projectData.visibility || "private",
+          color_theme: projectData.colorTheme || "blue",
+          icon: projectData.icon || "folder"
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        addLog("Projects", `Project "${projectData.name}" created successfully.`, "success");
+        await loadProjects();
+        if (data.project_id) {
+          changeWorkspace(data.project_id);
+          openSection("dashboard");
         }
       } else {
-        // Clear workspace
-        setEdaResult(null);
-        setModels([]);
-        setSavedModels([]);
-        setFiles([]);
-        setGeneratedReportsList([]);
-        setTrainedModelCard(null);
-        setPredictResult(null);
-        setPredictInputs({});
-        setLogs([
-          { timestamp: new Date().toLocaleTimeString(), node: "System", message: "New workspace initialized.", type: "success" }
-        ]);
+        const data = await res.json();
+        alert(data.detail || "Failed to create project");
       }
-      
-      addLog("Workspace", `Swapped to custom project: ${wsId}`, "success");
+    } catch (e: any) {
+      addLog("Projects", `Error creating project: ${e.message}`, "error");
     }
-  }, [
-    activeWorkspace,
-    edaResult,
-    models,
-    savedModels,
-    files,
-    generatedReportsList,
-    logs,
-    trainedModelCard,
-    projectStates,
-    addLog
-  ]);
+  }, [authHeaders, addLog, loadProjects, changeWorkspace, openSection]);
+
+  const deleteProject = useCallback(async (id: string) => {
+    if (!confirm("Are you sure you want to delete this project?")) return;
+    addLog("Projects", `Deleting project ID ${id}...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/projects/${id}`, {
+        method: "DELETE",
+        headers: authHeaders
+      });
+      if (res.ok) {
+        addLog("Projects", `Project ID ${id} deleted.`, "success");
+        await loadProjects();
+        if (activeWorkspace === id) {
+          const nextWs = projects.find(p => p.id !== id && !p.isSample)?.id || "sales";
+          changeWorkspace(nextWs);
+        }
+      } else {
+        alert("Failed to delete project");
+      }
+    } catch (e: any) {
+      addLog("Projects", `Error deleting project: ${e.message}`, "error");
+    }
+  }, [authHeaders, addLog, loadProjects, activeWorkspace, changeWorkspace, projects]);
+
+  const duplicateProject = useCallback(async (id: string) => {
+    addLog("Projects", `Duplicating project ID ${id}...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/projects/${id}/duplicate`, {
+        method: "POST",
+        headers: authHeaders
+      });
+      if (res.ok) {
+        const data = await res.json();
+        addLog("Projects", `Project duplicated successfully.`, "success");
+        await loadProjects();
+        if (data.project_id) {
+          changeWorkspace(data.project_id);
+        }
+      } else {
+        alert("Failed to duplicate project");
+      }
+    } catch (e: any) {
+      addLog("Projects", `Error duplicating project: ${e.message}`, "error");
+    }
+  }, [authHeaders, addLog, loadProjects, changeWorkspace]);
+
+  const updateProject = useCallback(async (id: string, updates: any) => {
+    try {
+      const res = await fetch(`${API_BASE}/projects/${id}`, {
+        method: "PUT",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: updates.name,
+          description: updates.description,
+          project_type: updates.projectType || updates.project_type,
+          industry: updates.industry,
+          visibility: updates.visibility,
+          color_theme: updates.colorTheme || updates.color_theme,
+          icon: updates.icon,
+          is_favorite: updates.isFavorite !== undefined ? (updates.isFavorite ? 1 : 0) : undefined,
+          is_archived: updates.isArchived !== undefined ? (updates.isArchived ? 1 : 0) : undefined
+        })
+      });
+      if (res.ok) {
+        await loadProjects();
+      }
+    } catch (e) {
+      console.error("Error updating project", e);
+    }
+  }, [authHeaders, loadProjects]);
+
+  const toggleFavoriteProject = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/projects/${id}/favorite`, {
+        method: "POST",
+        headers: authHeaders
+      });
+      if (res.ok) {
+        await loadProjects();
+      }
+    } catch (e) {
+      console.error("Error favoriting project", e);
+    }
+  }, [authHeaders, loadProjects]);
+
+  const createProjectFromTemplate = useCallback((templateKey: string) => {
+    const config = TEMPLATE_CONFIGS[templateKey] || TEMPLATE_CONFIGS["blank"];
+    addProject({
+      name: `My ${config.name}`,
+      description: config.description,
+      projectType: config.projectType,
+      industryTemplate: config.industryTemplate,
+      colorTheme: config.colorTheme,
+      icon: config.icon,
+      visibility: "private"
+    });
+  }, [addProject]);
 
   // --- Handlers & API functions ---
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -1055,8 +1402,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setStatusMessage(`Ingesting data file ${file.name}...`);
     addLog("Ingestion", `Uploading file: ${file.name}`, "info");
 
+    const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    const projQuery = isSample ? "" : `?project_id=${activeWorkspace}`;
+
     try {
-      const res = await fetch(`${API_BASE}/upload`, {
+      const res = await fetch(`${API_BASE}/upload${projQuery}`, {
         method: "POST",
         headers: authHeaders,
         body: formData
@@ -1069,15 +1419,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setActiveWorkspace("custom");
       setEdaResult(data);
       setStatusMessage("Dataset EDA indexing complete");
       addLog("Ingestion", `Dataset analysis complete. Rows: ${data.overview?.rows}, Cols: ${data.overview?.columns}`, "success");
 
-      const filesRes = await fetch(`${API_BASE}/my-files`, { headers: authHeaders }).catch(() => null);
+      const filesRes = await fetch(`${API_BASE}/my-files${isSample ? "" : `?project_id=${activeWorkspace}`}`, { headers: authHeaders }).catch(() => null);
       if (filesRes?.ok) {
         const filesData = await filesRes.json();
         setFiles(filesData.files || []);
+      }
+      
+      if (!isSample) {
+        await loadProjects();
       }
     } catch {
       setStatusMessage("Upload failed.");
@@ -1496,7 +1849,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleTrainModel = async () => {
     if (!edaResult || trainingLoading) return;
     
-    if (activeWorkspace !== "custom") {
+    const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    if (isSample) {
       setTrainingLoading(true);
       setTrainedModelCard(null);
       addLog("ML Studio", `Training model: ${mlAlgo.toUpperCase()} on target: ${targetCol}...`, "info");
@@ -1537,10 +1891,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       const dataSlices = edaResult.dataset_slices || {};
       let endpoint = `${API_BASE}/ml/train`;
       const payload = {
-        algo: mlAlgo,
-        target: targetCol,
-        rows: dataSlices.head?.["100"] || [],
+        model_key: mlAlgo,
+        target_col: targetCol,
+        data: dataSlices.head?.["100"] || [],
         columns: dataSlices.col_names || [],
+        project_id: activeWorkspace,
+        dataset_id: edaResult.dataset_id || undefined
       };
 
       if (mlAlgo === "xgboost") {
@@ -1566,18 +1922,21 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setTrainedModelCard(data);
       addLog("ML Studio", `Trained model metrics compiled. F1 Score: ${data.metrics?.f1?.toFixed(3) || "0.912"}`, "success");
 
+      const projParam = `?project_id=${activeWorkspace}`;
       const [savedRes, historyRes] = await Promise.all([
-        fetch(`${API_BASE}/ml/saved`, { headers: authHeaders }).catch(() => null),
-        fetch(`${API_BASE}/ml/history`, { headers: authHeaders }).catch(() => null)
+        fetch(`${API_BASE}/ml/saved${projParam}`, { headers: authHeaders }).catch(() => null),
+        fetch(`${API_BASE}/ml/history${projParam}`, { headers: authHeaders }).catch(() => null)
       ]);
       if (savedRes?.ok) {
         const dataS = await savedRes.json();
-        setSavedModels(dataS.models || dataS.saved || []);
+        setSavedModels(dataS.saved_models || []);
       }
       if (historyRes?.ok) {
         const dataH = await historyRes.json();
-        setMlHistory(dataH.history || dataH.items || []);
+        setMlHistory(dataH.history || []);
       }
+      
+      await loadProjects();
     } catch (err) {
       console.error(err);
       alert("Error training model.");
@@ -1589,7 +1948,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleRunPrediction = async () => {
     if (!trainedModelCard || predictLoading) return;
     
-    if (activeWorkspace !== "custom") {
+    const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    if (isSample) {
       setPredictLoading(true);
       setPredictResult(null);
       addLog("Predictor", "Submitting inference inputs...", "info");
@@ -1625,7 +1985,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({
           model_key: trainedModelCard.model_key,
-          inputs: predictInputs
+          inputs: predictInputs,
+          project_id: activeWorkspace
         }),
       });
 
@@ -1649,7 +2010,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const handleGenerateReport = async () => {
     addLog("Reports", `Compiling PDF summary report...`, "info");
     
-    if (activeWorkspace !== "custom") {
+    const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    if (isSample) {
       setTimeout(() => {
         const newReport = {
           file_name: `${activeWorkspace.toUpperCase()}_Report_${Date.now().toString().slice(-4)}.pdf`,
@@ -1673,7 +2035,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           type: reportType,
           format: reportFormat,
-          cron: reportCron
+          cron: reportCron,
+          project_id: activeWorkspace
         }),
       });
 
@@ -1685,6 +2048,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setGeneratedReportsList((prev) => [...prev, reportData]);
       addLog("Reports", `Report compiled successfully: ${reportData.file_name}`, "success");
       alert(`Report generated: ${reportData.file_name}`);
+      
+      await loadProjects();
     } catch (err) {
       console.error(err);
       alert("Error generating report.");
@@ -1740,6 +2105,28 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   }, [edaResult, vizXAxis]);
 
+  const shareProject = useCallback(async (id: string, email: string, role: string) => {
+    addLog("Projects", `Sharing project ID ${id} with ${email} as ${role}...`, "info");
+    try {
+      const res = await fetch(`${API_BASE}/projects/${id}/share`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role })
+      });
+      if (res.ok) {
+        addLog("Projects", `Project shared successfully with ${email}.`, "success");
+        await loadProjects();
+        return true;
+      } else {
+        const data = await res.json();
+        alert(data.detail || "Failed to share project");
+      }
+    } catch (e: any) {
+      addLog("Projects", `Error sharing project: ${e.message}`, "error");
+    }
+    return false;
+  }, [authHeaders, addLog, loadProjects]);
+
   const value: WorkspaceContextValue = {
     // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
     activeWorkspace,
@@ -1752,8 +2139,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     duplicateProject,
     updateProject,
     toggleFavoriteProject,
+    shareProject,
     projectsFilter,
     setProjectsFilter,
+    createProjectFromTemplate,
 
     // Tabs state
     tabs: state.tabs,
@@ -1922,12 +2311,12 @@ interface StoredState {
 }
 
 function defaultState(): StoredState {
-  const dashboardTab: WorkspaceTab = {
-    id: "tab-dashboard",
-    sectionId: "dashboard",
-    title: SECTION_REGISTRY.dashboard.label,
+  const projectsTab: WorkspaceTab = {
+    id: "tab-projects",
+    sectionId: "projects",
+    title: SECTION_REGISTRY.projects.label,
     pinned: true,
     closable: false
   };
-  return { tabs: [dashboardTab], activeTabId: dashboardTab.id };
+  return { tabs: [projectsTab], activeTabId: projectsTab.id };
 }

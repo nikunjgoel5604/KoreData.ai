@@ -1047,7 +1047,7 @@ body.workspace-mode {
   gap: 28px;
   align-content: start;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: auto; /* Enable horizontal scrolling when zoomed */
 }
 
 .ws-content::before {
@@ -3971,6 +3971,22 @@ body.workspace-mode {
 }
 [data-theme="light"] .ws-switcher-item-hover:hover {
   background: rgba(0, 0, 0, 0.04) !important;
+}
+.ws-profile-menu-item {
+  transition: background 0.15s ease;
+}
+.ws-profile-menu-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+[data-theme="light"] .ws-profile-menu-item:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Ensure horizontal scroll trigger on desktop zoom */
+@media (min-width: 1024px) {
+  .ws-page-transition {
+    min-width: 1100px;
+  }
 }
 
 /* Responsive */

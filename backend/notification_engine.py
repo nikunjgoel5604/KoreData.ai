@@ -61,57 +61,60 @@ def create_notification(
     message:        str,
     notif_type:     str  = TYPE_INFO,
     source_section: str  = None,
+    project_id:     str  = None,
 ) -> int:
-    """
-    Insert a new notification for a user.
-    Returns the new notification id.
-
-    source_section — the frontend section key (e.g. 'upload', 'overview').
-    Frontend uses this to navigate back to origin when the user clicks the
-    notification.
-    """
     notif_id = db_execute(
         "INSERT INTO user_notifications "
-        "(login_id, message, type, source_section) "
-        "VALUES (%s, %s, %s, %s)",
-        (login_id, message, notif_type, source_section),
+        "(login_id, message, type, source_section, project_id) "
+        "VALUES (%s, %s, %s, %s, %s)",
+        (login_id, message, notif_type, source_section, project_id),
     )
     _auto_expire(login_id)
     return notif_id
 
 
-def get_notifications(login_id: str, limit: int = 50) -> list[dict]:
-    """
-    Return the most recent `limit` notifications for a user,
-    newest first.  Each row includes:
-      id, message, type, source_section, is_read, created_at (ISO string)
-    """
-    rows = db_fetchall(
-        "SELECT id, message, type, source_section, is_read, created_at "
-        "FROM user_notifications "
-        "WHERE login_id = %s "
-        "ORDER BY created_at DESC "
-        "LIMIT %s",
-        (login_id, limit),
-    )
+def get_notifications(login_id: str, limit: int = 50, project_id: str = None) -> list[dict]:
+    if project_id:
+        rows = db_fetchall(
+            "SELECT id, message, type, source_section, is_read, created_at, project_id "
+            "FROM user_notifications "
+            "WHERE login_id = %s AND project_id = %s "
+            "ORDER BY created_at DESC "
+            "LIMIT %s",
+            (login_id, project_id, limit),
+        )
+    else:
+        rows = db_fetchall(
+            "SELECT id, message, type, source_section, is_read, created_at, project_id "
+            "FROM user_notifications "
+            "WHERE login_id = %s AND project_id IS NULL "
+            "ORDER BY created_at DESC "
+            "LIMIT %s",
+            (login_id, limit),
+        )
     for row in rows:
         row["created_at"] = str(row["created_at"])
         row["is_read"]    = bool(row["is_read"])
     return rows
 
 
-def get_unread_count(login_id: str) -> int:
-    """Return the number of unread notifications for a user."""
-    row = db_fetchone(
-        "SELECT COUNT(*) AS cnt FROM user_notifications "
-        "WHERE login_id = %s AND is_read = 0",
-        (login_id,),
-    )
+def get_unread_count(login_id: str, project_id: str = None) -> int:
+    if project_id:
+        row = db_fetchone(
+            "SELECT COUNT(*) AS cnt FROM user_notifications "
+            "WHERE login_id = %s AND project_id = %s AND is_read = 0",
+            (login_id, project_id),
+        )
+    else:
+        row = db_fetchone(
+            "SELECT COUNT(*) AS cnt FROM user_notifications "
+            "WHERE login_id = %s AND project_id IS NULL AND is_read = 0",
+            (login_id,),
+        )
     return row["cnt"] if row else 0
 
 
 def mark_read(notif_id: int, login_id: str) -> bool:
-    """Mark a single notification as read. Returns True if row was found."""
     row = db_fetchone(
         "SELECT id FROM user_notifications WHERE id = %s AND login_id = %s",
         (notif_id, login_id),
@@ -126,7 +129,6 @@ def mark_read(notif_id: int, login_id: str) -> bool:
 
 
 def mark_unread(notif_id: int, login_id: str) -> bool:
-    """Mark a single notification as unread. Returns True if row was found."""
     row = db_fetchone(
         "SELECT id FROM user_notifications WHERE id = %s AND login_id = %s",
         (notif_id, login_id),
@@ -140,17 +142,23 @@ def mark_unread(notif_id: int, login_id: str) -> bool:
     return True
 
 
-def mark_all_read(login_id: str) -> int:
-    """
-    Mark every unread notification as read for this user.
-    Returns the number of rows updated.
-    """
-    db_execute(
-        "UPDATE user_notifications SET is_read = 1 "
-        "WHERE login_id = %s AND is_read = 0",
-        (login_id,),
-    )
-    return 0   # db_execute returns lastrowid; rowcount not available via helper
+def mark_all_read(login_id: str, project_id: str = None) -> int:
+    if project_id:
+        db_execute(
+            "UPDATE user_notifications SET is_read = 1 "
+            "WHERE login_id = %s AND project_id = %s AND is_read = 0",
+            (login_id, project_id),
+        )
+    else:
+        db_execute(
+            "UPDATE user_notifications SET is_read = 1 "
+            "WHERE login_id = %s AND project_id IS NULL AND is_read = 0",
+            (login_id,),
+        )
+    return 0
+
+
+
 
 
 # ─── Internal helpers ─────────────────────────────────────────────────────────
