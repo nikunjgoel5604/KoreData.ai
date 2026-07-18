@@ -12,12 +12,12 @@ export default function TabBar() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const openSectionIds = new Set(tabs.map((t) => t.sectionId));
+  const openSectionIds = new Set((tabs || []).map((t) => t.sectionId));
   const allSections: SectionId[] = NAV_GROUPS.flatMap((g) => g.sections);
 
   return (
     <div className="ws-tabbar" role="tablist">
-      {tabs.map((tab, index) => {
+      {(tabs || []).map((tab, index) => {
         const meta = SECTION_REGISTRY[tab.sectionId];
         const Icon = meta.icon;
         const isActive = tab.id === activeTabId;

@@ -16,7 +16,7 @@ import type { SectionId, WorkspaceTab } from "./workspace.types";
 import { getMockWorkspaceData } from "./mockData";
 
 const STORAGE_KEY = "koredata-workspace-tabs-v1";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export interface LogEntry {
   timestamp: string;
@@ -38,6 +38,7 @@ export interface UploadedFile {
 export interface WorkspaceContextValue {
   // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom or project ID)
   activeWorkspace: string;
+  token: string | null;
   changeWorkspace: (workspaceId: string) => void;
 
   projects: any[];
@@ -853,35 +854,143 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Hydrate token
   useEffect(() => {
     const savedToken = window.localStorage.getItem("koredata-token");
-    setToken(savedToken);
-  }, []);
-
-  // Load persisted tabs on mount
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: StoredState = JSON.parse(raw);
-        if (parsed.tabs?.length) {
-          setState(parsed);
-        }
-      }
-    } catch {
-      // ignore corrupt storage
-    } finally {
+    if (savedToken) {
+      setToken(savedToken);
+    } else {
       setHydrated(true);
     }
   }, []);
 
-  // Persist tab state
+  // Load persisted workspace state from DB on mount/login
   useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // ignore failure
-    }
-  }, [state, hydrated]);
+    if (!token) return;
+
+    const loadWorkspaceState = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await fetch(`${API_BASE}/workspace/state`, { headers });
+        if (res.ok) {
+          const stateData = await res.json();
+          if (stateData) {
+            // Restore active project
+            if (stateData.active_project_id) {
+              setActiveWorkspace(stateData.active_project_id);
+            }
+
+            // Restore tabs
+            if (stateData.open_tabs_json) {
+              try {
+                const parsedTabs = JSON.parse(stateData.open_tabs_json);
+                if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+                  setState({
+                    tabs: parsedTabs,
+                    activeTabId: stateData.active_tab_id || parsedTabs[0].id
+                  });
+                }
+              } catch (e) {
+                console.error("Failed to parse open_tabs_json", e);
+              }
+            }
+
+            // Restore settings
+            if (stateData.workspace_settings_json) {
+              try {
+                const settings = JSON.parse(stateData.workspace_settings_json);
+                if (settings) {
+                  if (settings.cleanCol) setCleanCol(settings.cleanCol);
+                  if (settings.cleanOp) setCleanOp(settings.cleanOp);
+                  if (settings.cleanStrategy) setCleanStrategy(settings.cleanStrategy);
+                  if (settings.cleanCustomVal) setCleanCustomVal(settings.cleanCustomVal);
+                  if (settings.cleanTargetVal) setCleanTargetVal(settings.cleanTargetVal);
+                  if (settings.cleanReplacementVal) setCleanReplacementVal(settings.cleanReplacementVal);
+                  if (settings.cleanRenameNewName) setCleanRenameNewName(settings.cleanRenameNewName);
+                  if (settings.cleanCastType) setCleanCastType(settings.cleanCastType);
+                  if (settings.cleanEncodingType) setCleanEncodingType(settings.cleanEncodingType);
+                  if (settings.cleanScalingType) setCleanScalingType(settings.cleanScalingType);
+
+                  if (settings.vizChartType) setVizChartType(settings.vizChartType);
+                  if (settings.vizXAxis) setVizXAxis(settings.vizXAxis);
+                  if (settings.vizYAxis) setVizYAxis(settings.vizYAxis);
+                  if (settings.vizColorTheme) setVizColorTheme(settings.vizColorTheme);
+
+                  if (settings.mlAlgo) setMlAlgo(settings.mlAlgo);
+                  if (settings.targetCol) setTargetCol(settings.targetCol);
+
+                  if (settings.predictInputs) setPredictInputs(settings.predictInputs);
+                }
+              } catch (e) {
+                console.error("Failed to parse settings JSON", e);
+              }
+            }
+
+            // Restore logs
+            if (stateData.workspace_history_json) {
+              try {
+                const parsedLogs = JSON.parse(stateData.workspace_history_json);
+                if (Array.isArray(parsedLogs)) {
+                  setLogs(parsedLogs);
+                }
+              } catch (e) {
+                console.error("Failed to parse logs JSON", e);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load workspace state", err);
+      } finally {
+        setHydrated(true);
+      }
+    };
+
+    loadWorkspaceState();
+  }, [token]);
+
+  // Save workspace state to DB when it changes (debounced)
+  useEffect(() => {
+    if (!hydrated || !token || !activeWorkspace) return;
+
+    const saveState = async () => {
+      try {
+        const headers = { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        };
+        const settingsObj = {
+          cleanCol, cleanOp, cleanStrategy, cleanCustomVal, cleanTargetVal,
+          cleanReplacementVal, cleanRenameNewName, cleanCastType, cleanEncodingType,
+          cleanScalingType, vizChartType, vizXAxis, vizYAxis, vizColorTheme,
+          mlAlgo, targetCol, predictInputs
+        };
+
+        await fetch(`${API_BASE}/workspace/state`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            active_project_id: activeWorkspace,
+            open_tabs_json: JSON.stringify(state.tabs),
+            active_tab_id: state.activeTabId,
+            workspace_settings_json: JSON.stringify(settingsObj),
+            workspace_history_json: JSON.stringify(logs)
+          })
+        });
+      } catch (e) {
+        console.error("Failed to save workspace state to DB", e);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      saveState();
+    }, 1000); // 1s debounce to avoid MySQL query spam
+
+    return () => clearTimeout(delayDebounce);
+  }, [
+    activeWorkspace, state.tabs, state.activeTabId, hydrated, token,
+    cleanCol, cleanOp, cleanStrategy, cleanCustomVal, cleanTargetVal,
+    cleanReplacementVal, cleanRenameNewName, cleanCastType, cleanEncodingType,
+    cleanScalingType, vizChartType, vizXAxis, vizYAxis, vizColorTheme,
+    mlAlgo, targetCol, predictInputs, logs
+  ]);
 
   const openSection = useCallback((sectionId: SectionId) => {
     setState((prev) => {
@@ -1014,12 +1123,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         });
         if (!actRes.ok) throw new Error("Failed to activate workspace in backend");
 
-        const [filesRes, savedRes, historyRes, projRes, notifRes] = await Promise.all([
+        const [filesRes, savedRes, historyRes, projRes, notifRes, reportsRes, vizRes, aiRes] = await Promise.all([
           fetch(`${API_BASE}/my-files?project_id=${wsId}`, { headers: authHeaders }),
           fetch(`${API_BASE}/ml/saved?project_id=${wsId}`, { headers: authHeaders }),
           fetch(`${API_BASE}/ml/history?project_id=${wsId}`, { headers: authHeaders }),
           fetch(`${API_BASE}/projects/${wsId}`, { headers: authHeaders }),
-          fetch(`${API_BASE}/notifications?project_id=${wsId}`, { headers: authHeaders })
+          fetch(`${API_BASE}/notifications?project_id=${wsId}`, { headers: authHeaders }),
+          fetch(`${API_BASE}/reports?project_id=${wsId}`, { headers: authHeaders }).catch(() => null),
+          fetch(`${API_BASE}/visualizations?project_id=${wsId}`, { headers: authHeaders }).catch(() => null),
+          fetch(`${API_BASE}/ai/chat/history?project_id=${wsId}`, { headers: authHeaders }).catch(() => null)
         ]);
 
         let currentFiles: UploadedFile[] = [];
@@ -1039,6 +1151,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (notifRes.ok) {
           const d = await notifRes.json();
           setNotifications(d.notifications || []);
+        }
+        if (reportsRes && reportsRes.ok) {
+          const d = await reportsRes.json();
+          setGeneratedReportsList(d.reports || []);
+        }
+        if (aiRes && aiRes.ok) {
+          const d = await aiRes.json();
+          const msgs = (d.history || []).flatMap((h: any) => [
+            { sender: "user" as const, text: h.prompt },
+            { sender: "ai" as const, text: h.response }
+          ]);
+          setAiMessages(msgs);
         }
 
         if (projRes.ok) {
@@ -1251,10 +1375,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("koredata-projects", JSON.stringify(projects));
   }, [projects]);
 
-  // Persist project states cache
-  useEffect(() => {
-    localStorage.setItem("koredata-project-states", JSON.stringify(projectStates));
-  }, [projectStates]);
 
   const addProject = useCallback(async (projectData: any) => {
     addLog("Projects", `Creating project "${projectData.name}"...`, "info");
@@ -2130,6 +2250,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const value: WorkspaceContextValue = {
     // Active Workspace context (Sales, Churn, Marketing, Revenue, Custom)
     activeWorkspace,
+    token,
     changeWorkspace,
 
     projects,

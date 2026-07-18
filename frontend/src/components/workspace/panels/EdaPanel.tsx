@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorkspace, simulateCleaning } from "../WorkspaceContext";
 import ModuleHeader from "./ModuleHeader";
 import {
@@ -58,18 +58,20 @@ export default function EdaPanel() {
   const [edaCatCol, setEdaCatCol] = useState("");
   const [previewTabCleaning, setPreviewTabCleaning] = useState<"before" | "after">("before");
 
-  // Sync columns once loaded
-  if (edaResult && !edaHistCol && !edaBoxCol && !edaCatCol) {
-    const numCols = edaResult.overview?.numeric_columns || [];
-    const catCols = edaResult.overview?.categorical_columns || [];
-    if (numCols.length > 0) {
-      setEdaHistCol(numCols[0]);
-      setEdaBoxCol(numCols[0]);
+  // Sync columns once loaded inside useEffect to prevent render side effects
+  useEffect(() => {
+    if (edaResult) {
+      const numCols = edaResult.overview?.numeric_columns || [];
+      const catCols = edaResult.overview?.categorical_columns || [];
+      if (numCols.length > 0 && (!edaHistCol || !edaBoxCol)) {
+        if (!edaHistCol) setEdaHistCol(numCols[0]);
+        if (!edaBoxCol) setEdaBoxCol(numCols[0]);
+      }
+      if (catCols.length > 0 && !edaCatCol) {
+        setEdaCatCol(catCols[0]);
+      }
     }
-    if (catCols.length > 0) {
-      setEdaCatCol(catCols[0]);
-    }
-  }
+  }, [edaResult, edaHistCol, edaBoxCol, edaCatCol]);
 
   if (!edaResult) {
     return (

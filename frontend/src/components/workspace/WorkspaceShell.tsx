@@ -21,6 +21,7 @@ import DatasetManagerPanel from "./panels/DatasetManagerPanel";
 import PipelineHistoryPanel from "./panels/PipelineHistoryPanel";
 import { WorkspaceProvider, useWorkspace } from "./WorkspaceContext";
 import { SECTION_REGISTRY } from "./sections";
+import PanelErrorBoundary from "./PanelErrorBoundary";
 
 function ActivePanel() {
   const { activeTab } = useWorkspace();
@@ -128,15 +129,21 @@ function ModuleShell({ children }: { children: React.ReactNode }) {
             </svg>
           </div>
           <div key={moduleId} className="ws-page-transition" style={{ height: '100%', position: "relative", zIndex: 1 }}>
-            <ActivePanel />
+            <PanelErrorBoundary name={moduleId}>
+              <ActivePanel />
+            </PanelErrorBoundary>
           </div>
         </main>
       </div>
       {assistantOpen && (
-        <AiAssistantDrawer onClose={() => setAssistantOpen(false)} />
+        <PanelErrorBoundary name="AI Assistant">
+          <AiAssistantDrawer onClose={() => setAssistantOpen(false)} />
+        </PanelErrorBoundary>
       )}
       {notificationsOpen && (
-        <NotificationCenterDrawer onClose={() => setNotificationsOpen(false)} />
+        <PanelErrorBoundary name="Notifications">
+          <NotificationCenterDrawer onClose={() => setNotificationsOpen(false)} />
+        </PanelErrorBoundary>
       )}
     </div>
   );

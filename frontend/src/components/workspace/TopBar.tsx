@@ -77,18 +77,20 @@ export default function TopBar() {
   };
 
   // Determine active project label
-  const activeProj = projects.find((p) => p.id === activeWorkspace);
+  const activeProj = (projects || []).find((p) => p?.id === activeWorkspace);
   const activeLabel = activeProj ? activeProj.name : "My Projects";
 
   // Filter projects for switcher list
-  const filteredProjects = projects.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProjects = (projects || []).filter((p) =>
+    p && (
+      String(p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(p.description || "").toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
-  const favorites = filteredProjects.filter((p) => p.isFavorite);
-  const personal = filteredProjects.filter((p) => !p.isSample);
-  const samples = filteredProjects.filter((p) => p.isSample);
+  const favorites = filteredProjects.filter((p) => p && p.isFavorite);
+  const personal = filteredProjects.filter((p) => p && !p.isSample);
+  const samples = filteredProjects.filter((p) => p && p.isSample);
 
   const statusText = simRunning ? "RUNNING" : "READY";
   const statusClass = simRunning ? "running" : "ready";

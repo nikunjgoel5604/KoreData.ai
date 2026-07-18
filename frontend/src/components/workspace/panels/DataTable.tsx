@@ -20,6 +20,7 @@ import {
   FileText
 } from "lucide-react";
 import EmptyState from "./EmptyState";
+import { safeCompareString, safeCompareDate, safeParseFloat } from "@/utils/stability";
 
 export interface ColumnConfig<T> {
   key: string;
@@ -124,23 +125,22 @@ export default function DataTable<T extends Record<string, any>>({
 
     // Sort order
     if (sortColumn) {
+      const colConfig = columns.find(c => c.key === sortColumn);
+      const colType = colConfig?.type || "text";
+
       result.sort((a, b) => {
         const valA = a[sortColumn];
         const valB = b[sortColumn];
 
-        if (valA === undefined || valA === null) return 1;
-        if (valB === undefined || valB === null) return -1;
-
-        if (typeof valA === "number" && typeof valB === "number") {
-          return sortDirection === "asc" ? valA - valB : valB - valA;
+        if (colType === "number" || colType === "quality" || sortColumn === "file_size_kb" || sortColumn === "row_count" || sortColumn === "col_count") {
+          const numA = safeParseFloat(valA);
+          const numB = safeParseFloat(valB);
+          return sortDirection === "asc" ? numA - numB : numB - numA;
+        } else if (colType === "date") {
+          return safeCompareDate(valA, valB, sortDirection === "desc");
+        } else {
+          return safeCompareString(valA, valB, sortDirection === "desc");
         }
-
-        const strA = String(valA).toLowerCase();
-        const strB = String(valB).toLowerCase();
-
-        if (strA < strB) return sortDirection === "asc" ? -1 : 1;
-        if (strA > strB) return sortDirection === "asc" ? 1 : -1;
-        return 0;
       });
     }
 

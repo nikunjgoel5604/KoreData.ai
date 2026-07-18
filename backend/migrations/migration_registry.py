@@ -11,5 +11,6 @@ MIGRATION_REGISTRY = {
     7: importlib.import_module("migrations.007_activity"),
     8: importlib.import_module("migrations.008_visualizations"),
     9: importlib.import_module("migrations.009_reports"),
-    10: importlib.import_module("migrations.010_ai")
+    10: importlib.import_module("migrations.010_ai"),
+    11: importlib.import_module("migrations.011_schema_repairs")
 }

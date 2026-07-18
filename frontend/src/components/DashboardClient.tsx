@@ -54,7 +54,7 @@ import {
 } from "lucide-react";
 import Pipeline3D from "./Pipeline3D";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 const simulateCleaning = (rows: any[], cols: string[], col: string, op: string, params: any) => {
   let newRows = JSON.parse(JSON.stringify(rows));

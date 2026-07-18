@@ -1,12 +1,5 @@
-# schema.py — Schema verification engine
+# schema_definitions.py — Authoritative schema definitions for all database tables
 
-import logging
-from typing import List, Optional
-from database.executor import db_fetchone, db_fetchall, db_execute
-
-logger = logging.getLogger(__name__)
-
-# Expected database tables and schemas for all core entities
 TABLES_SCHEMA = {
     "kore_users": {
         "columns": {
@@ -121,11 +114,11 @@ TABLES_SCHEMA = {
             "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "login_id": "VARCHAR(20) NOT NULL",
             "project_id": "VARCHAR(50) NULL",
+            "title": "VARCHAR(200) NOT NULL",
             "message": "TEXT NOT NULL",
             "type": "VARCHAR(20) NOT NULL DEFAULT 'info'",
-            "source_section": "VARCHAR(50) NULL",
             "is_read": "TINYINT(1) NOT NULL DEFAULT 0",
-            "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_user_notifications_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE"),
@@ -186,35 +179,19 @@ TABLES_SCHEMA = {
             "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "login_id": "VARCHAR(20) NOT NULL",
             "project_id": "VARCHAR(50) NULL",
-            "model_key": "VARCHAR(60) NOT NULL",
-            "model_name": "VARCHAR(120) NOT NULL",
-            "category": "VARCHAR(40) NOT NULL",
-            "task_type": "VARCHAR(20) NOT NULL",
-            "target_col": "VARCHAR(100) NULL",
-            "n_features": "INT NULL",
-            "n_rows_train": "INT NULL",
-            "n_rows_test": "INT NULL",
-            "test_size": "FLOAT NULL",
-            "eda_score": "FLOAT NULL",
-            "primary_metric": "FLOAT NULL",
-            "f1_score": "FLOAT NULL",
-            "precision_score": "FLOAT NULL",
-            "recall_score": "FLOAT NULL",
-            "roc_auc": "FLOAT NULL",
-            "rmse": "FLOAT NULL",
-            "mae": "FLOAT NULL",
-            "r2_score": "FLOAT NULL",
-            "cv_score": "FLOAT NULL",
-            "cv_std": "FLOAT NULL",
-            "hyperparams": "TEXT NULL",
-            "model_file_path": "VARCHAR(500) NULL",
-            "deploy_ready": "TINYINT(1) NOT NULL DEFAULT 0",
-            "grade": "VARCHAR(20) NULL",
-            "trained_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "dataset_id": "INT NOT NULL",
+            "model_name": "VARCHAR(100) NOT NULL",
+            "algorithm": "VARCHAR(50) NOT NULL",
+            "target_column": "VARCHAR(100) NOT NULL",
+            "parameters_json": "LONGTEXT NOT NULL",
+            "status": "VARCHAR(20) NOT NULL DEFAULT 'Completed'",
+            "duration_ms": "INT NOT NULL DEFAULT 0",
+            "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_ml_training_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE"),
-            "fk_ml_training_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE")
+            "fk_ml_training_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE"),
+            "fk_ml_training_files": ("dataset_id", "uploaded_files(id) ON DELETE CASCADE ON UPDATE CASCADE")
         }
     },
     "ml_saved_models": {
@@ -222,31 +199,29 @@ TABLES_SCHEMA = {
             "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "login_id": "VARCHAR(20) NOT NULL",
             "project_id": "VARCHAR(50) NULL",
-            "dataset_id": "INT NULL",
-            "history_id": "INT NULL",
-            "model_key": "VARCHAR(60) NOT NULL",
-            "model_name": "VARCHAR(120) NOT NULL",
-            "task_type": "VARCHAR(20) NOT NULL",
+            "history_id": "INT NOT NULL",
+            "model_name": "VARCHAR(100) NOT NULL",
+            "model_key": "VARCHAR(50) NOT NULL",
+            "primary_metric": "DOUBLE NOT NULL DEFAULT 0.0",
+            "metrics_json": "LONGTEXT NOT NULL",
+            "features_json": "LONGTEXT NOT NULL",
             "file_path": "VARCHAR(500) NOT NULL",
-            "file_size_kb": "FLOAT NULL",
-            "feature_names": "TEXT NULL",
-            "primary_metric": "FLOAT NULL",
-            "is_active": "TINYINT(1) NOT NULL DEFAULT 1",
-            "saved_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "saved_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_ml_saved_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE"),
             "fk_ml_saved_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE"),
-            "fk_ml_saved_history": ("history_id", "ml_training_history(id) ON DELETE SET NULL ON UPDATE CASCADE")
+            "fk_ml_saved_history": ("history_id", "ml_training_history(id) ON DELETE CASCADE ON UPDATE CASCADE")
         }
     },
     "dataset_versions": {
         "columns": {
             "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "dataset_id": "INT NOT NULL",
-            "version_num": "INT NOT NULL DEFAULT 1",
+            "version_number": "INT NOT NULL",
+            "description": "VARCHAR(255) NULL",
             "file_path": "VARCHAR(500) NOT NULL",
-            "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_dataset_versions_files": ("dataset_id", "uploaded_files(id) ON DELETE CASCADE ON UPDATE CASCADE")
@@ -257,13 +232,13 @@ TABLES_SCHEMA = {
             "id": "INT NOT NULL AUTO_INCREMENT PRIMARY KEY",
             "login_id": "VARCHAR(20) NOT NULL",
             "session_token": "VARCHAR(64) NOT NULL",
-            "login_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "logout_at": "DATETIME NULL DEFAULT NULL",
-            "duration_sec": "INT NULL DEFAULT NULL",
+            "login_at": "DATETIME NOT NULL",
+            "logout_at": "DATETIME NULL",
+            "duration_sec": "INT NULL",
             "ip_address": "VARCHAR(45) NULL",
             "user_agent": "TEXT NULL",
             "is_active": "TINYINT(1) NOT NULL DEFAULT 1",
-            "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_user_sessions_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE")
@@ -277,9 +252,9 @@ TABLES_SCHEMA = {
             "first_login_at": "DATETIME NOT NULL",
             "last_seen_at": "DATETIME NOT NULL",
             "total_active_sec": "INT NOT NULL DEFAULT 0",
-            "login_count": "INT NOT NULL DEFAULT 0",
+            "login_count": "INT NOT NULL DEFAULT 1",
             "logout_count": "INT NOT NULL DEFAULT 0",
-            "updated_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+            "updated_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
         },
         "foreign_keys": {
             "fk_daily_activity_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE")
@@ -298,6 +273,7 @@ TABLES_SCHEMA = {
         },
         "foreign_keys": {
             "fk_visualizations_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE"),
+            "fk_visualizations_files": ("dataset_id", "uploaded_files(id) ON DELETE CASCADE ON UPDATE CASCADE"),
             "fk_visualizations_users": ("created_by", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE")
         }
     },
@@ -436,92 +412,5 @@ TABLES_SCHEMA = {
             "fk_feature_eng_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE"),
             "fk_feature_eng_files": ("dataset_id", "uploaded_files(id) ON DELETE CASCADE ON UPDATE CASCADE")
         }
-    },
-    "project_activity_log": {
-        "columns": {
-            "id": "INT AUTO_INCREMENT PRIMARY KEY",
-            "project_id": "VARCHAR(50) NOT NULL",
-            "login_id": "VARCHAR(20) NOT NULL",
-            "action": "VARCHAR(255) NOT NULL",
-            "entity": "VARCHAR(50) NULL",
-            "entity_id": "VARCHAR(50) NULL",
-            "previous_value": "TEXT NULL",
-            "new_value": "TEXT NULL",
-            "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP"
-        },
-        "foreign_keys": {
-            "fk_project_activity_projects": ("project_id", "projects(id) ON DELETE CASCADE ON UPDATE CASCADE"),
-            "fk_project_activity_users": ("login_id", "kore_users(login_id) ON DELETE CASCADE ON UPDATE CASCADE")
-        }
     }
 }
-
-def table_exists(table_name: str) -> bool:
-    row = db_fetchone(
-        "SELECT 1 FROM information_schema.TABLES "
-        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
-        (table_name,)
-    )
-    return row is not None
-
-def column_exists(table_name: str, column_name: str) -> bool:
-    row = db_fetchone(
-        "SELECT 1 FROM information_schema.COLUMNS "
-        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s",
-        (table_name, column_name)
-    )
-    return row is not None
-
-def index_exists(table_name: str, index_name: str) -> bool:
-    row = db_fetchone(
-        "SELECT 1 FROM information_schema.STATISTICS "
-        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND INDEX_NAME = %s",
-        (table_name, index_name)
-    )
-    return row is not None
-
-def foreign_key_exists(table_name: str, constraint_name: str) -> bool:
-    row = db_fetchone(
-        "SELECT 1 FROM information_schema.TABLE_CONSTRAINTS "
-        "WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = %s "
-        "AND CONSTRAINT_NAME = %s AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
-        (table_name, constraint_name)
-    )
-    return row is not None
-
-def get_schema_version() -> int:
-    """Query schema_versions table for the highest successfully applied version number."""
-    if not table_exists("schema_versions"):
-        return 0
-    row = db_fetchone(
-        "SELECT MAX(version) as max_v FROM schema_versions WHERE status = 'Applied'"
-    )
-    if row and row["max_v"] is not None:
-        return int(row["max_v"])
-    return 0
-
-def get_applied_migrations() -> List[int]:
-    """Retrieve list of successfully applied migration version integers."""
-    if not table_exists("schema_versions"):
-        return []
-    rows = db_fetchall(
-        "SELECT version FROM schema_versions WHERE status = 'Applied' ORDER BY version ASC"
-    )
-    return [int(r["version"]) for r in rows]
-
-def record_migration(
-    version: int,
-    description: str,
-    checksum: str,
-    execution_time_ms: float,
-    status: str = "Applied"
-) -> None:
-    """Record a migration run outcome in the version tracking table."""
-    db_execute(
-        "INSERT INTO schema_versions (version, description, checksum, applied_at, execution_time, status) "
-        "VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s, %s) "
-        "ON DUPLICATE KEY UPDATE "
-        "description = VALUES(description), checksum = VALUES(checksum), "
-        "applied_at = VALUES(applied_at), execution_time = VALUES(execution_time), status = VALUES(status)",
-        (version, description, checksum, execution_time_ms, status)
-    )

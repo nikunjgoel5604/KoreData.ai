@@ -135,7 +135,7 @@ const normalizeProject = (p: any): any => {
   const owner = String(p.owner || "Me").trim();
   const icon = String(p.icon || "folder").trim();
   const colorTheme = String(p.colorTheme || p.color_theme || "blue").trim();
-  const tags = Array.isArray(p.tags) ? p.tags.map(t => String(t).trim()).filter(Boolean) : [];
+  const tags = Array.isArray(p.tags) ? p.tags.map((t: any) => String(t).trim()).filter(Boolean) : [];
   const isFavorite = !!(p.isFavorite || p.favorite);
   const isArchived = !!(p.isArchived || p.archived);
   const isSample = !!p.isSample;

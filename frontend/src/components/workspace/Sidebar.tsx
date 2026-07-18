@@ -100,7 +100,7 @@ export default function Sidebar() {
     revenue: "Revenue Forecasting",
     custom: "Personal Sandbox"
   };
-  const activeProj = projects.find(p => p.id === activeWorkspace);
+  const activeProj = (projects || []).find(p => p?.id === activeWorkspace);
   const activeWorkspaceLabel = activeProj ? activeProj.name : (workspaceLabels[activeWorkspace as keyof typeof workspaceLabels] || "My Projects");
 
   const datasetName = edaResult?.overview?.dataset_name || "sales_q2.csv";
@@ -113,9 +113,9 @@ export default function Sidebar() {
   };
 
   // Sub-items computed lists
-  const favoriteProjects = projects.filter((p) => p.isFavorite);
-  const sharedProjects = projects.filter((p) => p.sharedBy);
-  const sampleProjects = projects.filter((p) => p.isSample);
+  const favoriteProjects = (projects || []).filter((p) => p && p.isFavorite);
+  const sharedProjects = (projects || []).filter((p) => p && p.sharedBy);
+  const sampleProjects = (projects || []).filter((p) => p && p.isSample);
 
   return (
     <aside className="ws-sidebar" data-collapsed={sidebarCollapsed} style={{ position: "relative" }}>
@@ -389,7 +389,7 @@ export default function Sidebar() {
               onClick={() => {
                 const isSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
                 if (isSample) {
-                  const firstUserProj = projects.find((p) => !p.isSample && p.id !== "custom" && !p.is_deleted && !p.is_archived);
+                  const firstUserProj = (projects || []).find((p) => p && !p.isSample && p.id !== "custom" && !p.isDeleted && !p.isArchived);
                   if (firstUserProj) {
                     changeWorkspace(firstUserProj.id);
                   }

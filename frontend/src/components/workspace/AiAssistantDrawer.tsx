@@ -69,6 +69,8 @@ const getDefaultWindowState = (vw: number, vh: number): CopilotWindowState => {
   };
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
 export default function AiAssistantDrawer({ onClose }: AiAssistantDrawerProps) {
   const {
     activeTab,
@@ -79,7 +81,9 @@ export default function AiAssistantDrawer({ onClose }: AiAssistantDrawerProps) {
     setAiMessages,
     aiInputText,
     setAiInputText,
-    trainedModelCard
+    trainedModelCard,
+    activeWorkspace,
+    token
   } = useWorkspace();
 
   const [mounted, setMounted] = useState(false);
@@ -144,6 +148,34 @@ export default function AiAssistantDrawer({ onClose }: AiAssistantDrawerProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Load AI chat history from backend database when workspace or token changes
+  useEffect(() => {
+    if (!token || !activeWorkspace || activeWorkspace.startsWith("sample-")) return;
+
+    const fetchHistory = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await fetch(`${API_BASE}/ai/chat/history?project_id=${activeWorkspace}`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.history)) {
+            if (data.history.length > 0) {
+              setAiMessages(data.history);
+            } else {
+              setAiMessages([
+                { sender: "ai", text: "Welcome to KoreData-EX AI Assistant. I can explain your dataset, recommend cleaning steps, generate reports, or compile SQL. Ask me anything!" }
+              ]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch AI chat history", err);
+      }
+    };
+
+    fetchHistory();
+  }, [activeWorkspace, token, setAiMessages]);
+
   // Persist window state coordinate adjustments
   useEffect(() => {
     localStorage.setItem("aiCopilot.windowState", JSON.stringify(windowState));
@@ -188,13 +220,46 @@ export default function AiAssistantDrawer({ onClose }: AiAssistantDrawerProps) {
     handleSendMessage(prompt);
   };
 
-  const handleSendMessage = (textToSend: string) => {
+  const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setAiMessages((prev) => [...prev, { sender: "user", text: textToSend, time: timestamp }]);
     setAiInputText("");
     setIsTyping(true);
+
+    if (token && activeWorkspace && !activeWorkspace.startsWith("sample-")) {
+      try {
+        const res = await fetch(`${API_BASE}/ai/chat`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            project_id: activeWorkspace,
+            prompt: textToSend
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsTyping(false);
+          if (data && data.success) {
+            setAiMessages((prev) => [
+              ...prev,
+              {
+                sender: "ai",
+                text: data.response,
+                time: data.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+            ]);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to send AI chat message to backend", err);
+      }
+    }
 
     setTimeout(() => {
       setIsTyping(false);
