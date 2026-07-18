@@ -849,7 +849,32 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     setLogs((prev) => [...prev, { timestamp, node, message, type }]);
   }, []);
 
+  // Stable workspace state ref to break callbacks dependencies cycles
+  const workspaceStateRef = useRef({
+    activeWorkspace,
+    edaResult,
+    models,
+    savedModels,
+    files,
+    generatedReportsList,
+    logs,
+    trainedModelCard,
+    projectStates
+  });
 
+  useEffect(() => {
+    workspaceStateRef.current = {
+      activeWorkspace,
+      edaResult,
+      models,
+      savedModels,
+      files,
+      generatedReportsList,
+      logs,
+      trainedModelCard,
+      projectStates
+    };
+  });
 
   // Hydrate token
   useEffect(() => {
@@ -860,91 +885,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setHydrated(true);
     }
   }, []);
-
-  // Load persisted workspace state from DB on mount/login
-  useEffect(() => {
-    if (!token) return;
-
-    const loadWorkspaceState = async () => {
-      try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const res = await fetch(`${API_BASE}/workspace/state`, { headers });
-        if (res.ok) {
-          const stateData = await res.json();
-          if (stateData) {
-            // Restore active project
-            if (stateData.active_project_id) {
-              setActiveWorkspace(stateData.active_project_id);
-            }
-
-            // Restore tabs
-            if (stateData.open_tabs_json) {
-              try {
-                const parsedTabs = JSON.parse(stateData.open_tabs_json);
-                if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
-                  setState({
-                    tabs: parsedTabs,
-                    activeTabId: stateData.active_tab_id || parsedTabs[0].id
-                  });
-                }
-              } catch (e) {
-                console.error("Failed to parse open_tabs_json", e);
-              }
-            }
-
-            // Restore settings
-            if (stateData.workspace_settings_json) {
-              try {
-                const settings = JSON.parse(stateData.workspace_settings_json);
-                if (settings) {
-                  if (settings.cleanCol) setCleanCol(settings.cleanCol);
-                  if (settings.cleanOp) setCleanOp(settings.cleanOp);
-                  if (settings.cleanStrategy) setCleanStrategy(settings.cleanStrategy);
-                  if (settings.cleanCustomVal) setCleanCustomVal(settings.cleanCustomVal);
-                  if (settings.cleanTargetVal) setCleanTargetVal(settings.cleanTargetVal);
-                  if (settings.cleanReplacementVal) setCleanReplacementVal(settings.cleanReplacementVal);
-                  if (settings.cleanRenameNewName) setCleanRenameNewName(settings.cleanRenameNewName);
-                  if (settings.cleanCastType) setCleanCastType(settings.cleanCastType);
-                  if (settings.cleanEncodingType) setCleanEncodingType(settings.cleanEncodingType);
-                  if (settings.cleanScalingType) setCleanScalingType(settings.cleanScalingType);
-
-                  if (settings.vizChartType) setVizChartType(settings.vizChartType);
-                  if (settings.vizXAxis) setVizXAxis(settings.vizXAxis);
-                  if (settings.vizYAxis) setVizYAxis(settings.vizYAxis);
-                  if (settings.vizColorTheme) setVizColorTheme(settings.vizColorTheme);
-
-                  if (settings.mlAlgo) setMlAlgo(settings.mlAlgo);
-                  if (settings.targetCol) setTargetCol(settings.targetCol);
-
-                  if (settings.predictInputs) setPredictInputs(settings.predictInputs);
-                }
-              } catch (e) {
-                console.error("Failed to parse settings JSON", e);
-              }
-            }
-
-            // Restore logs
-            if (stateData.workspace_history_json) {
-              try {
-                const parsedLogs = JSON.parse(stateData.workspace_history_json);
-                if (Array.isArray(parsedLogs)) {
-                  setLogs(parsedLogs);
-                }
-              } catch (e) {
-                console.error("Failed to parse logs JSON", e);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load workspace state", err);
-      } finally {
-        setHydrated(true);
-      }
-    };
-
-    loadWorkspaceState();
-  }, [token]);
 
   // Save workspace state to DB when it changes (debounced)
   useEffect(() => {
@@ -1072,19 +1012,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const changeWorkspace = useCallback(async (wsId: string) => {
     const isSample = ["sales", "churn", "marketing", "revenue"].includes(wsId);
-    const prevIsSample = ["sales", "churn", "marketing", "revenue"].includes(activeWorkspace);
+    const currentRef = workspaceStateRef.current;
+    const prevIsSample = ["sales", "churn", "marketing", "revenue"].includes(currentRef.activeWorkspace);
     
-    if (!prevIsSample && activeWorkspace && activeWorkspace !== "custom") {
+    if (!prevIsSample && currentRef.activeWorkspace && currentRef.activeWorkspace !== "custom") {
       setProjectStates((prev: any) => ({
         ...prev,
-        [activeWorkspace]: {
-          edaResult,
-          models,
-          savedModels,
-          files,
-          generatedReportsList,
-          logs,
-          trainedModelCard
+        [currentRef.activeWorkspace]: {
+          edaResult: currentRef.edaResult,
+          models: currentRef.models,
+          savedModels: currentRef.savedModels,
+          files: currentRef.files,
+          generatedReportsList: currentRef.generatedReportsList,
+          logs: currentRef.logs,
+          trainedModelCard: currentRef.trainedModelCard
         }
       }));
     }
@@ -1194,7 +1135,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       } catch (err: any) {
         addLog("Workspace", `Failed to activate project: ${err.message}`, "error");
         
-        const cached = projectStates[wsId];
+        const cached = currentRef.projectStates ? currentRef.projectStates[wsId] : null;
         if (cached) {
           setEdaResult(cached.edaResult);
           setModels(cached.models);
@@ -1229,55 +1170,102 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }, [
-    activeWorkspace,
-    edaResult,
-    models,
-    savedModels,
-    files,
-    generatedReportsList,
-    logs,
-    trainedModelCard,
-    projectStates,
-    authHeaders,
-    addLog
-  ]);
+  }, [authHeaders, addLog]);
 
-  useEffect(() => {
-    if (token) {
-      loadProjects();
-    }
-  }, [token, loadProjects]);
-
+  // Consolidated single initialization flow
   useEffect(() => {
     if (!token) return;
 
-    const loadDashboardData = async () => {
+    const initializeWorkspace = async () => {
       setApiStatus("loading");
       setStatusMessage("Loading Python cloud packages...");
       try {
-        const profileRes = await fetch(`${API_BASE}/me`, { headers: authHeaders });
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // 1. Verify User (/me)
+        const profileRes = await fetch(`${API_BASE}/me`, { headers });
         if (!profileRes.ok) {
           window.localStorage.removeItem("koredata-token");
           window.localStorage.removeItem("koredata-login-id");
           window.location.href = "/login";
           return;
         }
-
-        setUser(await profileRes.json());
+        const userProfile = await profileRes.json();
+        setUser(userProfile);
         addLog("Security", "User session verified securely.", "success");
 
-        const wsRes = await fetch(`${API_BASE}/workspace/state`, { headers: authHeaders }).catch(() => null);
-        let selectedWs = activeWorkspace;
-
+        // 2. Load Workspace State Preferences (/workspace/state)
+        let selectedWs = "custom";
+        const wsRes = await fetch(`${API_BASE}/workspace/state`, { headers }).catch(() => null);
         if (wsRes?.ok) {
-          const ws = await wsRes.json();
-          if (ws.active_project_id) {
-            selectedWs = ws.active_project_id;
+          const stateData = await wsRes.json();
+          if (stateData) {
+            if (stateData.active_project_id) {
+              selectedWs = stateData.active_project_id;
+            }
+
+            // Restore settings
+            if (stateData.workspace_settings_json) {
+              try {
+                const settings = JSON.parse(stateData.workspace_settings_json);
+                if (settings) {
+                  if (settings.cleanCol) setCleanCol(settings.cleanCol);
+                  if (settings.cleanOp) setCleanOp(settings.cleanOp);
+                  if (settings.cleanStrategy) setCleanStrategy(settings.cleanStrategy);
+                  if (settings.cleanCustomVal) setCleanCustomVal(settings.cleanCustomVal);
+                  if (settings.cleanTargetVal) setCleanTargetVal(settings.cleanTargetVal);
+                  if (settings.cleanReplacementVal) setCleanReplacementVal(settings.cleanReplacementVal);
+                  if (settings.cleanRenameNewName) setCleanRenameNewName(settings.cleanRenameNewName);
+                  if (settings.cleanCastType) setCleanCastType(settings.cleanCastType);
+                  if (settings.cleanEncodingType) setCleanEncodingType(settings.cleanEncodingType);
+                  if (settings.cleanScalingType) setCleanScalingType(settings.cleanScalingType);
+
+                  if (settings.vizChartType) setVizChartType(settings.vizChartType);
+                  if (settings.vizXAxis) setVizXAxis(settings.vizXAxis);
+                  if (settings.vizYAxis) setVizYAxis(settings.vizYAxis);
+                  if (settings.vizColorTheme) setVizColorTheme(settings.vizColorTheme);
+
+                  if (settings.mlAlgo) setMlAlgo(settings.mlAlgo);
+                  if (settings.targetCol) setTargetCol(settings.targetCol);
+
+                  if (settings.predictInputs) setPredictInputs(settings.predictInputs);
+                }
+              } catch (e) {
+                console.error("Failed to parse settings JSON", e);
+              }
+            }
+
+            // Restore logs
+            if (stateData.workspace_history_json) {
+              try {
+                const parsedLogs = JSON.parse(stateData.workspace_history_json);
+                if (Array.isArray(parsedLogs)) {
+                  setLogs(parsedLogs);
+                }
+              } catch (e) {
+                console.error("Failed to parse logs JSON", e);
+              }
+            }
+
+            // Restore tabs
+            if (stateData.open_tabs_json) {
+              try {
+                const parsedTabs = JSON.parse(stateData.open_tabs_json);
+                if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+                  setState({
+                    tabs: parsedTabs,
+                    activeTabId: stateData.active_tab_id || parsedTabs[0].id
+                  });
+                }
+              } catch (e) {
+                console.error("Failed to parse open_tabs_json", e);
+              }
+            }
           }
         }
 
-        const projsRes = await fetch(`${API_BASE}/projects`, { headers: authHeaders }).catch(() => null);
+        // 3. Load Projects (/projects)
+        const projsRes = await fetch(`${API_BASE}/projects`, { headers }).catch(() => null);
         let currentProjects = [];
         const samples = SEED_PROJECTS.map(validateAndNormalizeProject).filter(Boolean).filter((p) => p.isSample);
         if (projsRes?.ok) {
@@ -1288,6 +1276,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           setProjects(samples);
         }
 
+        // 4. Fallback if no active project, create one
         if (!selectedWs || selectedWs === "custom") {
           const validUserProj = currentProjects.find((p: any) => !p.isDeleted && !p.isArchived);
           if (validUserProj) {
@@ -1296,7 +1285,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             addLog("Projects", "No active project found. Generating default private workspace...", "info");
             const createRes = await fetch(`${API_BASE}/projects`, {
               method: "POST",
-              headers: { ...authHeaders, "Content-Type": "application/json" },
+              headers: { ...headers, "Content-Type": "application/json" },
               body: JSON.stringify({
                 name: "My Sandbox Project",
                 description: "A private workspace for analyzing datasets and building ML models.",
@@ -1310,7 +1299,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             if (createRes.ok) {
               const createData = await createRes.json();
               selectedWs = createData.project_id;
-              const projsResNew = await fetch(`${API_BASE}/projects`, { headers: authHeaders }).catch(() => null);
+              const projsResNew = await fetch(`${API_BASE}/projects`, { headers }).catch(() => null);
               if (projsResNew?.ok) {
                 const newDbProjs = ((await projsResNew.json()).projects || []).map(validateAndNormalizeProject).filter(Boolean);
                 setProjects([...samples, ...newDbProjs]);
@@ -1319,15 +1308,108 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        // 5. Activate Selected Workspace
         if (selectedWs) {
-          await changeWorkspace(selectedWs);
+          setActiveWorkspace(selectedWs);
+          // Directly call backend sync endpoints sequentially
+          try {
+            const isSample = ["sales", "churn", "marketing", "revenue"].includes(selectedWs);
+            if (isSample) {
+              const ws = getMockWorkspaceData(selectedWs as any);
+              setEdaResult(ws.edaResult);
+              setModels(ws.models);
+              setSavedModels(ws.savedModels);
+              setFiles(ws.files);
+              setGeneratedReportsList(ws.reports);
+              setTrainedModelCard(ws.savedModels[0] || null);
+              setPredictResult(null);
+              setPredictInputs({});
+              setLogs(ws.logs);
+            } else {
+              const actRes = await fetch(`${API_BASE}/workspace/activate`, {
+                method: "POST",
+                headers: { ...headers, "Content-Type": "application/json" },
+                body: JSON.stringify({ project_id: selectedWs })
+              });
+              if (actRes.ok) {
+                const [filesRes, savedRes, historyRes, projRes, notifRes, reportsRes, vizRes, aiRes] = await Promise.all([
+                  fetch(`${API_BASE}/my-files?project_id=${selectedWs}`, { headers }),
+                  fetch(`${API_BASE}/ml/saved?project_id=${selectedWs}`, { headers }),
+                  fetch(`${API_BASE}/ml/history?project_id=${selectedWs}`, { headers }),
+                  fetch(`${API_BASE}/projects/${selectedWs}`, { headers }),
+                  fetch(`${API_BASE}/notifications?project_id=${selectedWs}`, { headers }),
+                  fetch(`${API_BASE}/reports?project_id=${selectedWs}`, { headers }).catch(() => null),
+                  fetch(`${API_BASE}/visualizations?project_id=${selectedWs}`, { headers }).catch(() => null),
+                  fetch(`${API_BASE}/ai/chat/history?project_id=${selectedWs}`, { headers }).catch(() => null)
+                ]);
+
+                let currentFiles: UploadedFile[] = [];
+                if (filesRes.ok) {
+                  const d = await filesRes.json();
+                  currentFiles = d.files || [];
+                  setFiles(currentFiles);
+                }
+                if (savedRes.ok) {
+                  const d = await savedRes.json();
+                  setSavedModels(d.saved_models || []);
+                }
+                if (historyRes.ok) {
+                  const d = await historyRes.json();
+                  setMlHistory(d.history || []);
+                }
+                if (notifRes.ok) {
+                  const d = await notifRes.json();
+                  setNotifications(d.notifications || []);
+                }
+                if (reportsRes && reportsRes.ok) {
+                  const d = await reportsRes.json();
+                  setGeneratedReportsList(d.reports || []);
+                }
+                if (aiRes && aiRes.ok) {
+                  const d = await aiRes.json();
+                  const msgs = (d.history || []).flatMap((h: any) => [
+                    { sender: "user" as const, text: h.prompt },
+                    { sender: "ai" as const, text: h.response }
+                  ]);
+                  setAiMessages(msgs);
+                }
+
+                if (projRes.ok) {
+                  const projData = await projRes.json();
+                  const activeDs = projData.project?.active_dataset;
+                  if (activeDs) {
+                    const fileRow = currentFiles.find((f: any) => f.file_name === activeDs);
+                    if (fileRow) {
+                      const edaRes = await fetch(`${API_BASE}/my-files/${fileRow.id}/eda`, { headers });
+                      if (edaRes.ok) {
+                        setEdaResult(await edaRes.json());
+                      }
+                    }
+                  } else {
+                    setEdaResult(null);
+                  }
+
+                  if (projData.activity) {
+                    setLogs(projData.activity.map((a: any) => ({
+                      timestamp: new Date(a.created_at).toLocaleTimeString(),
+                      node: a.entity || "System",
+                      message: `${a.action}: ${a.new_value || ""}`,
+                      type: "info"
+                    })));
+                  }
+                }
+              }
+            }
+          } catch (activateErr) {
+            console.error("Failed workspace activation on startup", activateErr);
+          }
         }
 
         setApiStatus("ready");
         setStatusMessage("AI cloud runtime initialized");
         addLog("Runtime", "All endpoints bound successfully.", "success");
       } catch (err) {
-        // Safe fallback in offline mode: load current active sample dashboard data
+        // Safe offline fallback
         const ws = getMockWorkspaceData(activeWorkspace);
         if (ws.edaResult) {
           setEdaResult(ws.edaResult);
@@ -1340,11 +1422,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setApiStatus("ready");
         setStatusMessage("Offline demo mode active");
         addLog("Runtime", "Connected in Offline Demo mode.", "success");
+      } finally {
+        setHydrated(true);
       }
     };
 
-    loadDashboardData();
-  }, [token, authHeaders, addLog, changeWorkspace]);
+    initializeWorkspace();
+  }, [token, addLog]);
 
   // Set default code text
   useEffect(() => {
