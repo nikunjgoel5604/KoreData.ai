@@ -22,7 +22,7 @@ export default function HomePage() {
             </p>
 
             <div className="hero-actions">
-              <Link className="btn btn-primary" href="/register">Get Started <ArrowRight size={16} /></Link>
+              <Link className="btn btn-primary" href="https://cal.com/koredata-ai-i4rvhi">Get Started <ArrowRight size={16} /></Link>
               <Link className="btn" href="/contact"><Calendar size={16} /> Book Demo</Link>
               <button className="btn"><Play size={16} /> Watch Demo</button>
             </div>
@@ -43,7 +43,7 @@ export default function HomePage() {
               <div className="preview-top">
                 <span>KoreData Intelligence Console</span>
                 <span>Live</span>
-              </div>
+              </div>x
 
               <div className="preview-grid">
                 <div className="metric">
