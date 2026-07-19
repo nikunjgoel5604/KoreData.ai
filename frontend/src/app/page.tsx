@@ -21,11 +21,29 @@ export default function HomePage() {
               machine learning, LLMs, retrieval-augmented generation, and enterprise-grade analytics.
             </p>
 
-            <div className="hero-actions">
-              <Link className="btn btn-primary" href="https://cal.com/koredata-ai-i4rvhi">Get Started <ArrowRight size={16} /></Link>
-              <Link className="btn" href="/contact"><Calendar size={16} /> Book Demo</Link>
-              <button className="btn"><Play size={16} /> Watch Demo</button>
-            </div>
+           <div className="hero-actions">
+  <Link
+    className="btn btn-primary"
+    href="https://cal.com/koredata-ai-i4rvhi"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Get Started <ArrowRight size={16} />
+  </Link>
+
+  <Link
+    className="btn"
+    href="https://cal.com/koredata-ai-i4rvhi"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <Calendar size={16} /> Book Demo
+  </Link>
+
+  <button className="btn">
+    <Play size={16} /> Watch Demo
+  </button>
+</div>
 
             <div className="trust-row">
               {trust.map(([value, label]) => (
